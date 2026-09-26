@@ -37,21 +37,21 @@ public sealed class RatedExchangerSolveTests
 {
     /// <summary>The substation's secondary, with HX1 rated against the primary's stated 85/45 profile.</summary>
     private const string RatedLoop = """
-        fluidscript 1
-        circuit rated
-        fluid water
+        fluidscript 2
 
-        SP   pump
-        SS   pipe length=30 dn=32
-        SR   pipe length=30 dn=32
-        LOAD heat_exchanger power=-150 dt=20
+        circuit "rated":
+          fluid = water
 
-        HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
+          SP  pump
+          SS  pipe  length = 30  dn = 32
+          SR  pipe  length = 30  dn = 32
+          LOAD  heat_exchanger  power = -150  dt = 20
 
-        connections
-        HX1.out - SS - NSUP
-        NSUP - LOAD - NRET
-        NRET - SR - SP - HX1.in
+          HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300
+
+          HX1.primary.out - SS - NSUP
+          NSUP - LOAD - NRET
+          NRET - SR - SP - HX1.primary.in
         """;
 
     private static OuterLoop Loop()
@@ -204,8 +204,8 @@ public sealed class RatedExchangerSolveTests
         // D-97 for the rated case. LOAD without its `dt` and HX1 stated as `in`+`dt`: the only flow pin
         // left is the exchanger's own, and the seed starts from Q/(cp·dt) rather than the nominal 0.1.
         var source = RatedLoop
-            .Replace("power=-150 dt=20", "power=-150", StringComparison.Ordinal)
-            .Replace("in.t=40 out.t=60", "in.t=40 dt=20", StringComparison.Ordinal);
+            .Edited("power = -150  dt = 20", "power = -150")
+            .Edited("primary.in.t = 40  primary.out.t = 60", "primary.in.t = 40  dt = 20");
 
         var run = await RunAsync(source, "rated");
 
@@ -233,36 +233,37 @@ public sealed class RatedExchangerSolveTests
     /// <summary>The substation as two circuit blocks, with HX1's declaration placed by the caller.</summary>
     private static string TwoCircuits(bool exchangerInDistrict)
     {
-        const string exchanger = "HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300";
+        const string exchanger = "HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300";
 
         return $"""
-            fluidscript 1
-            circuit district 400
-            fluid water
+            fluidscript 2
 
-            NPS inlet t=85 p=600
-            NPR outlet p=350
-            PCV valve
-            PP  pipe length=12 dn=25
-            {(exchangerInDistrict ? exchanger : string.Empty)}
+            circuit "district":
+              fluid = water
+              number = 400
 
-            connections
-            NPS - PCV - PP - HX1.in[2]
-            HX1.out[2] - NPR
+              NPS  inlet  t = 85  p = 600
+              NPR  outlet  p = 350
+              PCV  valve
+              PP  pipe  length = 12  dn = 25
+              {(exchangerInDistrict ? exchanger : string.Empty)}
 
-            circuit heating 100
-            fluid water
+              NPS - PCV - PP - HX1.secondary.in
+              HX1.secondary.out - NPR
 
-            SP   pump
-            SS   pipe length=30 dn=32
-            SR   pipe length=30 dn=32
-            LOAD heat_exchanger power=-150 dt=20
-            {(exchangerInDistrict ? string.Empty : exchanger)}
+            circuit "heating":
+              fluid = water
+              number = 100
 
-            connections
-            HX1.out - SS - NSUP
-            NSUP - LOAD - NRET
-            NRET - SR - SP - HX1.in
+              SP  pump
+              SS  pipe  length = 30  dn = 32
+              SR  pipe  length = 30  dn = 32
+              LOAD  heat_exchanger  power = -150  dt = 20
+              {(exchangerInDistrict ? string.Empty : exchanger)}
+
+              HX1.primary.out - SS - NSUP
+              NSUP - LOAD - NRET
+              NRET - SR - SP - HX1.primary.in
 
             """;
     }

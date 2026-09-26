@@ -12,16 +12,18 @@ public sealed class BranchResistanceTests
 {
     private const string Loop =
         """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        PU  pump head=5 m
-        TV  valve kv=1
-        HE  load in.t=80 out.t=60 power=20 kW
-        N1  node p=150 kPa
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        N1 - PU - TV - HE - N1
+          PU  pump  head = 5 m
+          TV  valve  kv = 1
+          HE  load  in.t = 80  out.t = 60  power = 20 kW
+          N1  node  p = 150 kPa
+
+          N1 - PU - TV - HE - N1
         """;
 
     /// <summary>A valve read at a flow it would never pass is believed only up to the top of the selection band by the seed, and in full by sizing (<c>S-47</c>).</summary>

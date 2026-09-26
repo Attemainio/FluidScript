@@ -126,7 +126,8 @@ public static class Language2Wording
 
             // Codes that name the kind: respelled only for an exchanger.
             ("FS1503", "available") or ("FS1503", "parameter")
-                or ("FS1505", "available") or ("FS1505", "port") when kind == Exchanger => Sides(argument.Value),
+                or ("FS1505", "available") or ("FS1505", "port")
+                or ("FS1538", "port") when kind == Exchanger => Sides(argument.Value),
 
             // A worked example of a difference, which language 2 writes in K (D-172); dC stays, being language 2 too.
             ("FS1302", "example") => KelvinDifference.Replace(argument.Value, "K"),

@@ -20,17 +20,18 @@ public sealed class PipeMaterialTests
     {
         var lowered = GraphFixture.Lower(
             """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            PU1  pump
-            P1   pipe dn=15 length=10
-            P2   pipe dn=15 length=10 material=copper_en1057
-            P3   pipe dn=15 length=10 material=steel_en10255
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N6 - P3 - N1
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              PU1  pump
+              P1  pipe  dn = 15  length = 10
+              P2  pipe  dn = 15  length = 10  material = copper_en1057
+              P3  pipe  dn = 15  length = 10  material = steel_en10255
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N6 - P3 - N1
             """);
 
         double Bore(string name) => Assert.IsType<PipeComponent>(lowered.Graph.Components.Single(c => c.Name == name)).InsideDiameter;
@@ -51,16 +52,17 @@ public sealed class PipeMaterialTests
         // the sizer walked is copper's, which the bore proves.
         var lowered = GraphFixture.Lower(
             """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            PU1  pump
-            P1   pipe length=10
-            P2   pipe length=10 material=copper_en1057
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N1
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              PU1  pump
+              P1  pipe  length = 10
+              P2  pipe  length = 10  material = copper_en1057
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N1
             """);
 
         var steel = Assert.IsType<PipeComponent>(lowered.Graph.Components.Single(static c => c.Name == "P1"));
@@ -86,17 +88,20 @@ public sealed class PipeMaterialTests
         var prepared = loop.Prepare(
             GraphFixture.Bind(
                 """
-                fluidscript 1
-                catalog copper_en1057
-                circuit loop
-                fluid water
-                HE1  heat_exchanger power=30 in.t=20 out.t=50
-                LOAD heat_exchanger power=-30 dp=0
-                PU1  pump
-                P1   pipe dn=15 length=10
-                P2   pipe dn=15 length=10 material=steel_en10255
-                connections
-                N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N1
+                fluidscript 2
+
+                project:
+                  catalog = copper_en1057
+
+                circuit "loop":
+                  fluid = water
+
+                  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+                  LOAD  heat_exchanger  power = -30  dp = 0
+                  PU1  pump
+                  P1  pipe  dn = 15  length = 10
+                  P2  pipe  dn = 15  length = 10  material = steel_en10255
+                  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N1
                 """),
             Water.Instance);
 

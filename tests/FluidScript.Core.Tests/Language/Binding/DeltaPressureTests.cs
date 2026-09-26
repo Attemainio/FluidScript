@@ -16,12 +16,12 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class DeltaPressureTests
 {
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 1\n" + text)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 2\n" + text)), "script");
 
     [Fact]
     public void AReadingMinusADifferenceIsAReading()
     {
-        var result = Bind("let p = 300 kPa - 10 dkPa\nlet q = 2 bar + 500 dPa\nlet r = 1 dbar\n");
+        var result = Bind("\nlet p = 300 kPa - 10 dkPa\nlet q = 2 bar + 500 dPa\nlet r = 1 dbar\n");
         Assert.DoesNotContain(result.Diagnostics, static d => d.Severity == DiagnosticSeverity.Error);
 
         Quantity Let(string name) => result.Model.Bindings.Single(b => b.Name == name).Value!.Value;
@@ -38,7 +38,7 @@ public sealed class DeltaPressureTests
     public void ADifferenceIsRefusedWhereAReadingIsExpected()
     {
         // The mirror of `t=20 dK`: a difference has no datum, so it cannot be a node's pressure.
-        var mismatch = Assert.Single(Bind("N1 node p=10 dkPa\n").Diagnostics, static d => d.Code == "FS1304");
+        var mismatch = Assert.Single(Bind("\ncircuit \"script\":\n  N1  node  p = 10 dkPa\n").Diagnostics, static d => d.Code == "FS1304");
 
         Assert.Contains("'10 dkPa' is a pressuredelta", mismatch.Message, StringComparison.Ordinal);
         Assert.Equal(Dimension.PressureDelta, UnitTable.All.Single(static u => u.Text == "dkPa").Dimension);
@@ -49,8 +49,8 @@ public sealed class DeltaPressureTests
     {
         // L-63: N3 exists by rule I1, and until now only after every expression had been evaluated.
         var result = Bind(
-            "HE1 heat_exchanger power=30 in.t=20 out.t=N3.t - 20 dK\nPU1 pump\n"
-            + "connections\nN1 - PU1 - N2 - HE1 - N3 - N1\n");
+            "\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30  in.t = 20  out.t = N3.t - 20 K\n  PU1  pump\n"
+            + "  N1 - PU1 - N2 - HE1 - N3 - N1\n");
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1404");
         Assert.Contains(result.Diagnostics, static d => d.Code == "FS1510" && d.Message.Contains("'N3'", StringComparison.Ordinal));

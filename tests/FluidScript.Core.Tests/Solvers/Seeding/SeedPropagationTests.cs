@@ -112,10 +112,10 @@ public sealed class SeedPropagationTests
     }
 
     [Theory]
-    [InlineData("3WV - BV1\nBV1 - N2\n3WV - P1", "BV1 valve kv=1.6")]
-    [InlineData("3WV - B1\nB1 - N2\n3WV - P1", "B1 pipe length=2 dn=25")]
-    [InlineData("3WV - N2\n3WV - BV1\nBV1 - P1", "BV1 valve kv=1.6")]
-    [InlineData("3WV - N2\n3WV - P1", "")]
+    [InlineData("3WV - BV1\n  BV1 - N2\n  3WV - P1", "BV1  valve  kv = 1.6")]
+    [InlineData("3WV - B1\n  B1 - N2\n  3WV - P1", "B1  pipe  length = 2  dn = 25")]
+    [InlineData("3WV - N2\n  3WV - BV1\n  BV1 - P1", "BV1  valve  kv = 1.6")]
+    [InlineData("3WV - N2\n  3WV - P1", "")]
     public async Task AComponentInAValvesLegDoesNotCollapseItsPortsOntoOnePressure(
         string legs, string declaration)
     {
@@ -129,26 +129,26 @@ public sealed class SeedPropagationTests
         // installation of this arrangement has (`C-63`) -- was enough to make a well-posed circuit
         // singular, so the four legs below are one topology's worth of that, with and without.
         var source = $"""
-            fluidscript 1
-            circuit coolingLoop
-            fluid water
+            fluidscript 2
 
-            HE1 heat_exchanger power=30 in.t=20 out.t=50
-            3WV three_way_valve
-            PU1 pump
-            P1  pipe length=25 dn=25
-            {declaration}
+            circuit "coolingLoop":
+              fluid = water
 
-            connections
-            N1 - N2
-            N2 - PU1
-            PU1 - HE1
-            HE1 - 3WV
-            {legs}
-            P1 - N3
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              3WV  three_way_valve
+              PU1  pump
+              P1  pipe  length = 25  dn = 25
+              {declaration}
 
-            N1 inlet t=6 p=300
-            N3 outlet p=280
+              N1 - N2
+              N2 - PU1
+              PU1 - HE1
+              HE1 - 3WV
+              {legs}
+              P1 - N3
+
+              N1  inlet  t = 6  p = 300
+              N3  outlet  p = 280
             """;
 
         var resolved = PipeCatalogs.Resolve(pin: null);

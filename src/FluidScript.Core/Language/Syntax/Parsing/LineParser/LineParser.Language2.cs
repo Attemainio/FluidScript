@@ -316,7 +316,8 @@ internal sealed partial class LineParser
     {
         if (Current is not { Kind: TokenKind.At } at || at.Span.Start != name.Span.End)
         {
-            return ParseReference(name);
+            // `power = heating kW` gives a curve's bare numbers a unit (`L-35`, `D-57`), as in language 1.
+            return ParseReference(name) is { } reference ? WithUnit(reference) : null;
         }
 
         // The version arrives as one number token, as in language 1's `catalog` line.

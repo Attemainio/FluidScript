@@ -214,19 +214,19 @@ public sealed class NullDirectionTests
     /// pressure equation, so the rank is 14. Nobody would write it as a sample, which is why it lives here.
     /// </summary>
     private const string TwoPumpsInSeriesHoldingOneFlowTwice = """
-        fluidscript 1
-        circuit probe
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0
-        CV1  valve
-        PU1  pump
-        PU2  pump flow=0.239
+        circuit "probe":
+          fluid = water
 
-        connections
-        N1 - PU1 - N1b - PU2 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
-        N5 - N1 length=25
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0
+          CV1  valve
+          PU1  pump
+          PU2  pump  flow = 0.239
+
+          N1 - PU1 - N1b - PU2 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+          N5 - N1   25 m
         """;
 
     [Fact]

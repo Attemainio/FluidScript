@@ -19,21 +19,23 @@ namespace FluidScript.Core.Tests.Solvers;
 public sealed class StatedFlowTests
 {
     private const string Loop = """
-        fluidscript 1
-        circuit simpleLoop
-        fluid water
-        HE1  heat_exchanger power=30 in.t=20 {he}
-        LOAD heat_exchanger power=-30 dp=0
-        CV1  valve
-        PU1  pump {pu}
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
-        N5 - N1 length=25
+        fluidscript 2
+
+        circuit "simpleLoop":
+          fluid = water
+
+          HE1  heat_exchanger  power = 30  in.t = 20  {he}
+          LOAD  heat_exchanger  power = -30  dp = 0
+          CV1  valve
+          PU1  pump  {pu}
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+          N5 - N1   25 m
         """;
 
     [Theory]
-    [InlineData("flow=0.3", "", "HE1")]
-    [InlineData("", "flow=0.3", "PU1")]
+    [InlineData("flow = 0.3", "", "HE1")]
+    [InlineData("", "flow = 0.3", "PU1")]
     public async Task AStatedMassFlowPinsTheBranchAndThePumpHeadAnswersIt(string he, string pu, string owner)
     {
         var script = Loop.Replace("{he}", he, StringComparison.Ordinal).Replace("{pu}", pu, StringComparison.Ordinal);
@@ -54,8 +56,8 @@ public sealed class StatedFlowTests
     }
 
     [Theory]
-    [InlineData("", "vflow=0.3 l/s", "N1", 20.0)]
-    [InlineData("vflow=0.3 l/s", "", "N2", 20.0)]
+    [InlineData("", "vflow = 0.3 l/s", "N1", 20.0)]
+    [InlineData("vflow = 0.3 l/s", "", "N2", 20.0)]
     public async Task AStatedVolumeFlowIsHeldAtTheInletNodesSolvedDensity(string he, string pu, string inlet, double expectedInlet)
     {
         var script = Loop.Replace("{he}", he, StringComparison.Ordinal).Replace("{pu}", pu, StringComparison.Ordinal);
@@ -75,9 +77,9 @@ public sealed class StatedFlowTests
     {
         // The whole point: 0.3 l/s of 60 °C water (983 kg/m³) is 0.2950 kg/s, of 20 °C water 0.2995.
         // A conversion at bind time with one density gets one of them wrong by 1.5 %.
-        var hot = await Solve(Loop.Replace("{he}", "vflow=0.3 l/s", StringComparison.Ordinal)
-            .Replace("in.t=20", "in.t=60", StringComparison.Ordinal).Replace("{pu}", "", StringComparison.Ordinal));
-        var cold = await Solve(Loop.Replace("{he}", "vflow=0.3 l/s", StringComparison.Ordinal).Replace("{pu}", "", StringComparison.Ordinal));
+        var hot = await Solve(Loop.Edited("{he}", "vflow = 0.3 l/s")
+            .Edited("in.t = 20", "in.t = 60").Edited("{pu}", ""));
+        var cold = await Solve(Loop.Edited("{he}", "vflow = 0.3 l/s").Edited("{pu}", ""));
 
         Assert.True(hot.Solve.Converged);
         Assert.True(cold.Solve.Converged);
@@ -90,7 +92,7 @@ public sealed class StatedFlowTests
     {
         // Both numbers are the duty point the curve passes through; the circuit decides where on that
         // curve it runs. No row, no promotion.
-        var script = Loop.Replace("{he}", "out.t=44", StringComparison.Ordinal).Replace("{pu}", "head=7 flow=0.3", StringComparison.Ordinal);
+        var script = Loop.Edited("{he}", "out.t = 44").Edited("{pu}", "head = 7  flow = 0.3");
         var check = WellPosedness.Check(GraphFixture.Lower(script).Graph);
 
         Assert.DoesNotContain(check.Counting.Constraints, c => c.Component == "PU1");

@@ -16,7 +16,7 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class ConstantsTests
 {
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 1\n" + text)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 2\n" + text)), "script");
 
     private static Quantity Let(string text, string name)
     {
@@ -28,8 +28,8 @@ public sealed class ConstantsTests
     [Fact]
     public void PiAndGAreReadByNameWithTheirDimensions()
     {
-        var circumference = Let("let c = 2 * pi * 0.5 m\n", "c");
-        var column = Let("let dp = 1000 kg/m3 * g * 12 m\n", "dp");
+        var circumference = Let("\nlet c = 2 * pi * 0.5 m\n", "c");
+        var column = Let("\nlet dp = 1000 kg/m3 * g * 12 m\n", "dp");
 
         Assert.Equal(Dimension.Length, circumference.Dimension);
         Assert.Equal(Math.PI, circumference.SiValue, 9);
@@ -42,7 +42,7 @@ public sealed class ConstantsTests
     [Fact]
     public void ALetOfAConstantsNameIsRefusedAsReserved()
     {
-        var result = Bind("let g = 9.81 m/s2\nlet pi = 3\n");
+        var result = Bind("\nlet g = 9.81 m/s2\nlet pi = 3\n");
         var messages = result.Diagnostics.Where(static d => d.Code == "FS1411").Select(static d => d.Message).ToArray();
 
         Assert.Equal(2, messages.Length);
@@ -55,15 +55,15 @@ public sealed class ConstantsTests
     {
         // `g` after a number is the mass unit, because a unit symbol is what follows a number; the
         // constant needs its operator. Both read, differently, and the docs say so.
-        Assert.Equal(Dimension.Mass, Let("let m = 2 g\n", "m").Dimension);
-        Assert.Equal(Dimension.Acceleration, Let("let a = 2 * g\n", "a").Dimension);
-        Assert.Equal(2 * 9.80665, Let("let a = 2 * g\n", "a").SiValue, 9);
+        Assert.Equal(Dimension.Mass, Let("\nlet m = 2 g\n", "m").Dimension);
+        Assert.Equal(Dimension.Acceleration, Let("\nlet a = 2 * g\n", "a").Dimension);
+        Assert.Equal(2 * 9.80665, Let("\nlet a = 2 * g\n", "a").SiValue, 9);
     }
 
     [Fact]
     public void AHeadParameterAcceptsALengthAsMetresOfThePumpedFluid()
     {
-        var result = Bind("let drop = 25 m\nPU1 pump head=12 m\nPU2 pump head=drop\n");
+        var result = Bind("\nlet drop = 25 m\n\ncircuit \"script\":\n  PU1  pump  head = 12 m\n  PU2  pump  head = drop\n");
         Assert.True(
             result.Diagnostics.All(static d => d.Severity != DiagnosticSeverity.Error),
             string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}")));
@@ -82,7 +82,7 @@ public sealed class ConstantsTests
     [Fact]
     public void AHeadParameterStillRefusesAPressureAndSaysWhatAHeadIs()
     {
-        var mismatch = Assert.Single(Bind("PU1 pump head=30 kPa\n").Diagnostics, static d => d.Code == "FS1304");
+        var mismatch = Assert.Single(Bind("\ncircuit \"script\":\n  PU1  pump  head = 30 kPa\n").Diagnostics, static d => d.Code == "FS1304");
 
         Assert.Equal(
             "'head' is a head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length; '30 kPa' is a pressure.",

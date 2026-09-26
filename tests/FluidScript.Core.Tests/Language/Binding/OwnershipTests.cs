@@ -30,44 +30,44 @@ public sealed class OwnershipTests
 {
     /// <summary>The substation as two circuit blocks: the district primary 400 and the heating secondary 100.</summary>
     private const string District = """
-        circuit district 400
-        fluid water
+        circuit "district":
+          fluid = water
+          number = 400
 
-        NPS inlet t=85 p=600
-        NPR outlet p=350
-        PCV valve
-        PP  pipe length=12 dn=25
-        {0}
+          NPS  inlet  t = 85  p = 600
+          NPR  outlet  p = 350
+          PCV  valve
+          PP  pipe  length = 12  dn = 25
+          {0}
 
-        connections
-        NPS - PCV - PP - HX1.in[2]
-        HX1.out[2] - NPR
+          NPS - PCV - PP - HX1.secondary.in
+          HX1.secondary.out - NPR
         """;
 
     private const string Heating = """
-        circuit heating 100
-        fluid water
+        circuit "heating":
+          fluid = water
+          number = 100
 
-        SP   pump
-        SS   pipe length=30 dn=32
-        SR   pipe length=30 dn=32
-        LOAD heat_exchanger power=-150 dt=20
-        {1}
+          SP  pump
+          SS  pipe  length = 30  dn = 32
+          SR  pipe  length = 30  dn = 32
+          LOAD  heat_exchanger  power = -150  dt = 20
+          {1}
 
-        connections
-        HX1.out - SS - NSUP
-        NSUP - LOAD - NRET
-        NRET - SR - SP - HX1.in
+          HX1.primary.out - SS - NSUP
+          NSUP - LOAD - NRET
+          NRET - SR - SP - HX1.primary.in
         """;
 
-    private const string Exchanger = "HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300";
+    private const string Exchanger = "HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300";
 
     private static string Script(bool districtFirst, bool declaredInDistrict, string exchanger = Exchanger)
     {
         var district = District.Replace("{0}", declaredInDistrict ? exchanger : string.Empty, StringComparison.Ordinal);
         var heating = Heating.Replace("{1}", declaredInDistrict ? string.Empty : exchanger, StringComparison.Ordinal);
 
-        return "fluidscript 1\n" + (districtFirst ? district + "\n\n" + heating : heating + "\n\n" + district) + "\n";
+        return "fluidscript 2\n\n" + (districtFirst ? district + "\n\n" + heating : heating + "\n\n" + district) + "\n";
     }
 
     private static BindResult Bind(string source) =>
@@ -119,8 +119,8 @@ public sealed class OwnershipTests
     {
         // The mirror image: `power=-150` means side 1 loses, so the heating circuit owns it -- and the
         // role word carries the same sign. A chiller cooling circuit 100 from circuit 400 is 100HE01.
-        var signed = Exchanger1(Model(Script(true, true, "HX1 heat_exchanger power=-150 in.t=60 out.t=40 in[2].t=45 out[2].t=85")));
-        var worded = Exchanger1(Model(Script(true, true, "HX1 chiller power=150 in.t=60 out.t=40 in[2].t=45 out[2].t=85")));
+        var signed = Exchanger1(Model(Script(true, true, "HX1  heat_exchanger  power = -150  primary.in.t = 60  primary.out.t = 40  secondary.in.t = 45  secondary.out.t = 85")));
+        var worded = Exchanger1(Model(Script(true, true, "HX1  chiller  power = 150  primary.in.t = 60  primary.out.t = 40  secondary.in.t = 45  secondary.out.t = 85")));
 
         Assert.Equal("100HE01", signed.Tag);
         Assert.Equal("100HE01", worded.Tag);
@@ -130,7 +130,7 @@ public sealed class OwnershipTests
     public void WithoutADutyTheTerminalTemperaturesDecideTheDirection()
     {
         // No `power`: 85 -> 45 on side 2 is a drop, 40 -> 60 on side 1 a rise. Side 2 loses.
-        var exchanger = Exchanger1(Model(Script(true, false, "HX1 heat_exchanger in.t=40 out.t=60 in[2].t=85 out[2].t=45")));
+        var exchanger = Exchanger1(Model(Script(true, false, "HX1  heat_exchanger  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45")));
 
         Assert.Equal("400HE01", exchanger.Tag);
     }
@@ -141,13 +141,13 @@ public sealed class OwnershipTests
         // Nothing states which way heat goes: no duty, no terminals. The lower number is deterministic
         // and safe -- nothing in the solve reads ownership -- and the diagram groups by circuit, so a
         // component that landed somewhere arbitrary says so.
-        var source = Script(true, true, "HX1 heat_exchanger");
+        var source = Script(true, true, "HX1  heat_exchanger");
         var result = Bind(source);
         var reported = Assert.Single(result.Diagnostics, static d => d.Code == "FS2216");
         var span = Assert.NotNull(reported.Span);
 
         Assert.Equal(DiagnosticSeverity.Info, reported.Severity);
-        Assert.StartsWith("HX1 heat_exchanger", source.Substring(span.Start, span.Length), StringComparison.Ordinal);
+        Assert.StartsWith("HX1  heat_exchanger", source.Substring(span.Start, span.Length), StringComparison.Ordinal);
         Assert.Contains("heating", reported.Message, StringComparison.Ordinal);
         Assert.Equal("100HE01", Exchanger1(result.Model).Tag);
     }
@@ -156,19 +156,20 @@ public sealed class OwnershipTests
     public void BothSidesInOneCircuitIsThatCircuitWithNothingToReport()
     {
         var result = Bind("""
-            fluidscript 1
-            circuit pair 300
-            fluid water
+            fluidscript 2
 
-            HX1 heat_exchanger power=10
-            PA  pump head=6 flow=0.24
-            PB  pump head=6 flow=0.24
+            circuit "pair":
+              fluid = water
+              number = 300
 
-            connections
-            NA1 - PA - NA2 - HX1.in
-            HX1.out - NA1
-            NB1 - PB - NB2 - HX1.in[2]
-            HX1.out[2] - NB1
+              HX1  heat_exchanger  power = 10
+              PA  pump  head = 6  flow = 0.24
+              PB  pump  head = 6  flow = 0.24
+
+              NA1 - PA - NA2 - HX1.primary.in
+              HX1.primary.out - NA1
+              NB1 - PB - NB2 - HX1.secondary.in
+              HX1.secondary.out - NB1
 
             """);
 
@@ -182,20 +183,22 @@ public sealed class OwnershipTests
         // Rated mode: side 2 is a stated profile, not a circuit. Side 1's circuit owns it even though
         // heat leaves on side 2 -- there is no circuit there to own anything.
         var model = Model("""
-            fluidscript 1
-            circuit heating 100
-            fluid water
+            fluidscript 2
 
-            SP   pump
-            SS   pipe length=30 dn=32
-            SR   pipe length=30 dn=32
-            LOAD heat_exchanger power=-150 dt=20
-            HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45
+            circuit "heating":
+              fluid = water
+              number = 100
+              role = heating
 
-            connections
-            HX1.out - SS - NSUP
-            NSUP - LOAD - NRET
-            NRET - SR - SP - HX1.in
+              SP  pump
+              SS  pipe  length = 30  dn = 32
+              SR  pipe  length = 30  dn = 32
+              LOAD  heat_exchanger  power = -150  dt = 20
+              HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45
+
+              HX1.primary.out - SS - NSUP
+              NSUP - LOAD - NRET
+              NRET - SR - SP - HX1.primary.in
 
             """);
 

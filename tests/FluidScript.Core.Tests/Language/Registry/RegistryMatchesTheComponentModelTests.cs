@@ -193,7 +193,7 @@ public sealed partial class RegistryMatchesTheComponentModelTests
 
     // `layer[1].t`…`layer[N].t` in the document stands for a family the registry writes as `layer[{index}].t`.
     private static Regex IndexPattern(string pattern) =>
-        new("^" + Regex.Escape(pattern).Replace(@"\{index}", @"\d+", StringComparison.Ordinal) + "$",
+        new("^" + Regex.Escape(pattern).Edited(@"\{index}", @"\d+") + "$",
             RegexOptions.None,
             TimeSpan.FromSeconds(1));
 

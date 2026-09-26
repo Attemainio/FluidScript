@@ -48,30 +48,20 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void AScriptWithNoCircuitHeaderStillBindsOne()
-    {
-        // Consumers never special-case an empty collection, which is why the implicit circuit exists
-        // rather than the model carrying none.
-        var result = Bind("fluidscript 1\nHE1 heat_exchanger power=30\n", "cooling.fluid");
-
-        var circuit = Assert.Single(result.Model.Circuits);
-        Assert.Equal("cooling.fluid", circuit.Name);
-        Assert.Equal(100, circuit.Number);
-        Assert.False(circuit.NumberIsExplicit);
-        Assert.Contains(result.Diagnostics, static d => d.Code == "FS1508");
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void ThreeHeadersBindThreeCircuitsNumberedInDeclarationOrder()
     {
         // M1's exit criterion for D-33, and the reason NumberIsExplicit exists: the printer must not
         // write these numbers back into a file that never had them.
         var model = Model("""
-            fluidscript 1
-            circuit primary
-            circuit secondary
-            circuit tertiary
+            fluidscript 2
+
+            circuit "primary":
+              role = distribution
+
+            circuit "secondary":
+              role = heating
+
+            circuit "tertiary":
             """);
 
         Assert.Equal([100, 200, 300], model.Circuits.Select(static circuit => circuit.Number));
@@ -83,9 +73,14 @@ public sealed class BinderTests
     public void AStatedNumberIsKeptAndNeverReused()
     {
         var model = Model("""
-            fluidscript 1
-            circuit ahu 200
-            circuit radiators
+            fluidscript 2
+
+            circuit "ahu":
+              number = 200
+              role = ahu
+
+            circuit "radiators":
+              role = radiator
             """);
 
         Assert.Equal(200, model.Circuits[0].Number);
@@ -99,37 +94,18 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1524_TwoCircuitsClaimingOneNumber() =>
-        OnlyDiagnostic("fluidscript 1\ncircuit a 100\ncircuit b 100\n", "FS1524");
+        OnlyDiagnostic("fluidscript 2\n\ncircuit \"a\":\n  number = 100\n\ncircuit \"b\":\n  number = 100\n", "FS1524");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1525_TwoCircuitsSharingAName() =>
-        OnlyDiagnostic("fluidscript 1\ncircuit ahu 100\ncircuit ahu 200\n", "FS1525");
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void TheProjectSetsTheDefaultModeAndACircuitOverridesIt()
-    {
-        // D-37's precedence: the circuit's own setting wins, and the disagreement is visible rather
-        // than resolved quietly.
-        var result = Bind("""
-            fluidscript 1
-            project dynamic plant_01
-            circuit storage
-            fluid static water
-            """);
-
-        Assert.Equal("plant_01", result.Model.Project.Name);
-        Assert.Equal(FluidMode.Dynamic, result.Model.Project.DefaultMode);
-        Assert.Equal(FluidMode.Static, result.Model.Circuits[0].Mode);
-        Assert.Contains(result.Diagnostics, static d => d.Code == "FS1517");
-    }
+        OnlyDiagnostic("fluidscript 2\n\ncircuit \"ahu\":\n  number = 100\n  role = ahu\n\ncircuit \"ahu\":\n  number = 200\n  role = ahu\n", "FS1525");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void ACircuitWithNoModeAnywhereIsStatic()
     {
-        var model = Model("fluidscript 1\ncircuit demo\nfluid water\n");
+        var model = Model("fluidscript 2\n\ncircuit \"demo\":\n  fluid = water\n");
 
         Assert.Equal(FluidMode.Static, model.Circuits[0].Mode);
         Assert.Equal("water", model.Circuits[0].Substance);
@@ -141,7 +117,7 @@ public sealed class BinderTests
     {
         // D-37: one value, one path. A second home on ProjectSettings would create the one that gets
         // serialized and the one that does not.
-        var model = Model("fluidscript 1\nspacing 20\n");
+        var model = Model("fluidscript 2\n\nproject:\n  spacing = 20\n");
 
         Assert.Equal(20, model.Style.Spacing);
     }
@@ -153,9 +129,9 @@ public sealed class BinderTests
     [InlineData("ground_loop", "ground_loop", ThermalStageRole.Source)]
     [InlineData("buffer", "storage", ThermalStageRole.Storage)]
     [Trait("Category", "Unit")]
-    public void ACircuitNameResolvesToARole(string name, string canonical, ThermalStageRole stage)
+    public void ARoleResolvesThroughTheRegistry(string name, string canonical, ThermalStageRole stage)
     {
-        var model = Model($"fluidscript 1\ncircuit {name}\n");
+        var model = Model($"fluidscript 2\n\ncircuit \"c\":\n  role = {name}\n");
 
         Assert.Equal(canonical, model.Circuits[0].Role.CanonicalName);
         Assert.Equal(stage, model.Circuits[0].Role.Stage);
@@ -163,33 +139,15 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void FS1519_ACircuitNameThatIsNoRoleIsNeutralAndNotAnError()
+    public void FS1519_ARoleThatIsNoneKnownIsNeutralAndNotAnError()
     {
         // A plant is full of circuits whose function has no registry entry. Refusing to bind one would
         // make the language useless for the plant it describes.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\ncircuit loop_7b\n", "FS1519");
+        const string Text = "fluidscript 2\n\ncircuit \"loop\":\n  role = loop_7b\n";
+        var diagnostic = OnlyDiagnostic(Text, "FS1519");
 
         Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
-        Assert.Equal(ThermalStageRole.Neutral, Model("fluidscript 1\ncircuit loop_7b\n").Circuits[0].Role.Stage);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void FS1107_AScheduleInACircuitWithNoTimeToRunIn()
-    {
-        // 12's acceptance criterion, raised here because the parser cannot see a circuit's mode: it is
-        // the circuit's own directive resolved against the project's.
-        var diagnostic = OnlyDiagnostic(
-            """
-            fluidscript 1
-            circuit demo
-            fluid static water
-            schedule
-            at 60 s HE1.power = 45
-            """,
-            "FS1107");
-
-        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(ThermalStageRole.Neutral, Model(Text).Circuits[0].Role.Stage);
     }
 
     [Fact]
@@ -198,11 +156,13 @@ public sealed class BinderTests
     {
         var result = Bind(
             """
-            fluidscript 1
-            circuit demo
-            fluid dynamic water
-            schedule
-            at 60 s HE1.power = 45
+            fluidscript 2
+
+            circuit "demo":
+              fluid = water
+
+            run "Transient":
+              at 60 s  HE1.power = 45
             """);
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1107");
@@ -216,7 +176,7 @@ public sealed class BinderTests
     {
         // M1's headline criterion, and D-02's whole point: absence is representable and distinct from
         // a default. `3WV` also has to survive as an identifier despite the leading digit.
-        var model = Model("fluidscript 1\n3WV three_way_valve\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  3WV  three_way_valve\n");
 
         // One declaration, and the two I3 boundary nodes its non-optional ports now terminate: `b` is
         // optional, so a three-way valve alone in a file produces exactly two.
@@ -235,7 +195,7 @@ public sealed class BinderTests
     {
         // P4: the script continues. A stage that dropped the component would take every connection
         // naming it down as well, and a user mid-word would watch their circuit disappear.
-        var result = Bind("fluidscript 1\nX1 wombat\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  X1  wombat\n");
 
         var component = Assert.Single(result.Model.Components);
         Assert.Null(component.Kind);
@@ -245,14 +205,15 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void FS1512_AKindOneKeystrokeFromExactlyOneOther()
+    public void FS1502_AKindOneKeystrokeFromAnotherIsAnErrorWithTheFix()
     {
-        // `pmp` scores 0.75 against `pump` and nothing else comes near it, so the kind resolves. The
-        // info is the whole of what the user gets told, which is why it names both spellings.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pmp\n", "FS1512");
+        // `D-170`: language 2 binds a name only by its exact spelling. `pmp` is one keystroke from `pump`,
+        // which language 1 bound and mentioned as information (`FS1512`); here it binds nothing, and the
+        // close spelling is the suggestion a click accepts.
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  PU1  pmp\n", "FS1502");
 
-        Assert.Contains("'pmp'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("'pump'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal("pump", diagnostic.Suggestion?.Replacement);
     }
 
     [Fact]
@@ -262,7 +223,7 @@ public sealed class BinderTests
         // `pide` is one edit from `pipe` and one from `pid`, so both score 0.75 and neither clears the
         // other by `AmbiguityMargin`. Taking the higher would be a coin flip, and worse, the winner
         // would depend on the alias list of a kind the script never mentioned.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nX1 pide\n", "FS1513");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  X1  pide\n", "FS1513");
 
         Assert.Contains("'pide'", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("'pipe'", diagnostic.Message, StringComparison.Ordinal);
@@ -273,16 +234,16 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1501_ANameDeclaredTwice()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pump\nPU1 valve\n", "FS1501");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump\n  PU1  valve\n", "FS1501");
 
-        Assert.Contains("line 2", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("line 4", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1503_AParameterTheKindDoesNotHave()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pump colour=3\n", "FS1503");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump  colour = 3\n", "FS1503");
 
         Assert.Contains("head", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -293,7 +254,7 @@ public sealed class BinderTests
     {
         // D-32: the model keys on `volume`; the source keeps `v`, because write-back must not rewrite
         // a spelling the user chose.
-        var model = Model("fluidscript 1\nT1 tank v=300\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  T1  tank  v = 300\n");
 
         var parameter = Assert.Single(model.Components[0].Parameters);
         Assert.Equal("volume", parameter.Key);
@@ -306,7 +267,7 @@ public sealed class BinderTests
     {
         // Every layer, because a profile that names only some of them is FS2113 and Model asserts a
         // clean bind. What is under test is that `t2` resolves against the family at all.
-        var model = Model("fluidscript 1\nT1 tank layers=3 layer[1].t=50 layer[2].t=60 layer[3].t=70\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  T1  tank  layers = 3  layer[1].t = 50  layer[2].t = 60  layer[3].t = 70\n");
 
         Assert.True(model.Components[0].Parameters.ContainsKey("t2"));
     }
@@ -314,13 +275,13 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1516_AnIndexOutsideItsFamily() =>
-        OnlyDiagnostic("fluidscript 1\nT1 tank in[40].level=0.5\n", "FS1516");
+        OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  T1  tank  in[40].level = 0.5\n", "FS1516");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void ASymbolParameterBindsItsName()
     {
-        var model = Model("fluidscript 1\nV1 valve characteristic=equal_percentage\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  V1  valve  characteristic = equal_percentage\n");
 
         Assert.Equal("equal_percentage", model.Components[0].Parameters["characteristic"].Symbol);
     }
@@ -328,7 +289,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1514_ASymbolParameterGivenSomethingElse() =>
-        OnlyDiagnostic("fluidscript 1\nV1 valve characteristic=banana\n", "FS1514");
+        OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  V1  valve  characteristic = banana\n", "FS1514");
 
     // ---- steps 4-5: evaluation --------------------------------------------------------------------
 
@@ -338,9 +299,9 @@ public sealed class BinderTests
     {
         // M1's criterion: power=30, power=30 kW and power=30000 W are one quantity. This is D-14, and
         // it is why the evaluator reports whether a unit took part rather than guessing later.
-        var bare = Model("fluidscript 1\nHE1 heat_exchanger power=30\n");
-        var kilowatts = Model("fluidscript 1\nHE1 heat_exchanger power=30 kW\n");
-        var watts = Model("fluidscript 1\nHE1 heat_exchanger power=30000 W\n");
+        var bare = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n");
+        var kilowatts = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30 kW\n");
+        var watts = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30000 W\n");
 
         Assert.Equal(30000, bare.Components[0].Parameters["power"].Value!.Value.SiValue, 6);
         Assert.Equal(30000, kilowatts.Components[0].Parameters["power"].Value!.Value.SiValue, 6);
@@ -349,17 +310,17 @@ public sealed class BinderTests
 
     [Theory]
     [Trait("Category", "Unit")]
-    [InlineData("p=2 bar", 200_000)]
-    [InlineData("p=200 kPa", 200_000)]
-    [InlineData("p=200000 Pa", 200_000)]
-    [InlineData("p=200", 200_000)]
+    [InlineData("p = 2 bar", 200_000)]
+    [InlineData("p = 200 kPa", 200_000)]
+    [InlineData("p = 200000 Pa", 200_000)]
+    [InlineData("p = 200", 200_000)]
     public void ASharedPressureSpellingIsReadAgainstTheParameterItIsAssignedTo(
         string parameter, double expected)
     {
         // `L-37`. A spelling that denotes two dimensions used to fall through to "bare", so `p=2 bar`
         // bound as two kilopascals — silently, and wrong by a factor of a hundred. `kPa` survived by
         // accident, being the canonical spelling of both pressure dimensions.
-        var model = Model($"fluidscript 1\nNB1 node {parameter}\n");
+        var model = Model($"fluidscript 2\n\ncircuit \"c\":\n  NB1  node  {parameter}\n");
 
         Assert.Equal(expected, model.Components[0].Parameters["p"].Value!.Value.SiValue, 3);
     }
@@ -370,7 +331,7 @@ public sealed class BinderTests
     {
         // The reason the ambiguity exists at all: `bar` is a pressure and a pressure difference, and
         // which one is meant belongs to the destination.
-        var model = Model("fluidscript 1\nNB1 node p=2 bar\nPU1 pump dp=0.005 bar\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  NB1  node  p = 2 bar\n  PU1  pump  dp = 0.005 bar\n");
 
         var reading = Assert.Single(model.Components, c => c.Name == "NB1").Parameters["p"].Value!.Value;
         var difference = Assert.Single(model.Components, c => c.Name == "PU1").Parameters["dp"].Value!.Value;
@@ -389,8 +350,8 @@ public sealed class BinderTests
         // `D-62`. `13`'s rule that an absolute temperature is never negated is about negating a
         // temperature-valued *expression*; applying it to the literal left a negative Celsius value
         // unwritable anywhere, including `design tout=-26 C`.
-        var bare = Model("fluidscript 1\nNB1 node t=-5\n");
-        var stated = Model("fluidscript 1\nNB1 node t=-5 C\n");
+        var bare = Model("fluidscript 2\n\ncircuit \"script\":\n  NB1  node  t = -5\n");
+        var stated = Model("fluidscript 2\n\ncircuit \"script\":\n  NB1  node  t = -5 C\n");
 
         Assert.Equal(268.15, bare.Components[0].Parameters["t"].Value!.Value.SiValue, 6);
         Assert.Equal(268.15, stated.Components[0].Parameters["t"].Value!.Value.SiValue, 6);
@@ -403,7 +364,7 @@ public sealed class BinderTests
         // The narrowness of `D-62` is the point: only a sign directly on a literal is part of it.
         Assert.Contains(
             "FS1305",
-            Bind("fluidscript 1\nlet t0 = 20 C\nNB1 node t=-t0\n")
+            Bind("fluidscript 2\n\nlet t0 = 20 C\n\ncircuit \"script\":\n  NB1  node  t = -t0\n")
                 .Diagnostics.Select(static d => d.Code));
     }
 
@@ -413,9 +374,12 @@ public sealed class BinderTests
     {
         // M1's criterion: `let dT = 30 dK` then `out.t=20C+dT` is 50 °C, stored as 323.15 K.
         var model = Model("""
-            fluidscript 1
-            let dT = 30 dK
-            HE1 heat_exchanger out.t=20 C + dT
+            fluidscript 2
+
+            let dT = 30 K
+
+            circuit "script":
+              HE1  heat_exchanger  out.t = 20 C + dT
             """);
 
         Assert.Equal(323.15, model.Components[0].Parameters["out"].Value!.Value.SiValue, 6);
@@ -430,25 +394,10 @@ public sealed class BinderTests
         // The message is asserted whole rather than for the letters `dK`, because the point of it is the
         // correction it offers and a correction with the wrong number in it is worse than none: a user
         // who pastes it gets a second wrong answer and no error the second time.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out.t=20 C + 30 C\n", "FS1302");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  out.t = 20 C + 30 C\n", "FS1302");
 
         Assert.Equal(
-            "Cannot add two temperatures. To offset by a difference, write '20 °C + 30 dK'.",
-            diagnostic.Message);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void FS1302_KelvinIsAnAbsoluteTemperatureAndSoDoesNotAddEither()
-    {
-        // `D-26`: `K` is absolute temperature and a difference is written `dK` or `dC`. So `40 C + 30 K`
-        // is the same error as adding two Celsius readings, which is not obvious to anyone who has ever
-        // written a temperature rise in kelvin -- and it is the reason the message has to name the
-        // spelling that works.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out.t=40 C + 30 K\n", "FS1302");
-
-        Assert.Equal(
-            "Cannot add two temperatures. To offset by a difference, write '40 °C + 30 dK'.",
+            "Cannot add two temperatures. To offset by a difference, write '20 °C + 30 K'.",
             diagnostic.Message);
     }
 
@@ -458,7 +407,7 @@ public sealed class BinderTests
     {
         // The other half of the pair above: what the corrected line does. 40 °C + 30 dK is 70 °C, stored
         // as 343.15 K.
-        var model = Model("fluidscript 1\nHE1 heat_exchanger out.t=40 C + 30 dK\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  out.t = 40 C + 30 K\n");
 
         Assert.Equal(343.15, model.Components[0].Parameters["out"].Value!.Value.SiValue, 6);
     }
@@ -470,10 +419,11 @@ public sealed class BinderTests
         // The dependency graph decides evaluation order, not source position — because write-back
         // inserts lines and must not have to reason about where.
         var model = Model("""
-            fluidscript 1
+            fluidscript 2
+
             let mdot = Q / (4.18 kJ/(kg*K) * dT)
-            let Q    = 30 kW
-            let dT   = 20 dK
+            let Q = 30 kW
+            let dT = 20 K
             """);
 
         var mdot = model.Bindings.Single(static binding => binding.Name == "mdot");
@@ -483,7 +433,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1401_ASecondLetOfOneName() =>
-        OnlyDiagnostic("fluidscript 1\nlet x = 1\nlet x = 2\n", "FS1401");
+        OnlyDiagnostic("fluidscript 2\n\nlet x = 1\nlet x = 2\n", "FS1401");
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -491,7 +441,7 @@ public sealed class BinderTests
     {
         // M1's criterion: one diagnostic naming both, not a stack overflow. Reporting one participant
         // is the standard failure of cycle diagnostics and is useless when the cycle is four links.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet a = b + 1\nlet b = a + 1\n", "FS1402");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet a = b + 1\nlet b = a + 1\n", "FS1402");
 
         Assert.Contains("a", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("b", diagnostic.Message, StringComparison.Ordinal);
@@ -501,13 +451,13 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1403_DividingByZero() =>
-        OnlyDiagnostic("fluidscript 1\nlet x = 1 / 0\n", "FS1403");
+        OnlyDiagnostic("fluidscript 2\n\nlet x = 1 / 0\n", "FS1403");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1404_ANameThatIsNothing()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet x = nosuchthing + 1\n", "FS1404");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet x = nosuchthing + 1\n", "FS1404");
 
         // Nothing is close enough to suggest, so nothing is offered. A suggestion is a structured fix
         // the editor can apply, not a clause in the sentence.
@@ -518,7 +468,7 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1404_ANearMissSuggestsTheName()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet total = 1\nlet x = totl + 1\n", "FS1404");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet total = 1\nlet x = totl + 1\n", "FS1404");
 
         Assert.Equal("total", diagnostic.Suggestion!.Replacement);
     }
@@ -530,7 +480,7 @@ public sealed class BinderTests
         // Names are ordinal -- `Total` and `total` are two bindings -- but the suggestion index is
         // keyed by the normalised spelling, under which they collide. Building it with a throwing
         // dictionary took the binder down on this script; the nearest of the two is offered instead.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet total = 1\nlet Total = 2\nlet x = totl + 1\n", "FS1404");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet total = 1\nlet Total = 2\nlet x = totl + 1\n", "FS1404");
 
         Assert.Equal("total", diagnostic.Suggestion!.Replacement);
     }
@@ -539,7 +489,7 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1406_APropertyTheKindDoesNotHave()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pump\nlet x = PU1.colour\n", "FS1406");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet x = PU1.colour\n\ncircuit \"script\":\n  PU1  pump\n", "FS1406");
 
         Assert.Contains("head", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -548,7 +498,7 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1408_AFunctionThatDoesNotExist()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet x = wibble(1, 2)\n", "FS1408");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet x = wibble(1, 2)\n", "FS1408");
 
         Assert.Contains("min", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -556,14 +506,15 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1409_AFunctionCalledWithTheWrongCount() =>
-        OnlyDiagnostic("fluidscript 1\nlet x = abs(1, 2)\n", "FS1409");
+        OnlyDiagnostic("fluidscript 2\n\nlet x = abs(1, 2)\n", "FS1409");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void TheFunctionSetEvaluates()
     {
         var model = Model("""
-            fluidscript 1
+            fluidscript 2
+
             let a = min(3 kW, 5 kW)
             let b = max(3 kW, 5 kW)
             let c = abs(0 kW - 4 kW)
@@ -586,7 +537,7 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void PrecedenceAndParenthesesSurviveEvaluation()
     {
-        var model = Model("fluidscript 1\nlet a = 2 + 3 * 4\nlet b = (2 + 3) * 4\n");
+        var model = Model("fluidscript 2\n\nlet a = 2 + 3 * 4\nlet b = (2 + 3) * 4\n");
 
         Assert.Equal(14, model.Bindings.Single(static x => x.Name == "a").Value!.Value.SiValue, 6);
         Assert.Equal(20, model.Bindings.Single(static x => x.Name == "b").Value!.Value.SiValue, 6);
@@ -597,9 +548,12 @@ public sealed class BinderTests
     public void AReferenceToADeclaredParameterEvaluatesAtOnce()
     {
         var model = Model("""
-            fluidscript 1
-            HE1 heat_exchanger power=30 kW
+            fluidscript 2
+
             let doubled = HE1.power * 2
+
+            circuit "script":
+              HE1  heat_exchanger  power = 30 kW
             """);
 
         Assert.Equal(60000, model.Bindings.Single(static x => x.Name == "doubled").Value!.Value.SiValue, 6);
@@ -613,9 +567,11 @@ public sealed class BinderTests
         // 14's central case: `head=1.2*HE1.dp` is the expression a designer wants to write. It is not
         // a cycle and not an error — it is deferred to the outer sizing loop.
         var model = Model("""
-            fluidscript 1
-            HE1 heat_exchanger power=30 kW
-            PU1 pump head=1.2 * HE1.dp
+            fluidscript 2
+
+            circuit "script":
+              HE1  heat_exchanger  power = 30 kW
+              PU1  pump  head = 1.2 * HE1.dp
             """);
 
         var deferred = Assert.Single(model.Deferred);
@@ -633,18 +589,23 @@ public sealed class BinderTests
         // not. A dimension-only pass: units and properties type, a bare number beside them is a number,
         // a product combines vectors, and a let reading a let follows the chain.
         var model = Model("""
-            fluidscript 1
-            design tout=-26
-            curve heating tout
-            -26 50
-            20 0
-            HE1 heat_exchanger power=30 kW
+            fluidscript 2
+
+            let tout = -26 C
+
+            curve heating: tout
+              -26 50
+              20 0
+
             let x = 1.2 * HE1.dp
             let y = x / 2 + 5 kPa
             let z = heating * 2
-            let w = HE1.power / (4180 J/(kg*K) * 20 dK)
+            let w = HE1.power / (4180 J/(kg*K) * 20 K)
             let v = HE1.flow * 3
             let u = HE1.dp kPa
+
+            circuit "c":
+              HE1  heat_exchanger  power = 30 kW
             """);
 
         Dimension? Of(string name) => model.Bindings.Single(b => b.Name == name).Dimension;
@@ -666,17 +627,19 @@ public sealed class BinderTests
     {
         // The real-world failure: `power=30000` meaning watts draws a plausible diagram of a 30 MW
         // plant, and nothing else in the pipeline objects.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger power=300000\n", "FS1306");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 300000\n", "FS1306");
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
-        Assert.DoesNotContain("FS1306", OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger power=30\n", "FS1519").Code, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            Bind("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n").Diagnostics,
+            static d => d.Code == "FS1306");
     }
 
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1304_AValueOfTheWrongDimension()
     {
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger power=30 kg/s\n", "FS1304");
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30 kg/s\n", "FS1304");
 
         Assert.Contains("power", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -684,7 +647,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1305_TwoDimensionsThatDoNotCombine() =>
-        OnlyDiagnostic("fluidscript 1\nlet x = 30 kW + 2 kg/s\n", "FS1305");
+        OnlyDiagnostic("fluidscript 2\n\nlet x = 30 kW + 2 kg/s\n", "FS1305");
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -729,7 +692,7 @@ public sealed class BinderTests
         // before the next starts and the walk never goes deep. A recursive walk overflowed on this; a
         // stack overflow cannot be caught.
         const int Length = 20_000;
-        var text = new System.Text.StringBuilder("fluidscript 1\n");
+        var text = new System.Text.StringBuilder("fluidscript 2\n");
 
         for (var i = 0; i < Length - 1; i++)
         {
@@ -749,7 +712,7 @@ public sealed class BinderTests
     {
         // The operand used to be visited twice -- once to classify, once to return -- and every visit
         // reports; three minus signs over a bad operand reported it eight times.
-        var result = Bind("fluidscript 1\nlet x = ---nosuchthing\n");
+        var result = Bind("fluidscript 2\n\nlet x = ---nosuchthing\n");
 
         Assert.Single(result.Diagnostics, static d => d.Code == "FS1404");
     }

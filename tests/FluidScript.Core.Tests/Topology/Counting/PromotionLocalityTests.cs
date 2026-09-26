@@ -32,8 +32,8 @@ public sealed class PromotionLocalityTests
         // `PU_AHU` is then free and comes first in graph order, and `PU_RAD` is the one on the radiator's
         // own branch. The old order handed the radiator the air handler's pump; the new one does not.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
-            .Replace("HE_AHU  heat_exchanger in.t=50 out.t=30 power=-24 kW",
-                "HE_AHU  heat_exchanger in.t=50 power=-24 kW", StringComparison.Ordinal);
+            .Edited("HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW",
+                "HE_AHU  load  in.t = 50  power = 24 kW");
 
         var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
 
@@ -96,11 +96,8 @@ public sealed class PromotionLocalityTests
         //
         // The count expected exactly this and nothing arranged it: whichever constraint ran out of
         // candidates paid, so graph order decided which statement was physics and which was a demand.
-        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
-            .Replace(
-                "HS1     heat_exchanger power=54",
-                "HS1     heat_exchanger power=54 out.t=80",
-                StringComparison.Ordinal);
+        // The sample's source states exactly that: `HS1 power = 54 kW  out.t = 60`.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"));
 
         var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
 
@@ -144,22 +141,22 @@ public sealed class PromotionLocalityTests
         // declared first takes the pump, the other its branch's valve, and swapping the declarations
         // swaps the claims.
         static string Loop(string first, string second) => $"""
-            fluidscript 1
-            circuit loop
-            fluid water
+            fluidscript 2
 
-            {first}
-            {second}
-            CV1  valve
-            PU1  pump
-            P1   pipe length=25 dn=25
+            circuit "loop":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+              {first}
+              {second}
+              CV1  valve
+              PU1  pump
+              P1   pipe  length = 25  dn = 25
+
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
             """;
 
-        const string source = "HE1  heat_exchanger power=30 out.t=50 dt=30";
-        const string load = "LOAD heat_exchanger power=-30 dt=30";
+        const string source = "HE1  heat_exchanger  power = 30  out.t = 50  dt = 30";
+        const string load = "LOAD  heat_exchanger  power = -30  dt = 30";
 
         var counting = WellPosedness.Check(GraphFixture.Lower(Loop(source, load)).Graph).Counting;
         Assert.Equal(("PU1", "head"), Claimed(counting, "HE1"));
@@ -172,49 +169,49 @@ public sealed class PromotionLocalityTests
 
     /// <summary>The injection header with a mixing valve at the source (<c>diagnostics/scratch/s55-main-valve</c>), the source's own lines editable.</summary>
     private static string InjectionHeader(string source, string pumps = "PU_AHU  pump", string radiatorPump = "PU_RAD  pump") => $"""
-        fluidscript 1
-        project static plant_01
+        fluidscript 2
 
-        circuit heating 100
-        fluid water
+        project "plant_01":
+        circuit "heating":
+          fluid = water
+          number = 100
 
-        {source}
-        TV_MAIN three_way_valve
+          {source}
+          TV_MAIN  three_way_valve
 
-        connections
-        N1 - HS1 - TV_MAIN.a
-        N1 - TV_MAIN.b
-        TV_MAIN.ab - N3
-        N3 node t=60
-        N3 - N4
-        N6 - N5
-        N5 - N1
+          N1 - HS1 - TV_MAIN.a
+          N1 - TV_MAIN.b
+          TV_MAIN.ab - N3
+          N3  node  t = 60
+          N3 - N4
+          N6 - N5
+          N5 - N1
 
-        N1 node p=250
+          N1  node  p = 250
 
-        circuit AHU 101
+        circuit "AHU":
+          number = 101
 
-        HE_AHU  load in.t=50 out.t=30 power=24 kW
-        TV_AHU  three_way_valve
-        {pumps}
+          HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+          TV_AHU  three_way_valve
+          {pumps}
 
-        connections
-        N3 - TV_AHU.a length=12 dn=25
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - N5 length=12 dn=25
+          N3 - TV_AHU.a   12 m  DN25
+          NM_AHU - TV_AHU.b
+          TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - N5   12 m  DN25
 
-        circuit radiators 102
+        circuit "radiators":
+          number = 102
 
-        HE_RAD  load in.t=50 out.t=30 power=30 kW
-        TV_RAD  three_way_valve
-        {radiatorPump}
+          HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+          TV_RAD  three_way_valve
+          {radiatorPump}
 
-        connections
-        N4 - TV_RAD.a length=18 dn=25
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - N6 length=18 dn=25
+          N4 - TV_RAD.a   18 m  DN25
+          NM_RAD - TV_RAD.b
+          TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - N6   18 m  DN25
         """;
 
     [Fact]
@@ -225,7 +222,7 @@ public sealed class PromotionLocalityTests
         // draws from `N3` through its `a` port and cannot hold it at any position. Before `D-133` the
         // source's mixed inlet took `TV_MAIN` first and the setpoint fell to `TV_AHU`: square, and
         // non-finite at iteration zero.
-        var result = WellPosedness.Check(GraphFixture.Lower(InjectionHeader("HS1 heat_exchanger power=54 kW in.t=40 out.t=80")).Graph);
+        var result = WellPosedness.Check(GraphFixture.Lower(InjectionHeader("HS1  heat_exchanger  power = 54 kW  in.t = 40  out.t = 80")).Graph);
         var counting = result.Counting;
 
         Assert.Equal(("TV_MAIN", "position"), Claimed(counting, "N3", ConstraintKind.NodeTemperature));
@@ -251,7 +248,7 @@ public sealed class PromotionLocalityTests
         // source's pinned flow has one actuator left, the main valve's position (its leg's share of the
         // header flow), and the header setpoint needs the same one. Neither is "the" one too many.
         var result = WellPosedness.Check(GraphFixture.Lower(InjectionHeader(
-            "HS1 heat_exchanger power=54 kW in.t=40 out.t=80", "PU_AHU  pump head=6", "PU_RAD  pump head=6")).Graph);
+            "HS1  heat_exchanger  power = 54 kW  in.t = 40  out.t = 80", "PU_AHU  pump  head = 6", "PU_RAD  pump  head = 6")).Graph);
 
         var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
         Assert.Contains("HS1.out.t, N3.t share TV_MAIN.position", reported.Message, StringComparison.Ordinal);
@@ -267,25 +264,25 @@ public sealed class PromotionLocalityTests
         // it onto its own valve so the bare branch gets the pump. Before `D-133` this reported
         // over-specified by one and asked for a valve on the branch that was meant to have none.
         static string Parallel(string first, string second) => $"""
-            fluidscript 1
-            circuit parallel
-            fluid water
+            fluidscript 2
 
-            HS1  heat_exchanger power=50 out.t=70
-            PU1  pump
-            {first}
-            {second}
-            CV1  valve
+            circuit "parallel":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HS1 - N3
-            N3 - RAD1 - CV1 - N4
-            N3 - RAD2 - N4
-            N4 - N1
+              HS1  heat_exchanger  power = 50  out.t = 70
+              PU1  pump
+              {first}
+              {second}
+              CV1  valve
+
+              N1 - PU1 - N2 - HS1 - N3
+              N3 - RAD1 - CV1 - N4
+              N3 - RAD2 - N4
+              N4 - N1
             """;
 
-        const string balanced = "RAD1 load power=30 dt=20";
-        const string index = "RAD2 load power=20 dt=20";
+        const string balanced = "RAD1  load  power = 30  dt = 20";
+        const string index = "RAD2  load  power = 20  dt = 20";
 
         foreach (var script in new[] { Parallel(balanced, index), Parallel(index, balanced) })
         {
@@ -305,17 +302,17 @@ public sealed class PromotionLocalityTests
         // joined at one node share no loop, so the pumped ring's pump is not a candidate for a flow pinned
         // on the other, however the header pressure is set.
         var result = WellPosedness.Check(GraphFixture.Lower("""
-            fluidscript 1
-            circuit rings
-            fluid water
+            fluidscript 2
 
-            HS1  heat_exchanger power=50 out.t=70
-            PU1  pump
-            RAD1 load power=50 dt=20
+            circuit "rings":
+              fluid = water
 
-            connections
-            N1 - PU1 - HS1 - N1
-            N1 - RAD1 - N1
+              HS1  heat_exchanger  power = 50  out.t = 70
+              PU1  pump
+              RAD1  load  power = 50  dt = 20
+
+              N1 - PU1 - HS1 - N1
+              N1 - RAD1 - N1
             """).Graph);
 
         Assert.Null(Claimed(result.Counting, "RAD1"));

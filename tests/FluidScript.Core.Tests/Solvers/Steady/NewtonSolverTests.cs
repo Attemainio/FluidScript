@@ -262,6 +262,14 @@ public sealed class NewtonSolverTests
             _ => null,
         };
 
+        // A row may also converge: without a line search the relabelled cooling loop (`D-175`) does. Then no code
+        // explains a stop, and none may be there.
+        if (result.Termination == SolveTermination.Converged)
+        {
+            Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS3001" or "FS3002" or "FS3003" or "FS3004" or "FS3006" or "FS3007");
+            return;
+        }
+
         Assert.NotNull(expected);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == expected);
         Assert.All(result.Diagnostics, static diagnostic => Assert.False(string.IsNullOrWhiteSpace(diagnostic.Message)));

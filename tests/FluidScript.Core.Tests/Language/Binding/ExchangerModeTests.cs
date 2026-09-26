@@ -30,21 +30,21 @@ public sealed class ExchangerModeTests
 {
     /// <summary>The substation's secondary, with HX1's declaration left to each test.</summary>
     private const string Loop = """
-        fluidscript 1
-        circuit loop
-        fluid water
+        fluidscript 2
 
-        SP   pump
-        SS   pipe length=30 dn=32
-        SR   pipe length=30 dn=32
-        LOAD heat_exchanger power=-150 dt=20
-        {0}
+        circuit "loop":
+          fluid = water
 
-        connections
-        HX1.out - SS - NSUP
-        NSUP - LOAD - NRET
-        NRET - SR - SP - HX1.in
-        {1}
+          SP  pump
+          SS  pipe  length = 30  dn = 32
+          SR  pipe  length = 30  dn = 32
+          LOAD  heat_exchanger  power = -150  dt = 20
+          {0}
+
+          HX1.primary.out - SS - NSUP
+          NSUP - LOAD - NRET
+          NRET - SR - SP - HX1.primary.in
+          {1}
         """;
 
     private static string Script(string exchanger, string secondary = "") =>
@@ -75,7 +75,7 @@ public sealed class ExchangerModeTests
     [Fact]
     public void ADutyWithNoSecondSideIsDutyMode()
     {
-        var exchanger = Exchanger(Script("HX1 heat_exchanger power=150 in.t=40 out.t=60"));
+        var exchanger = Exchanger(Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60"));
 
         Assert.Equal(ExchangerMode.Duty, exchanger.ResolvedMode);
         Assert.Equal("duty", exchanger.Mode);
@@ -87,7 +87,7 @@ public sealed class ExchangerModeTests
     {
         // No secondary connection: side 2 is the stated 85/45 profile, held outside the graph. The
         // rating carries the profile's inlet and capacity rate, and the size the bootstrap sized it to.
-        var exchanger = Exchanger(Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45"));
+        var exchanger = Exchanger(Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45"));
 
         Assert.Equal(ExchangerMode.Rated, exchanger.ResolvedMode);
         Assert.False(exchanger.SecondarySideConnected);
@@ -103,8 +103,8 @@ public sealed class ExchangerModeTests
     public void BothSecondaryPortsWiredIsCoupledMode()
     {
         var exchanger = Exchanger(Script(
-            "HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45\nNPS inlet t=85 p=600\nNPR outlet p=350",
-            "NPS - HX1.in[2]\nHX1.out[2] - NPR"));
+            "HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45\n  NPS  inlet  t = 85  p = 600\n  NPR  outlet  p = 350",
+            "NPS - HX1.secondary.in\n  HX1.secondary.out - NPR"));
 
         Assert.Equal(ExchangerMode.Coupled, exchanger.ResolvedMode);
         Assert.True(exchanger.SecondarySideConnected);
@@ -116,7 +116,7 @@ public sealed class ExchangerModeTests
     {
         // The whole of D-19's "rating parameters promote nothing": `ua` is a size with nothing to rate
         // against, so the exchanger delivers its 150 kW and the warning says where the number went.
-        var source = Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 ua=12000");
+        var source = Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  ua = 12000");
 
         var diagnostic = Only(source, "FS2110");
 
@@ -128,7 +128,7 @@ public sealed class ExchangerModeTests
     [Fact]
     public void FS2110_NamesEachInertParameterOnce()
     {
-        var result = Bind(Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 ua=12000 approach=4"));
+        var result = Bind(Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  ua = 12000  approach = 4"));
 
         Assert.Equal(2, result.Diagnostics.Count(static d => d.Code == "FS2110"));
     }
@@ -139,11 +139,11 @@ public sealed class ExchangerModeTests
     public void FS2112_OneSecondaryPortWiredIsAnErrorNamingTheOpenOne()
     {
         var diagnostic = Only(
-            Script("HX1 heat_exchanger power=150 in.t=40 out.t=60\nNPS inlet t=85 p=600", "NPS - HX1.in[2]"),
+            Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60\n  NPS  inlet  t = 85  p = 600", "NPS - HX1.secondary.in"),
             "FS2112");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("out[2] is open", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("secondary.out is open", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class ExchangerModeTests
         // 22: in, out, in2, out2 and power fix UA at 12 071 W/K by themselves. A stated `ua` is then a
         // second answer to the same question, and the diagnostic names the one to remove.
         var diagnostic = Only(
-            Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 ua=12000"),
+            Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  ua = 12000"),
             "FS2109");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
@@ -164,14 +164,14 @@ public sealed class ExchangerModeTests
     {
         Assert.Equal(
             "FS2109",
-            Only(Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300 area=3.66"), "FS2109").Code);
+            Only(Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300  area = 3.66"), "FS2109").Code);
     }
 
     [Fact]
     public void ACoefficientAloneIsNotASizeSoTheSubstationIsNotOverDetermined()
     {
         // `u=3300` turns a sized UA into an area; it does not fix UA. The reference circuit states it.
-        var result = Bind(Script("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300"));
+        var result = Bind(Script("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300"));
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS2109" or "FS2110");
     }

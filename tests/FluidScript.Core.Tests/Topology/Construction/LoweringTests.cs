@@ -125,11 +125,12 @@ public sealed class LoweringTests
         Assert.Equal(4, graph.Branches.Length);
 
         // Direction is the walk's, not the document's, so each row is checked in whichever orientation
-        // the walk found it. What must match is which two ends a branch joins.
+        // the walk found it. What must match is which two ends a branch joins. The valve's letters are the plant's
+        // (`D-175`): `b` is the bypass back to N2, `a` the leg on to the outlet.
         Assert.Contains(pairs, p => p is "N1|N2" or "N2|N1");
         Assert.Contains(pairs, p => p is "3WV.ab|N2" or "N2|3WV.ab");
-        Assert.Contains(pairs, p => p is "3WV.a|N2" or "N2|3WV.a");
-        Assert.Contains(pairs, p => p is "3WV.b|N3" or "N3|3WV.b");
+        Assert.Contains(pairs, p => p is "3WV.b|N2" or "N2|3WV.b");
+        Assert.Contains(pairs, p => p is "3WV.a|N3" or "N3|3WV.a");
     }
 
     [Fact]
@@ -196,12 +197,13 @@ public sealed class LoweringTests
     public void ANodeCarriesAMassBalanceOnTheSameRule(int connections, bool expected)
     {
         var source = $"""
-            fluidscript 1
-            N1 node p=300
-            {string.Join("\n", Enumerable.Range(2, connections).Select(i => $"N{i} node t=40"))}
+            fluidscript 2
 
-            connections
-            {string.Join("\n", Enumerable.Range(2, connections).Select(i => $"N1 - N{i}"))}
+            circuit "script":
+              N1  node  p = 300
+              {string.Join("\n  ", Enumerable.Range(2, connections).Select(i => $"N{i}  node  t = 40"))}
+
+              {string.Join("\n  ", Enumerable.Range(2, connections).Select(i => $"N1 - N{i}"))}
             """;
 
         var node = GraphFixture.Lower(source).Graph.Components
@@ -227,9 +229,9 @@ public sealed class LoweringTests
         var instrumented = GraphFixture.CoolingLoop + """
 
 
-            TE1 t_sensor at N1
-            PE1 p_sensor at N3
-            FE1 flow_sensor at N1
+              TE1  t_sensor  at N1
+              PE1  p_sensor  at N3
+              FE1  flow_sensor  at N1
             """;
 
         Assert.Equal(
@@ -251,17 +253,18 @@ public sealed class LoweringTests
         double expectedPower)
     {
         var source = $"""
-            fluidscript 1
-            circuit heating
-            fluid heating water
+            fluidscript 2
 
-            N1 node t=50 C p=300 kPa
-            N2 node t=30 C
-            HX1 {writtenKind} power={writtenPower} kW in.t=50 C out.t=30 C
+            circuit "heating":
+              fluid = water
+              role = heating
 
-            connections
-            N1 - HX1
-            HX1 - N2
+              N1  node  t = 50 C  p = 300 kPa
+              N2  node  t = 30 C
+              HX1  {writtenKind}  power = {writtenPower} kW  in.t = 50 C  out.t = 30 C
+
+              N1 - HX1
+              HX1 - N2
             """;
 
         var exchanger = Assert.Single(GraphFixture.Lower(source).Graph.Components.OfType<HeatExchangerComponent>());
@@ -292,14 +295,15 @@ public sealed class LoweringTests
     public void APipeWithFourInternalNodesBecomesFiveSubPipesAndFourCells()
     {
         var source = """
-            fluidscript 1
-            N1 node t=60 p=300
-            N2 node t=40
-            P1 pipe length=10 dn=25 nodes=4
+            fluidscript 2
 
-            connections
-            N1 - P1
-            P1 - N2
+            circuit "script":
+              N1  node  t = 60  p = 300
+              N2  node  t = 40
+              P1  pipe  length = 10  dn = 25  nodes = 4
+
+              N1 - P1
+              P1 - N2
             """;
 
         var graph = GraphFixture.Lower(source).Graph;
@@ -342,14 +346,15 @@ public sealed class LoweringTests
     public void AnExpandedPipeStillJoinsTheSameTwoNodes()
     {
         var source = """
-            fluidscript 1
-            N1 node t=60 p=300
-            N2 node t=40
-            P1 pipe length=10 dn=25 nodes=2
+            fluidscript 2
 
-            connections
-            N1 - P1
-            P1 - N2
+            circuit "script":
+              N1  node  t = 60  p = 300
+              N2  node  t = 40
+              P1  pipe  length = 10  dn = 25  nodes = 2
+
+              N1 - P1
+              P1 - N2
             """;
 
         var graph = GraphFixture.Lower(source).Graph;
@@ -380,14 +385,15 @@ public sealed class LoweringTests
         // no bore -- and inventing one from the number would be a 16 % area error that nothing in the
         // result would look wrong about (C-24).
         var source = """
-            fluidscript 1
-            N1 node t=60 p=300
-            N2 node t=40
-            P1 pipe length=10 dn=1200
+            fluidscript 2
 
-            connections
-            N1 - P1
-            P1 - N2
+            circuit "script":
+              N1  node  t = 60  p = 300
+              N2  node  t = 40
+              P1  pipe  length = 10  dn = 1200
+
+              N1 - P1
+              P1 - N2
             """;
 
         var result = GraphFixture.Lower(source);
@@ -416,19 +422,23 @@ public sealed class LoweringTests
         // The conservative direction: a steady circuit solved in time reaches its equilibrium and stays
         // there, while a transient one solved steadily loses every storage term it was written for.
         var source = """
-            fluidscript 1
-            circuit storage 100
-            fluid dynamic water
+            fluidscript 2
 
-            N1 node t=60 p=300
-            N2 node t=40
-            T1 tank volume=500
+            circuit "storage":
+              fluid = water
+              number = 100
+              role = storage
 
-            connections
-            N1 - T1
-            T1 - N2
+              N1  node  t = 60  p = 300
+              N2  node  t = 40
+              T1  tank  volume = 500
+
+              N1 - T1
+              T1 - N2
+
+            run "Transient":
             """;
 
-        Assert.Equal(SolveMode.Transient, GraphFixture.Lower(source).Graph.Mode);
+        Assert.Equal(SolveMode.Transient, GraphFixture.LowerRun(source).Graph.Mode);
     }
 }

@@ -119,25 +119,28 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
     public async Task ASolveThatStopsBeforeMeasuringAResidualStillAnswers()
     {
         const string Script = """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger  power=30kW  in.t=20C
-            LOAD heat_exchanger  power=-30kW  dp=0
-            V1   valve
-            PU1  pump
-            TC1  controller
-            connections
-            N1 - PU1.in
-            PU1.out - N2
-            N2 - HE1.in
-            HE1.out - N3
-            N3 - V1.in
-            V1.out - N5
-            N5 - LOAD.in
-            LOAD.out - N4
-            N4 - N1
-            control actuate=V1.position measure=N3.t by=TC1 setpoint=50C
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30kW  in.t = 20C
+              LOAD  heat_exchanger  power = -30kW  dp = 0
+              V1  valve
+              PU1  pump
+              TC1 controller:
+                moves = V1.position
+                reads = N3.t
+                setpoint = 50C
+              N1 - PU1.in
+              PU1.out - N2
+              N2 - HE1.in
+              HE1.out - N3
+              N3 - V1.in
+              V1.out - N5
+              N5 - LOAD.in
+              LOAD.out - N4
+              N4 - N1
             """;
         using var client = factory.CreateClient();
         using var response = await client.PostAsync(Compile, new { sessionId = "a", script = Script });
@@ -185,7 +188,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
 
     [Theory]
     [InlineData("{\"sessionId\":\"a\"}", "script")]
-    [InlineData("{\"script\":\"fluidscript 1\\n\"}", "sessionId")]
+    [InlineData("{\"script\":\"fluidscript 2\\n\"}", "sessionId")]
     public async Task AMissingRequiredFieldIs400ProblemDetailsNamingTheField(string body, string field)
     {
         using var client = factory.CreateClient();

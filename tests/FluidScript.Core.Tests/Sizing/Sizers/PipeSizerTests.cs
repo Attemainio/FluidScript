@@ -59,15 +59,16 @@ public sealed class PipeSizerTests
         // The sizer is reached through `ISizer.CanSize` alone; this pins the dispatch directly.
         var graph = Topology.GraphFixture.Lower(
             """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            PU1  pump
-            P1   pipe length=10
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              PU1  pump
+              P1  pipe  length = 10
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
             """).Graph;
 
         var sizer = new PipeSizer(Steel);

@@ -10,19 +10,20 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class HeightBindingTests
 {
     private const string RoofLoop = """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0 elevation=32
-        CV1  valve
-        PU1  pump
-        P1   pipe length=32
-        P2   pipe length=32
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0  elevation = 32
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 32
+          P2  pipe  length = 32
+
+          N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
         """;
 
     private static BindResult Bind(string text) =>
@@ -72,7 +73,7 @@ public sealed class HeightBindingTests
     [Trait("Category", "Unit")]
     public void AScriptWithNoHeightReadsZeroEverywhere()
     {
-        var heights = Model(RoofLoop.Replace(" elevation=32", string.Empty, StringComparison.Ordinal)).Heights;
+        var heights = Model(RoofLoop.Edited("  elevation = 32", string.Empty)).Heights;
 
         Assert.Empty(heights.Heights);
         Assert.Equal(0, heights.Rise("P1"));
@@ -85,7 +86,7 @@ public sealed class HeightBindingTests
     {
         // The valve says plant room, the load says roof, and N5 joins them directly. The later
         // declaration carries the diagnostic and both names are in it.
-        var result = Bind(RoofLoop.Replace("CV1  valve", "CV1  valve elevation=0", StringComparison.Ordinal));
+        var result = Bind(RoofLoop.Edited("CV1  valve", "CV1  valve  elevation = 0"));
 
         var missing = Assert.Single(result.Diagnostics, static d => d.Code == "FS2219");
 
@@ -99,7 +100,7 @@ public sealed class HeightBindingTests
     [Trait("Category", "Unit")]
     public void TheSameHeightStatedTwiceIsNotAConflict()
     {
-        var result = Bind(RoofLoop.Replace("CV1  valve", "CV1  valve elevation=32", StringComparison.Ordinal));
+        var result = Bind(RoofLoop.Edited("CV1  valve", "CV1  valve  elevation = 32"));
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS2219");
     }
@@ -111,21 +112,22 @@ public sealed class HeightBindingTests
         // N5 - N6 is D-25's ideal link. It does not join the two heights: N5 stays on the roof with
         // the load and N6 in the plant room with the pump, and the link carries the 32 m itself.
         var heights = Model("""
-            fluidscript 1
-            circuit heating
-            fluid water
+            fluidscript 2
 
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0 elevation=32
-            CV1  valve
-            PU1  pump
-            P1   pipe length=32
-            P2   pipe length=32
+            circuit "heating":
+              fluid = water
+              role = heating
 
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5
-            N5 - N6
-            N6 - CV1 - N7 - P2 - N1
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0  elevation = 32
+              CV1  valve
+              PU1  pump
+              P1  pipe  length = 32
+              P2  pipe  length = 32
+
+              N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5
+              N5 - N6
+              N6 - CV1 - N7 - P2 - N1
             """).Heights;
 
         Assert.Equal(32, heights.Of("N5"));
@@ -138,17 +140,18 @@ public sealed class HeightBindingTests
     public void ADeclaredNodePlacesItselfAndAPipeHasNoHeightOfItsOwn()
     {
         var result = Bind("""
-            fluidscript 1
-            circuit heating
-            fluid water
+            fluidscript 2
 
-            P1   pipe length=10 dn=25 elevation=10
+            circuit "heating":
+              fluid = water
+              role = heating
 
-            connections
-            N1 - P1 - N2
+              P1  pipe  length = 10  dn = 25  elevation = 10
 
-            N1 inlet t=20 p=300
-            N2 outlet p=150 elevation=10
+              N1 - P1 - N2
+
+              N1  inlet  t = 20  p = 300
+              N2  outlet  p = 150  elevation = 10
             """);
 
         // `elevation` on a pipe is the parameter the registry no longer has (D-70).

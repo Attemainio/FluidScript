@@ -82,7 +82,7 @@ internal static class TransientRunFixture
     }
 
     public static Task<Run> RunAsync(string name, string source, TransientSettings? settings = null, CancellationToken cancellationToken = default) =>
-        RunAsync(name, GraphFixture.Bind(source), settings, cancellationToken);
+        RunAsync(name, GraphFixture.BindRun(source), settings, cancellationToken);
 
     /// <summary>Runs a bound model in time: a language 2 run's, projected by <see cref="RunProjection"/>.</summary>
     public static async Task<Run> RunAsync(string name, SemanticModel model, TransientSettings? settings = null, CancellationToken cancellationToken = default)

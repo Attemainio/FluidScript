@@ -1902,6 +1902,36 @@ that governed each size. What P6.8 still owes, and what comes after:
     tokens, filed `U-11` and marked `it.fails` until package 8. Core 2800/0/2 (the history blocks leave the corpus
     theories), Api 79/0, frontend 221 and 9 expected failures. Next: step 2 (inline test scripts converted, language
     1 grammar tests deleted), step 3 (language 2 current), step 4 (language 1 deleted), and the sweep.
+  - **Step 2, the tests' own scripts (2026-09-26).** Every script a test builds in code -- literals, interpolated
+    templates, `ReferenceModels.DistributionHeader`, the scale fixture -- is language 2; what still reaches language 1's
+    parser is the corpus sweeps (unversioned fragments, which are language 2 once step 3 lands, and `docs/`'s blocks,
+    package 9), the language 1 grammar and converter tests, and the untracked `diagnostics/scratch`. A recorder in the
+    parser found them: 486 texts in 454 tests, 253 matched to a literal and converted by the converter, the rest by
+    hand. 31 tests that exercised only language 1 were deleted (attachments, `FS1536`'s old spellings, `FS1547`, the
+    role registry, curve-drives-curve, `format=`, the design-case and bare-actuator rules language 2 dropped); each
+    physics test was converted, not deleted. The grammar test files (`Parser`, `ParserProperty`, `CurveParsing`,
+    `StyleDirective`, `SizingPointParsing`, `Printer`, `Formatter`, `Lexer`'s language 1 half) go with the parser in
+    step 4, their language-agnostic cases (CRLF, BOM, an empty file) ported then. What converting found, each measured:
+    - **Tests that tested nothing.** Four helpers prefixed `fluidscript 1` to bodies the bulk pass had written in
+      language 2, so every `None(...)` check over them passed on a parse of garbage (`ComponentDiagnosticsTests`,
+      `ConstantsTests`, `DeltaPressureTests`, `IndexedPropertyTests`); and `PromotionLocalityTests`' `S-45` test edited
+      text the header sample never contained, in language 1 as well -- its `HE_AHU` kept `out.t` and the test asserted
+      the untouched plant. With the edit real, `PU_RAD` still answers `HE_RAD`: `S-45`'s fix holds, now shown.
+    - **Three code defects, fixed here.** A language 2 controller's `moves` was never checked: `TV9.position` (no
+      such component) and `TV1.altitude` bound silently and moved nothing. The short form's endpoint now reports
+      `FS1404` and `FS1522` as the long form did (two frozen-corpus fragments that name an undeclared valve now say
+      `FS1404`; goldens updated). `FS1538` on an exchanger quoted `out[2]`; the wording pass respells it (`19`'s table
+      says so). And a unit after a name (`power = heating W`, `HE1.dp kPa`) was `FS1105` and dropped the declaration.
+    - **`D-175` in the cooling loop.** `GraphFixture.CoolingLoop` writes no valve letters, so the plant labels them:
+      `a` on to the outlet, `b` the recirculation, where language 1's order had them the other way. At the default
+      position 1 the recirculation is now shut; its leakage, 0.0087 kg/s, runs backwards from the pump's suction
+      (300 kPa) into the valve body (293.7 kPa), and the direction hints say `Reverse` for that one link. Newton
+      without a line search now converges on it. Both tests say so; nothing else moved.
+    - **Lowering a run.** `GraphFixture.Lower` stays the steady design a run starts from; `LowerRun` lowers the file's
+      one run (its mode, schedule and clock), which the transient, clock and schedule tests use.
+    - Filed `L-76`: language 2 has no formatter, so Format is a no-op once language 1 is gone -- decide before step 4.
+      `C-98` crashed after each of the four full Core runs whose exit was read today, and is now a Trap.
+    Core 2752/0/2, Api 79/0; the frontend was not touched.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

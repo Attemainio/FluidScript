@@ -14,50 +14,54 @@ public sealed class CurveClockTests
 {
     /// <summary>
     /// The demand-step loop with its duty read off a weather chain: <c>heating</c> by the outdoor
-    /// temperature, the outdoor temperature by the clock. 2026-01-15T06:00 is Unix 1 768 456 800; the
-    /// outdoor air warms from −26 to −6 °C over the first five minutes, so the duty falls from 30 to 15 kW.
+    /// temperature, and the run hands the outdoor temperature to the clock's <c>weather</c>. 2026-01-15 06:00 is Unix
+    /// 1 768 456 800; the outdoor air warms from −26 to −6 °C over the first five minutes, so the duty falls from 30 to
+    /// 15 kW.
     /// </summary>
     private const string Weather = """
-        fluidscript 1
-        project dynamic demand{START}
-        design tout=-26
+        fluidscript 2
 
-        curve outdoor time
-        2026-01-15T06:00:00  -26
-        2026-01-15T06:05:00  -6
+        let outdoor = -26 C
 
-        curve heating outdoor
-        -26  30
-        -6   15
+        curve weather: time
+          2026-01-15 06:00   -26
+          2026-01-15 06:05    -6
 
-        circuit demandStep
-        fluid dynamic water
+        curve heating: outdoor
+          -26   30
+           -6   15
 
-        HE1 heat_exchanger power=heating out.t=50
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25
-        PB  pipe length=8 dn=20 nodes=4
-        TC1 pi
+        circuit "demandStep":
+          fluid = water
 
-        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
+          HE1  heat_exchanger  power = heating  out.t = 50
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25
+          PB  pipe  length = 8  dn = 20  nodes = 4
+          TC1  controller:
+            moves = 3WV.position
+            reads = NS.t
+            setpoint = 20
 
-        connections
-        N1 - N2
-        N2 - NS
-        NS - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - PB - N2
-        3WV - P1
-        P1 - N3
+          N1 - N2
+          N2 - NS
+          NS - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - PB - N2
+          3WV - P1
+          P1 - N3
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
+
+        run "Morning":
+          outdoor = weather{START}
         """;
 
-    private static string Script(string start = " start=\"2026-01-15T06:00:00\"") =>
-        Weather.Replace("{START}", start, StringComparison.Ordinal);
+    private static string Script(string start = "2026-01-15 06:00") =>
+        Weather.Replace("{START}", start.Length == 0 ? string.Empty : "\n  start = " + start, StringComparison.Ordinal);
 
     private static BindResult Bind(string text) =>
         new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(text)));
@@ -67,48 +71,29 @@ public sealed class CurveClockTests
     {
         var result = Bind(Script());
 
-        Assert.DoesNotContain(result.Diagnostics, d => d.Code is "FS1545" or "FS1546" or "FS1547");
-        Assert.Equal(1_768_456_800, result.Model.Project.Start);
-        Assert.Equal(1_768_456_800, Bind(Script(" start=1768456800")).Model.Project.Start);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code is "FS1545" or "FS1546");
+        Assert.Equal(1_768_456_800, Assert.Single(result.Model.Runs).Start);
     }
 
     [Theory]
-    [InlineData(" start=2026")]
-    [InlineData(" start=\"15.1.2026 06:00\"")]
-    [InlineData(" start=\"2026-01-15T06:00:00+02:00\"")]
+    [InlineData("\"15.1.2026 06:00\"")]
+    [InlineData("\"2026-01-15T06:00:00+02:00\"")]
     public void AStartThatIsNotATimeIsFs1545(string start)
     {
-        // `2026` is a year of Unix seconds -- 33 minutes into 1970 -- and reads; the check that it is
-        // the year meant is the curve's rows, which then start 56 years later. So only the two that
-        // cannot be read at all are refused: a culture's date, and an offset no curve row accepts.
+        // A culture's date and an offset no curve row accepts cannot be read at all.
         var codes = Bind(Script(start)).Diagnostics.Select(static d => d.Code).ToArray();
-
-        if (start == " start=2026")
-        {
-            Assert.DoesNotContain("FS1545", codes);
-            return;
-        }
 
         Assert.Contains("FS1545", codes);
     }
 
     [Fact]
-    public void ADynamicCircuitFollowingTheClockWithNoStartIsWarnedOnceOnTheReader()
+    public void ARunFollowingTheClockWithNoStartIsWarnedOnceOnItsHead()
     {
         var result = Bind(Script(start: string.Empty));
 
         var warning = Assert.Single(result.Diagnostics, d => d.Code == "FS1546");
-        Assert.Contains("'outdoor'", warning.Message, StringComparison.Ordinal);
-        Assert.Null(GraphFixture.Lower(Script(start: string.Empty)).Graph.Clock);
-    }
-
-    [Fact]
-    public void AStartInAFileWithNoClockIsFs1547()
-    {
-        var source = Script().Replace("project dynamic", "project static", StringComparison.Ordinal)
-            .Replace("fluid dynamic water", "fluid water", StringComparison.Ordinal);
-
-        Assert.Contains(Bind(source).Diagnostics, d => d.Code == "FS1547");
+        Assert.Contains("'weather'", warning.Message, StringComparison.Ordinal);
+        Assert.Null(GraphFixture.LowerRun(Script(start: string.Empty)).Graph.Clock);
     }
 
     [Fact]
@@ -116,7 +101,7 @@ public sealed class CurveClockTests
     {
         // At t = 0 the outdoor curve's first row, −26 °C, so heating's 30 kW; half way through the ramp
         // −16 °C and 22.5 kW; at five minutes −6 °C and 15 kW; beyond the last row, held there.
-        var clock = GraphFixture.Lower(Script()).Graph.Clock;
+        var clock = GraphFixture.LowerRun(Script()).Graph.Clock;
 
         Assert.NotNull(clock);
 
@@ -135,8 +120,8 @@ public sealed class CurveClockTests
     [Fact]
     public void AStartLaterOnTheAxisReadsTheCurveLaterOn()
     {
-        // The same file started at 06:02:30 is 150 s into the ramp at its own t = 0.
-        var clock = GraphFixture.Lower(Script(" start=\"2026-01-15T06:02:30\"")).Graph.Clock!;
+        // The same run started at 06:02:30 is 150 s into the ramp at its own t = 0.
+        var clock = GraphFixture.LowerRun(Script("2026-01-15 06:02:30")).Graph.Clock!;
 
         Assert.Equal(22_500, clock.ValueAt(clock.Drives[0], 0)!.Value, 6);
     }
@@ -146,22 +131,22 @@ public sealed class CurveClockTests
     {
         // D-91's rule on the schedule path: `HL.power = 45` on a load is a 45 kW consumer. Written
         // straight through, the run was handed +45 kW, a heater.
-        var graph = GraphFixture.Lower("""
-            fluidscript 1
-            circuit demand
-            fluid dynamic water
+        var graph = GraphFixture.LowerRun("""
+            fluidscript 2
 
-            HL  load power=30 out.t=40
-            PU1 pump
+            circuit "demand":
+              fluid = water
 
-            connections
-            N1 - PU1 - HL - N2
+              HL  load  power = 30  out.t = 40
+              PU1  pump
 
-            N1 inlet t=50 p=300
-            N2 outlet p=280
+              N1 - PU1 - HL - N2
 
-            schedule
-            at 60 s   HL.power = 45
+              N1  inlet  t = 50  p = 300
+              N2  outlet  p = 280
+
+            run "Transient":
+              at 60 s  HL.power = 45
             """).Graph;
 
         var change = Assert.Single(graph.Schedule);

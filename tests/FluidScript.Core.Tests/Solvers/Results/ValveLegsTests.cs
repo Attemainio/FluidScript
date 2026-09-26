@@ -155,44 +155,50 @@ public sealed class ValveLegsTests
         // varies, whether or not it also wrote `a`. This is the shape a user reaches for when the bypass
         // is the leg they are thinking about -- it is the one carrying the balancing valve.
         //
-        // The header's own shape, with the AHU's supply tap written bare. A bare connection takes the
-        // first free port in `ab`, `a`, `b` order, so it has to come after the line that names `ab` or it
-        // would take `ab` itself and the named one would then collide with it.
+        // The header's own shape, with the AHU's supply tap written bare: the plant labels it `a` (`D-175`), and
+        // a language 2 port counts as stated however it was reached (`D-177`).
         const string source = """
-            fluidscript 1
-            circuit heating 100
-            fluid water
-            HS1     heat_exchanger out.t=80
-            connections
-            N1 - HS1 - N3
-            N3 - N4
-            N6 - N5
-            N5 - N1
-            N1 node p=250
+            fluidscript 2
 
-            circuit AHU 101
-            HE_AHU  load in.t=50 out.t=30 power=24 kW
-            TV_AHU  three_way_valve
-            PU_AHU  pump
-            PA1     pipe length=12 dn=25
-            PA2     pipe length=12 dn=25
-            connections
-            TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-            NM_AHU - TV_AHU.b
-            N3 - PA1 - TV_AHU
-            NM_AHU - PA2 - N5
+            circuit "heating":
+              fluid = water
+              number = 100
+              role = heating
 
-            circuit radiators 102
-            HE_RAD  load in.t=50 out.t=30 power=30 kW
-            TV_RAD  three_way_valve
-            PU_RAD  pump
-            PR1     pipe length=18 dn=25
-            PR2     pipe length=18 dn=25
-            connections
-            N4 - PR1 - TV_RAD.a
-            NM_RAD - TV_RAD.b
-            TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-            NM_RAD - PR2 - N6
+              HS1  heat_exchanger  out.t = 80
+              N1 - HS1 - N3
+              N3 - N4
+              N6 - N5
+              N5 - N1
+              N1  node  p = 250
+
+            circuit "AHU":
+              number = 101
+              role = ahu
+
+              HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+              TV_AHU  three_way_valve
+              PU_AHU  pump
+              PA1  pipe  length = 12  dn = 25
+              PA2  pipe  length = 12  dn = 25
+              TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+              NM_AHU - TV_AHU.b
+              N3 - PA1 - TV_AHU
+              NM_AHU - PA2 - N5
+
+            circuit "radiators":
+              number = 102
+              role = radiator
+
+              HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+              TV_RAD  three_way_valve
+              PU_RAD  pump
+              PR1  pipe  length = 18  dn = 25
+              PR2  pipe  length = 18  dn = 25
+              N4 - PR1 - TV_RAD
+              NM_RAD - TV_RAD
+              TV_RAD - PU_RAD - HE_RAD - NM_RAD
+              NM_RAD - PR2 - N6
             """;
 
         var graph = GraphFixture.Lower(source).Graph;
@@ -203,7 +209,7 @@ public sealed class ValveLegsTests
                 ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
             .ToArray();
 
-        Assert.DoesNotContain("TV_AHU.a", graph.StatedPorts);
+        Assert.Contains("TV_AHU.a", graph.StatedPorts);
         Assert.Contains("TV_AHU.b", graph.StatedPorts);
 
         var common = ValveLegs.Common(legs, new double[legs.Length], valve);

@@ -180,7 +180,9 @@ internal sealed partial class LineParser
     /// </remarks>
     private ExpressionSyntax WithUnit(ReferenceSyntax reference)
     {
-        if (Current is not { Kind: TokenKind.Identifier } first || StartsNextParameter(_index + 1))
+        if (Current is not { Kind: TokenKind.Identifier } first
+            || StartsNextParameter(_index + 1)
+            || (language2 && LexerOptions.Language2.ExcludedUnitSymbols.Contains(first.Text)))
         {
             return reference;
         }

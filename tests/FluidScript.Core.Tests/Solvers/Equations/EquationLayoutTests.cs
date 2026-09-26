@@ -199,23 +199,24 @@ public sealed class EquationLayoutTests
         // A series loop has no junction at all, so no node in it carries a mass balance and there is
         // nothing redundant to drop. The three-way valve is what makes the balance exist.
         const string Closed = """
-            fluidscript 1
-            circuit closed 100
-            fluid water
+            fluidscript 2
 
-            N1 node t=60
-            PU1 pump head=6 flow=0.24
-            HE1 heat_exchanger power=-30
-            3WV three_way_valve kv=6.3
-            P1 pipe length=10 dn=25
+            circuit "closed":
+              fluid = water
+              number = 100
 
-            connections
-            N1 - PU1
-            PU1 - HE1
-            HE1 - 3WV
-            3WV - N1
-            3WV - P1
-            P1 - N1
+              N1  node  t = 60
+              PU1  pump  head = 6  flow = 0.24
+              HE1  heat_exchanger  power = -30
+              3WV  three_way_valve  kv = 6.3
+              P1  pipe  length = 10  dn = 25
+
+              N1 - PU1
+              PU1 - HE1
+              HE1 - 3WV
+              3WV - N1
+              3WV - P1
+              P1 - N1
             """;
 
         var (graph, posedness) = Lower(Closed);
@@ -224,11 +225,9 @@ public sealed class EquationLayoutTests
         Assert.NotEmpty(layout.Dropped);
 
         var (grown, grownPosedness) = Lower(Closed
-            .Replace(
-                "P1 pipe length=10 dn=25",
-                "P1 pipe length=10 dn=25\nV1 valve kv=6.3",
-                StringComparison.Ordinal)
-            .Replace("P1 - N1", "P1 - V1\nV1 - N1", StringComparison.Ordinal));
+            .Edited("P1  pipe  length = 10  dn = 25",
+                "P1  pipe  length = 10  dn = 25\n  V1  valve  kv = 6.3")
+            .Edited("P1 - N1", "P1 - V1\n  V1 - N1"));
 
         var after = EquationLayout.Build(grown, grownPosedness);
 

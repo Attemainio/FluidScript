@@ -417,6 +417,20 @@ internal sealed partial class BindingRun
 
         if (endpoint.Port is { } port)
         {
+            // Checked as the long form checks `actuate=`: a controller moving what does not exist, or a parameter its
+            // kind lacks, was bound as written and moved nothing.
+            if (!_componentsByName.TryGetValue(name, out var named))
+            {
+                Report(BinderDiagnostics.UnknownName, endpoint.Span, ("name", name));
+                return null;
+            }
+
+            if (actuated && _components[named.Index].Kind is { } owner && !owner.Parameters.ContainsKey(port))
+            {
+                Report(BinderDiagnostics.ParameterNotControllable, endpoint.Span, ("param", port), ("component", name));
+                return null;
+            }
+
             return new PropertyReference(name, port);
         }
 

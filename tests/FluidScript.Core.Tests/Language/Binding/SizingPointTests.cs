@@ -16,16 +16,21 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class SizingPointTests
 {
     private const string Plant = """
-        fluidscript 1
-        design tout=-26
-        curve heating tout
-        -26  50
-         20   0
+        fluidscript 2
 
-        circuit ahu 300
-        fluid static water
-        HP1 load in.t=50 out.t=30 power=heating sized_at tout=-5
-        BL1 load in.t=50 out.t=30 power=heating
+        let tout = -26 °C
+
+        curve heating: tout
+          -26  50
+          20   0
+
+        circuit "ahu":
+          fluid = water
+          number = 300
+          role = ahu
+
+          HP1  load  in.t = 50  out.t = 30  power = heating  sized_at.tout = -5 °C
+          BL1  load  in.t = 50  out.t = 30  power = heating
         """;
 
     private static BindResult Bind(string text) =>
@@ -92,14 +97,13 @@ public sealed class SizingPointTests
 
     [Theory]
     [Trait("Category", "Unit")]
-    [InlineData("sized_at tout=-5")]
-    [InlineData("sized_at tout=-5 C")]
-    [InlineData("sized_at outdoor=-5")]
-    public void TheRoleIsWhatMakesThePointCheckableAndSpellingIndependent(string clause)
+    [InlineData("sized_at.tout = -5")]
+    [InlineData("sized_at.tout = -5 C")]
+    public void ABarePointAndOneWithItsUnitAreTheSameRow(string clause)
     {
-        // `D-59` applies unchanged: `tout` and `outdoor` are one driver, and a bare −5 and −5 °C are
-        // the same row of a table written in degrees.
-        var model = Model(Plant.Replace("sized_at tout=-5", clause, StringComparison.Ordinal));
+        // A bare −5 and −5 °C are the same row of a table written in the driver's degrees; the driver is
+        // the `let` the setting names, by its spelling (`D-176`).
+        var model = Model(Plant.Edited("sized_at.tout = -5 °C", clause));
 
         Assert.Equal(27_173.913, Power(model, "HP1"), 3);
     }
@@ -110,7 +114,7 @@ public sealed class SizingPointTests
     {
         Assert.Contains(
             "FS1304",
-            Bind(Plant.Replace("sized_at tout=-5", "sized_at tout=3 bar", StringComparison.Ordinal))
+            Bind(Plant.Edited("sized_at.tout = -5 °C", "sized_at.tout = 3 bar"))
                 .Diagnostics.Select(static d => d.Code));
     }
 
@@ -120,52 +124,8 @@ public sealed class SizingPointTests
     {
         Assert.Contains(
             "FS1401",
-            Bind(Plant.Replace("sized_at tout=-5", "sized_at tout=-5 outdoor=-7", StringComparison.Ordinal))
+            Bind(Plant.Edited("sized_at.tout = -5 °C", "sized_at.tout = -5 °C  sized_at.tout = -7 °C"))
                 .Diagnostics.Select(static d => d.Code));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ThePointIsWalkedThroughACurveThatDrivesAnother()
-    {
-        // `heating` is driven by `outdoor`, itself a curve of `tout`. The override on `tout` has to
-        // reach `heating` through `outdoor`, evaluated afresh at −5 rather than at the file's −26.
-        var model = Model("""
-            fluidscript 1
-            design tout=-26
-            curve outdoor tout
-            -26  -26
-             20   20
-
-            curve heating outdoor
-            -26  50
-             20   0
-
-            circuit ahu 300
-            fluid static water
-            HP1 load in.t=50 out.t=30 power=heating sized_at tout=-5
-            BL1 load in.t=50 out.t=30 power=heating
-            """);
-
-        Assert.Equal(27_173.913, Power(model, "HP1"), 3);
-        Assert.Equal(50_000, Power(model, "BL1"), 6);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void AComponentsOwnPointPositionsACurveTheFileNeverDid()
-    {
-        // No `design` line at all: the heat pump's clause is enough for its own reference, and only
-        // the boiler's, which has nothing to read the curve at, is FS1528.
-        var result = Bind(Plant.Replace("design tout=-26\n", string.Empty, StringComparison.Ordinal));
-
-        var missing = Assert.Single(result.Diagnostics, static d => d.Code == "FS1528");
-        var boiler = Assert.Single(result.Model.Components, static c => c.Name == "BL1");
-        Assert.Equal(boiler.Parameters["power"].Span, missing.Span);
-
-        var heatPump = Assert.Single(result.Model.Components, static c => c.Name == "HP1");
-        Assert.Equal(27_173.913, heatPump.Parameters["power"].Value!.Value.SiValue, 3);
-        Assert.Equal("27.174 kW at tout=-5", heatPump.Parameters["power"].Basis);
     }
 
     // ---- language 2, where the driver varies by case (`D-175`) -------------------------------------
@@ -238,7 +198,7 @@ public sealed class SizingPointTests
     public void ALetThatSpellsNoRoleIsReadInItsOwnUnit()
     {
         // `-5 C` against rows in °C is −5, not 268.15 K: the point is read as the `let`'s rows are.
-        var model = Model2(Cases.Replace("outdoor", "t_ext", StringComparison.Ordinal));
+        var model = Model2(Cases.Edited("outdoor", "t_ext"));
 
         Assert.Equal(27_173.913, Power(model, "HP1", 0), 3);
         Assert.Equal(16_304.348, Power(model, "HP1", 1), 3);
@@ -276,7 +236,7 @@ public sealed class SizingPointTests
     [Trait("Category", "Unit")]
     public void APointNothingReadsIsSaid()
     {
-        var source = new SourceText(Demand.Replace("sized_at.demand", "sized_at.demnad", StringComparison.Ordinal));
+        var source = new SourceText(Demand.Edited("sized_at.demand", "sized_at.demnad"));
         var result = new Binder(ComponentRegistry.Default).Bind(
             MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default));
 

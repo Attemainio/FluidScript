@@ -366,8 +366,8 @@ public sealed class ModelContractBuilderTests
         // them apart and two leave by one side (the composed engine draws the same pair joined twice clean, as it
         // did the two-pump ring before it, C-102). When a rule learns this shape too, this test needs a new
         // breaching script, not deleting -- the guardrail must stay provably live.
-        var breached = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 1\n\ncircuit plant\n\nconnections\nN1 - N2 - N1\nN1 - N2 - N1\n"));
-        var ring = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 1\n\ncircuit plant\n\nPU1 pump\n\nconnections\nPU1 - PU1\n"));
+        var breached = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 2\n\ncircuit \"plant\":\n  N1 - N2 - N1\n  N1 - N2 - N1\n"));
+        var ring = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 2\n\ncircuit \"plant\":\n  PU1  pump\n\n  PU1 - PU1\n"));
 
         var raised = breached.Diagnostics.Where(static d => d.Code == "FS5002").ToArray();
         Assert.NotEmpty(raised);

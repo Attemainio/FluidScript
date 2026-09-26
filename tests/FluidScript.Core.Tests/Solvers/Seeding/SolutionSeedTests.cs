@@ -152,25 +152,25 @@ public sealed class SolutionSeedTests
     }
 
     private const string MachineHoldingItsLeavingTemperature = """
-        fluidscript 1
+        fluidscript 2
 
-        circuit heating
-        fluid water
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        HPC  heater out.t=45 dp=30
-        HL   load power=120 out.t=40 dp=20
-        TVH  three_way_valve position=1
-        PUH  pump
-        PR   pipe length=5 dn=65
+          HPC  heater  out.t = 45  dp = 30
+          HL  load  power = 120  out.t = 40  dp = 20
+          TVH  three_way_valve  position = 1
+          PUH  pump
+          PR  pipe  length = 5  dn = 65
 
-        connections
-        NB_in - NM
-        NM - PUH - HPC - TVH.ab
-        TVH.a - HL - PR - NM
-        TVH.b - NB_out
+          NB_in - NM
+          NM - PUH - HPC - TVH.ab
+          TVH.a - HL - PR - NM
+          TVH.b - NB_out
 
-        NB_in  inlet t=10 p=200
-        NB_out outlet p=200
+          NB_in  inlet  t = 10  p = 200
+          NB_out  outlet  p = 200
         """;
 
     [Fact]
@@ -199,33 +199,33 @@ public sealed class SolutionSeedTests
         // return of the opposing loads decides: R1 and R2 both return at 50 C. The chilled loop in the
         // same file returns at 12 C; read too, the returns disagreed and BLR was left at the nominal flow.
         var graph = GraphFixture.Lower("""
-            fluidscript 1
+            fluidscript 2
 
-            circuit heating
-            fluid water
+            circuit "heating":
+              fluid = water
+              role = heating
 
-            BLR  heater power=40 out.t=70
-            R1   load power=20 out.t=50
-            R2   load power=20 out.t=50
-            PU1  pump
+              BLR  heater  power = 40  out.t = 70
+              R1  load  power = 20  out.t = 50
+              R2  load  power = 20  out.t = 50
+              PU1  pump
 
-            connections
-            N2 - PU1 - BLR - N1
-            N1 - R1 - N2
-            N1 - R2 - N2
-            N2 p=200
+              N2 - PU1 - BLR - N1
+              N1 - R1 - N2
+              N1 - R2 - N2
+              N2  node  p = 200
 
-            circuit cooling
-            fluid water
+            circuit "cooling":
+              fluid = water
+              role = cooling
 
-            CH   chiller power=30 out.t=7
-            CL   load power=30 out.t=12
-            PU2  pump
+              CH  chiller  power = 30  out.t = 7
+              CL  load  power = 30  out.t = 12
+              PU2  pump
 
-            connections
-            N4 - PU2 - CH - N3
-            N3 - CL - N4
-            N4 p=200
+              N4 - PU2 - CH - N3
+              N3 - CL - N4
+              N4  node  p = 200
             """).Graph;
         var estimates = BranchFlows.Estimate(graph);
 
@@ -259,25 +259,25 @@ public sealed class SolutionSeedTests
         // Three zones on one 70/40 plant: 20 kW over 70 -> 40 C is 0.1594 kg/s, the split the zones settle at. Before,
         // a zone had no rating, took the plant's whole 0.478 kg/s from the copy rule, and zone 1 seeded backwards.
         const string Zones = """
-            fluidscript 1
-            circuit zones
-            fluid water
+            fluidscript 2
 
-            PU1 pump
-            HE1 heat_exchanger power=60 in.t=40 out.t=70
-            HE2 heat_exchanger power=0.001 in.t=40 out.t=70
-            LD1 heat_exchanger power=-20
-            LD2 heat_exchanger power=-20
-            LD3 heat_exchanger power=-20
+            circuit "zones":
+              fluid = water
 
-            connections
-            PU1 - HE1 - HE2 - NA1
-            NA1 - LD1 - NB1
-            NA1 - NA2
-            NA2 - LD2 - NB2
-            NA2 - LD3 - NB2
-            NB2 - NB1
-            NB1 - PU1
+              PU1  pump
+              HE1  heat_exchanger  power = 60  in.t = 40  out.t = 70
+              HE2  heat_exchanger  power = 0.001  in.t = 40  out.t = 70
+              LD1  heat_exchanger  power = -20
+              LD2  heat_exchanger  power = -20
+              LD3  heat_exchanger  power = -20
+
+              PU1 - HE1 - HE2 - NA1
+              NA1 - LD1 - NB1
+              NA1 - NA2
+              NA2 - LD2 - NB2
+              NA2 - LD3 - NB2
+              NB2 - NB1
+              NB1 - PU1
             """;
 
         var graph = GraphFixture.Lower(Zones).Graph;
@@ -288,7 +288,7 @@ public sealed class SolutionSeedTests
         Assert.Equal(0.1594, zone.Magnitude, 3);
 
         // A second source at 80/60 leaves no one design difference, and none is invented.
-        var disagreeing = GraphFixture.Lower(Zones.Replace("HE2 heat_exchanger power=0.001 in.t=40 out.t=70", "HE2 heat_exchanger power=0.001 in.t=60 out.t=80", StringComparison.Ordinal)).Graph;
+        var disagreeing = GraphFixture.Lower(Zones.Edited("HE2  heat_exchanger  power = 0.001  in.t = 40  out.t = 70", "HE2  heat_exchanger  power = 0.001  in.t = 60  out.t = 80")).Graph;
         var unrated = BranchFlows.Estimate(disagreeing)[disagreeing.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
 
         Assert.NotEqual(FlowBasis.Duty, unrated.Basis);
@@ -296,7 +296,7 @@ public sealed class SolutionSeedTests
         // An open circuit takes heat in through its boundaries, so its exchangers are not its loads' design reference:
         // the heat pump's evaporator, rated at its cooling coil's 7/12 while the bores' 10 C water joined, sent a
         // converging solve to its valve's stop.
-        var open = GraphFixture.Lower(Zones.Replace("NB1 - PU1", "NB1 - PU1\nNB_in - NB1\nNA1 - NB_out\nNB_in inlet t=40 p=200\nNB_out outlet p=200", StringComparison.Ordinal)).Graph;
+        var open = GraphFixture.Lower(Zones.Edited("NB1 - PU1", "NB1 - PU1\n  NB_in - NB1\n  NA1 - NB_out\n  NB_in  inlet  t = 40  p = 200\n  NB_out  outlet  p = 200")).Graph;
         var borrowed = BranchFlows.Estimate(open)[open.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
 
         Assert.NotEqual(FlowBasis.Duty, borrowed.Basis);
@@ -307,23 +307,24 @@ public sealed class SolutionSeedTests
     {
         var graph = GraphFixture.Lower(
             """
-            fluidscript 1
-            circuit heating
-            fluid water
+            fluidscript 2
 
-            SOURCE heater in.t=30 out.t=80 power=24 kW
-            LOAD   load in.t=50 out.t=30 power=24 kW
-            TV     three_way_valve kv=25
-            PU     pump
-            P1     pipe length=10 dn=25
+            circuit "heating":
+              fluid = water
+              role = heating
 
-            connections
-            N1 - SOURCE - TV.a
-            N2 - TV.b
-            TV.ab - PU - LOAD - N2
-            N2 - P1 - N1
+              SOURCE  heater  in.t = 30  out.t = 80  power = 24 kW
+              LOAD  load  in.t = 50  out.t = 30  power = 24 kW
+              TV  three_way_valve  kv = 25
+              PU  pump
+              P1  pipe  length = 10  dn = 25
 
-            N1 node p=250
+              N1 - SOURCE - TV
+              N2 - TV
+              TV - PU - LOAD - N2
+              N2 - P1 - N1
+
+              N1  node  p = 250
             """).Graph;
         var valve = Assert.Single(graph.Components.OfType<ThreeWayValveComponent>());
         var estimates = BranchFlows.Estimate(graph);
@@ -354,43 +355,46 @@ public sealed class SolutionSeedTests
 
     /// <summary>The ladder's series header: the radiators' block first, the AHU's block cooling what is left (<c>S-63</c>).</summary>
     private const string SeriesHeader = """
-        fluidscript 1
-        project static plant_01
+        fluidscript 2
 
-        circuit heating 100
-        fluid water
+        project "plant_01":
+        circuit "heating":
+          fluid = water
+          number = 100
+          role = heating
 
-        HS1     heat_exchanger power=30 kW out.t=60
+          HS1  heat_exchanger  power = 30 kW  out.t = 60
 
-        connections
-        N1 - HS1 - N3
-        N5 - N1
+          N1 - HS1 - N3
+          N5 - N1
 
-        N1 node p=250
+          N1  node  p = 250
 
-        circuit radiators 102
+        circuit "radiators":
+          number = 102
+          role = radiator
 
-        HE_RAD  load in.t=50 out.t=40 power=20 kW
-        TV_RAD  three_way_valve
-        PU_RAD  pump
+          HE_RAD  load  in.t = 50  out.t = 40  power = 20 kW
+          TV_RAD  three_way_valve
+          PU_RAD  pump
 
-        connections
-        N3 - TV_RAD.a length=18 dn=25
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - N4 length=18 dn=25
+          N3 - TV_RAD   18 m  DN25
+          NM_RAD - TV_RAD
+          TV_RAD - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - N4   18 m  DN25
 
-        circuit AHU 101
+        circuit "AHU":
+          number = 101
+          role = ahu
 
-        HE_AHU  load in.t=35 out.t=30
-        TV_AHU  three_way_valve
-        PU_AHU  pump
+          HE_AHU  load  in.t = 35  out.t = 30
+          TV_AHU  three_way_valve
+          PU_AHU  pump
 
-        connections
-        N4 - TV_AHU.a length=12 dn=25
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - N5 length=12 dn=25
+          N4 - TV_AHU   12 m  DN25
+          NM_AHU - TV_AHU
+          TV_AHU - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - N5   12 m  DN25
         """;
 
     [Fact]
@@ -475,15 +479,15 @@ public sealed class SolutionSeedTests
     {
         var graph = GraphFixture.Lower(
             """
-            fluidscript 1
-            circuit bare
-            fluid water
+            fluidscript 2
 
-            P1 pipe length=10 dn=25
-            V1 valve
+            circuit "bare":
+              fluid = water
 
-            connections
-            P1 - V1
+              P1  pipe  length = 10  dn = 25
+              V1  valve
+
+              P1 - V1
             """).Graph;
 
         foreach (var estimate in BranchFlows.Estimate(graph))
@@ -804,61 +808,65 @@ public sealed class SolutionSeedTests
     public void NoBranchStandsStillWhereAnotherSpanningForestWouldHaveMovedIt()
     {
         var source = """
-            fluidscript 1
-            circuit heating 100
-            fluid water
+            fluidscript 2
 
-            HS1     heat_exchanger power=54 out.t=80
-            PU_SRC  pump
-            TV_MAIN three_way_valve
-            PU_MAIN pump
-            PP1     pipe length=5 dn=40
-            PP2     pipe length=5 dn=40
-            PDC     pipe length=1 dn=50
-            PS1     pipe length=6 dn=32
-            PB      pipe length=4 dn=32
+            circuit "heating":
+              fluid = water
+              number = 100
+              role = heating
 
-            connections
-            N1 - HS1 - N2 - PU_SRC - PP1 - N7
-            N7 - PDC - N8
-            N8 - PP2 - N1
-            N7 - PS1 - TV_MAIN.a
-            TV_MAIN.b - PB - N5
-            TV_MAIN.ab - PU_MAIN - N3
-            N3 - N4
-            N6 - N5
-            N5 - N8
+              HS1  heat_exchanger  power = 54  out.t = 80
+              PU_SRC  pump
+              TV_MAIN  three_way_valve
+              PU_MAIN  pump
+              PP1  pipe  length = 5  dn = 40
+              PP2  pipe  length = 5  dn = 40
+              PDC  pipe  length = 1  dn = 50
+              PS1  pipe  length = 6  dn = 32
+              PB  pipe  length = 4  dn = 32
 
-            N1 node p=250
-            N3 node t=60
+              N1 - HS1 - N2 - PU_SRC - PP1 - N7
+              N7 - PDC - N8
+              N8 - PP2 - N1
+              N7 - PS1 - TV_MAIN.a
+              TV_MAIN.b - PB - N5
+              TV_MAIN.ab - PU_MAIN - N3
+              N3 - N4
+              N6 - N5
+              N5 - N8
 
-            circuit AHU 101
+              N1  node  p = 250
+              N3  node  t = 60
 
-            HE_AHU  heat_exchanger in.t=50 out.t=30 power=-24 kW
-            TV_AHU  three_way_valve
-            PU_AHU  pump
-            PA1     pipe length=12 dn=25
-            PA2     pipe length=12 dn=25
+            circuit "AHU":
+              number = 101
+              role = ahu
 
-            connections
-            NM_AHU - PU_AHU - HE_AHU - TV_AHU
-            TV_AHU.b - NM_AHU
-            N3 - PA1 - NM_AHU
-            TV_AHU.a - PA2 - N5
+              HE_AHU  heat_exchanger  in.t = 50  out.t = 30  power = -24 kW
+              TV_AHU  three_way_valve
+              PU_AHU  pump
+              PA1  pipe  length = 12  dn = 25
+              PA2  pipe  length = 12  dn = 25
 
-            circuit radiators 102
+              NM_AHU - PU_AHU - HE_AHU - TV_AHU
+              TV_AHU - NM_AHU
+              N3 - PA1 - NM_AHU
+              TV_AHU - PA2 - N5
 
-            HE_RAD  heat_exchanger in.t=50 out.t=30 power=-30 kW
-            TV_RAD  three_way_valve
-            PU_RAD  pump
-            PR1     pipe length=18 dn=25
-            PR2     pipe length=18 dn=25
+            circuit "radiators":
+              number = 102
+              role = radiator
 
-            connections
-            NM_RAD - PU_RAD - HE_RAD - TV_RAD
-            TV_RAD.b - NM_RAD
-            N4 - PR1 - NM_RAD
-            TV_RAD.a - PR2 - N6
+              HE_RAD  heat_exchanger  in.t = 50  out.t = 30  power = -30 kW
+              TV_RAD  three_way_valve
+              PU_RAD  pump
+              PR1  pipe  length = 18  dn = 25
+              PR2  pipe  length = 18  dn = 25
+
+              NM_RAD - PU_RAD - HE_RAD - TV_RAD
+              TV_RAD - NM_RAD
+              N4 - PR1 - NM_RAD
+              TV_RAD - PR2 - N6
             """;
 
 

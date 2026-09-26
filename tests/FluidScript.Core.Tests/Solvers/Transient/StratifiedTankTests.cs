@@ -19,21 +19,23 @@ namespace FluidScript.Core.Tests.Solvers.Transient;
 public sealed class StratifiedTankTests
 {
     private const string Header = """
-        fluidscript 1
-        circuit storageHeader
-        fluid dynamic water
+        fluidscript 2
 
-        S1 inlet t=60 flow=0.12
-        S2 inlet t=45 flow=0.08
-        T1 tank volume=300 layers={LAYERS} {PROFILE} in.level=90% in[2].level=30% out.level=90% out[2].level=30%
-        RAD_NETWORK outlet flow=0.12
-        AHU_NETWORK outlet flow=0.08
+        circuit "storageHeader":
+          fluid = water
 
-        connections
-        S1 - T1.in
-        S2 - T1.in[2]
-        T1.out - RAD_NETWORK
-        T1.out[2] - AHU_NETWORK
+          S1  inlet  t = 60  flow = 0.12
+          S2  inlet  t = 45  flow = 0.08
+          T1  tank  volume = 300  layers = {LAYERS}  {PROFILE}  in.level = 90%  in[2].level = 30%  out.level = 90%  out[2].level = 30%
+          RAD_NETWORK  outlet  flow = 0.12
+          AHU_NETWORK  outlet  flow = 0.08
+
+          S1 - T1.in
+          S2 - T1.in[2]
+          T1.out - RAD_NETWORK
+          T1.out[2] - AHU_NETWORK
+
+        run "Transient":
         """;
 
     private static string Script(int layers, string profile) =>
@@ -50,7 +52,7 @@ public sealed class StratifiedTankTests
         // m = 300 dm³ of water at 20 °C and ṁ = 0.20 kg/s, so the time constant is about 1495 s.
         var run = await TransientRunFixture.RunAsync(
             "m4-storage-header-mixed",
-            Script(1, "t=20"),
+            Script(1, "t = 20"),
             new TransientSettings { Horizon = 1800, FrameInterval = 60 },
             TestContext.Current.CancellationToken);
 
@@ -77,7 +79,7 @@ public sealed class StratifiedTankTests
         // the tank's own balance feeds it, which is what makes it a check rather than a restatement.
         var run = await TransientRunFixture.RunAsync(
             "m4-storage-header-conservation",
-            Script(5, "layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60"),
+            Script(5, "layer[1].t = 25  layer[2].t = 30  layer[3].t = 40  layer[4].t = 50  layer[5].t = 60"),
             new TransientSettings { Horizon = 600, FrameInterval = 30 },
             TestContext.Current.CancellationToken);
 
@@ -111,7 +113,7 @@ public sealed class StratifiedTankTests
         // accumulator never sees it.
         var run = await TransientRunFixture.RunAsync(
             "m4-storage-header-inverted",
-            Script(5, "layer[1].t=25 layer[2].t=55 layer[3].t=40 layer[4].t=45 layer[5].t=60"),
+            Script(5, "layer[1].t = 25  layer[2].t = 55  layer[3].t = 40  layer[4].t = 45  layer[5].t = 60"),
             new TransientSettings { Horizon = 60, FrameInterval = 10 },
             TestContext.Current.CancellationToken);
 
@@ -152,7 +154,7 @@ public sealed class StratifiedTankTests
         var error = await Assert.ThrowsAnyAsync<Xunit.Sdk.XunitException>(async () =>
             await TransientRunFixture.RunAsync(
                 "m4-storage-header-frozen",
-                Script(5, "layer[1].t=-50 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60"),
+                Script(5, "layer[1].t = -50  layer[2].t = 30  layer[3].t = 40  layer[4].t = 50  layer[5].t = 60"),
                 new TransientSettings { Horizon = 10 },
                 TestContext.Current.CancellationToken));
 
@@ -179,7 +181,7 @@ public sealed class StratifiedTankTests
         {
             var run = await TransientRunFixture.RunAsync(
                 $"m4-storage-header-n{layers}",
-                Script(layers, "t=20"),
+                Script(layers, "t = 20"),
                 new TransientSettings { Horizon = 600, FrameInterval = 60 },
                 TestContext.Current.CancellationToken);
 

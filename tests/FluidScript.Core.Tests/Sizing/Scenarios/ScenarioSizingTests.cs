@@ -45,17 +45,20 @@ public sealed class ScenarioSizingTests
     // which is exactly why the envelope is taken per parameter rather than per component.
     private const string Seasons =
         """
-        fluidscript 1
-        scenarios winter summer
-        design winter
-        circuit distribution
-        fluid water
-        HE1  heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]
-        LOAD heat_exchanger power=[-50, 40] dp=0
-        PU1  pump
-        P1   pipe length=20
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
+        fluidscript 2
+
+        project:
+          cases = [winter, summer]
+
+        circuit "distribution":
+          fluid = water
+          role = distribution
+
+          HE1  heat_exchanger  power = [50, -40]  in.t = [35, 12]  out.t = [45, 7]
+          LOAD  heat_exchanger  power = [-50, 40]  dp = 0
+          PU1  pump
+          P1  pipe  length = 20
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
         """;
 
     [Fact]
@@ -146,15 +149,17 @@ public sealed class ScenarioSizingTests
     {
         var result = await SizeAsync(
             """
-            fluidscript 1
-            circuit distribution
-            fluid water
-            HE1  heat_exchanger power=50 in.t=35 out.t=45
-            LOAD heat_exchanger power=-50 dp=0
-            PU1  pump
-            P1   pipe length=20
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
+            fluidscript 2
+
+            circuit "distribution":
+              fluid = water
+              role = distribution
+
+              HE1  heat_exchanger  power = 50  in.t = 35  out.t = 45
+              LOAD  heat_exchanger  power = -50  dp = 0
+              PU1  pump
+              P1  pipe  length = 20
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
             """);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
@@ -279,18 +284,21 @@ public sealed class ScenarioSizingTests
         // it disappears. That is the honest limit of a hand-written list, and it gets a sentence.
         var result = await SizeAsync(
             """
-            fluidscript 1
-            scenarios winter summer
-            design winter
-            circuit distribution
-            fluid water
-            HE1  heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]
-            LOAD heat_exchanger power=[-50, 40] dp=0
-            REC  heat_exchanger power=[0, 0] dp=0
-            PU1  pump
-            P1   pipe length=20
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - REC - N5 - P1 - N1
+            fluidscript 2
+
+            project:
+              cases = [winter, summer]
+
+            circuit "distribution":
+              fluid = water
+              role = distribution
+
+              HE1  heat_exchanger  power = [50, -40]  in.t = [35, 12]  out.t = [45, 7]
+              LOAD  heat_exchanger  power = [-50, 40]  dp = 0
+              REC  heat_exchanger  power = [0, 0]  dp = 0
+              PU1  pump
+              P1  pipe  length = 20
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - REC - N5 - P1 - N1
             """);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
@@ -315,23 +323,27 @@ public sealed class ScenarioSizingTests
 
     // `Seasons` with a control valve on the loop (`C-121`). HE1's line is the variable: the three
     // tests below change only it, so each difference in the reports is that line's.
-    private static string Valved(string exchanger, string load = "power=[-50, 40]") =>
+    private static string Valved(string exchanger, string load = "power = [-50, 40]") =>
         $"""
-        fluidscript 1
-        scenarios winter summer
-        design winter
-        circuit distribution
-        fluid water
-        HE1  heat_exchanger {exchanger}
-        LOAD heat_exchanger {load} dp=0
-        CV1  valve
-        PU1  pump
-        P1   pipe length=20
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+        fluidscript 2
+
+        project:
+          cases = [winter, summer]
+
+        circuit "distribution":
+          fluid = water
+          role = distribution
+
+          HE1  heat_exchanger  {exchanger}
+          LOAD  heat_exchanger  {load}  dp = 0
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 20
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
         """;
 
-    private const string SeasonsHe1 = "power=[50, -40] in.t=[35, 12] out.t=[45, 7]";
+    private const string SeasonsHe1 = "power = [50, -40]  in.t = [35, 12]  out.t = [45, 7]";
 
     [Fact]
     public async Task AMergedValveReportsTheAuthorityOfThePlantAsBuilt()
@@ -364,7 +376,7 @@ public sealed class ScenarioSizingTests
         // the floor holding for the case that chose the valve — and summer reads 0.23, because its
         // branch is its own stated one and the valve is winter's. Before C-121 this plant reported no
         // authority and no FS4006, and would have hunted all summer.
-        var result = await SizeAsync(Valved(SeasonsHe1 + " dp=[5, 60]"));
+        var result = await SizeAsync(Valved(SeasonsHe1 + "  dp = [5, 60]"));
 
         Assert.True(result.IsSuccess, result.Error?.Message);
         Assert.Equal("winter", result.Value.Governing["CV1.kv"]);
@@ -379,7 +391,7 @@ public sealed class ScenarioSizingTests
         // 1 kW over 10 K is 0.024 kg/s against summer's 1.906: 1.3 % of the heaviest flow. An
         // equal-percentage valve at 0.66 controls down to 1 / (50 × √0.66) = 2.5 %, so winter is
         // outside it — `24`'s "a valve sized on one case and asked for 3 % of its flow in another".
-        var result = await SizeAsync(Valved("power=[1, -40] in.t=[35, 12] out.t=[45, 7]", "power=[-1, 40]"));
+        var result = await SizeAsync(Valved("power = [1, -40]  in.t = [35, 12]  out.t = [45, 7]", "power = [-1, 40]"));
 
         Assert.True(result.IsSuccess, result.Error?.Message);
 

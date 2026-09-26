@@ -118,10 +118,8 @@ public sealed class Language2RunTests
     [Fact]
     public async Task AComponentWithASizingPointIsHeldToItsCapacityAtEveryStep()
     {
-        var script = Script().Replace(
-            "HE1  heat_exchanger  power = heating  out.t = 50",
-            "HE1  heat_exchanger  power = heating  out.t = 50  sized_at.outdoor = -16 C",
-            StringComparison.Ordinal);
+        var script = Script().Edited("HE1  heat_exchanger  power = heating  out.t = 50",
+            "HE1  heat_exchanger  power = heating  out.t = 50  sized_at.outdoor = -16 C");
         Assert.Contains("sized_at.outdoor", script, StringComparison.Ordinal);
 
         var run = await PlayAsync("language2-weather-capacity", script);

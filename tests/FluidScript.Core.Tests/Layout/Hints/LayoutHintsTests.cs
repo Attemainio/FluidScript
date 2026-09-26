@@ -47,9 +47,14 @@ public sealed class LayoutHintsTests
     {
         var (hints, _) = await SolvedAsync(GraphFixture.CoolingLoop, "cooling-loop");
 
-        // Seven written lines, three of them split by I2 around an inferred node: ten adjacencies.
+        // Seven written lines, three of them split by I2 around an inferred node: ten adjacencies. All run as written
+        // but the bypass: the valve sits at its default position 1, open on `a` -- the leg on to the outlet, as the
+        // plant labels it (`D-175`) -- and shut on `b` but for its leakage, which the pump's suction at 300 kPa pushes
+        // backwards into the valve body at 293.7 kPa (0.0087 kg/s, measured).
         Assert.Equal(10, hints.Flow.Count);
-        Assert.All(hints.Flow.Values, static direction => Assert.Equal(FlowDirection.Forward, direction));
+        var against = Assert.Single(hints.Flow, static pair => pair.Value != FlowDirection.Forward);
+        Assert.Equal(FlowDirection.Reverse, against.Value);
+        Assert.Equal("c6", against.Key); // `3WV - N2`, the seventh adjacency once I2 has split three lines
     }
 
     [Fact]
@@ -68,7 +73,7 @@ public sealed class LayoutHintsTests
     public void PermutingIndependentStatementsLeavesTheOrderUnchanged()
     {
         var permuted = GraphFixture.CoolingLoop
-            .Replace("PU1 pump head=6 flow=0.24\nHE1 heat_exchanger power=30\n3WV three_way_valve kv=6.3\nP1 pipe length=10 dn=25", "P1 pipe length=10 dn=25\n3WV three_way_valve kv=6.3\nHE1 heat_exchanger power=30\nPU1 pump head=6 flow=0.24");
+            .Edited("PU1  pump  head = 6  flow = 0.24\n  HE1  heat_exchanger  power = 30\n  3WV  three_way_valve  kv = 6.3\n  P1  pipe  length = 10  dn = 25", "P1  pipe  length = 10  dn = 25\n  3WV  three_way_valve  kv = 6.3\n  HE1  heat_exchanger  power = 30\n  PU1  pump  head = 6  flow = 0.24");
 
         Assert.NotEqual(GraphFixture.CoolingLoop, permuted);
         Assert.Equal(Unsolved(GraphFixture.CoolingLoop).Hints.Order, Unsolved(permuted).Hints.Order);
@@ -160,18 +165,19 @@ public sealed class LayoutHintsTests
     {
         // A circuit named `radiators` whose only exchanger gives heat to the water is a source.
         var (hints, diagnostics) = Unsolved("""
-            fluidscript 1
-            circuit radiators
-            fluid water
+            fluidscript 2
 
-            HS1 heat_exchanger power=54 kW out.t=60
-            PU1 pump
-            P1  pipe length=10 dn=25
+            circuit "radiators":
+              fluid = water
+              role = radiator
 
-            connections
-            N1 - HS1 - PU1 - P1 - N1
+              HS1  heat_exchanger  power = 54 kW  out.t = 60
+              PU1  pump
+              P1  pipe  length = 10  dn = 25
 
-            N1 node p=250
+              N1 - HS1 - PU1 - P1 - N1
+
+              N1  node  p = 250
             """);
 
         var stage = Assert.Single(hints.ThermalStages, static s => s.Components.Contains("HS1"));
@@ -186,16 +192,17 @@ public sealed class LayoutHintsTests
     {
         // The sensor sits on the mixed stream past N2, not on N2: three pipes meet there (D-150).
         var (hints, _) = Unsolved(GraphFixture.CoolingLoop
-            .Replace("N2 - PU1", "N2 - NS\nNS - PU1", StringComparison.Ordinal)
-            .Replace(
-                "N3 outlet p=280",
+            .Edited("N2 - PU1", "N2 - NS\n  NS - PU1")
+            .Edited("N3  outlet  p = 280",
                 """
-                N3 outlet p=280
-                TE1 t_sensor at NS
-                TC1 pid kp=2
-                control actuate=3WV.position measure=TE1.t by=TC1 setpoint=20
-                """,
-                StringComparison.Ordinal));
+                N3  outlet  p = 280
+                  TE1  t_sensor  at NS
+                  TC1  controller:
+                    kp = 2
+                    moves = 3WV.position
+                    reads = TE1.t
+                    setpoint = 20
+                """));
 
         var sensor = Assert.Single(hints.NonFlowElements, static e => e.ComponentId == "TE1");
         var controller = Assert.Single(hints.NonFlowElements, static e => e.ComponentId == "TC1");
@@ -249,7 +256,7 @@ public sealed class LayoutHintsTests
     [Fact]
     public void AnExpandedPipeIsOneGroupUnderItsDeclaredName()
     {
-        var source = GraphFixture.CoolingLoop.Replace("P1 pipe length=10 dn=25", "P1 pipe length=10 dn=25 nodes=4");
+        var source = GraphFixture.CoolingLoop.Edited("P1  pipe  length = 10  dn = 25", "P1  pipe  length = 10  dn = 25  nodes = 4");
         Assert.NotEqual(GraphFixture.CoolingLoop, source);
         var (hints, _) = Unsolved(source);
 
@@ -263,8 +270,8 @@ public sealed class LayoutHintsTests
     public void AGroupPastTenMembersIsReportedAsCollapsing()
     {
         // nodes=4 makes nine members and says nothing; nodes=6 makes thirteen and says FS2402.
-        var (_, quiet) = Unsolved(GraphFixture.CoolingLoop.Replace("P1 pipe length=10 dn=25", "P1 pipe length=10 dn=25 nodes=4"));
-        var (_, loud) = Unsolved(GraphFixture.CoolingLoop.Replace("P1 pipe length=10 dn=25", "P1 pipe length=10 dn=25 nodes=6"));
+        var (_, quiet) = Unsolved(GraphFixture.CoolingLoop.Edited("P1  pipe  length = 10  dn = 25", "P1  pipe  length = 10  dn = 25  nodes = 4"));
+        var (_, loud) = Unsolved(GraphFixture.CoolingLoop.Edited("P1  pipe  length = 10  dn = 25", "P1  pipe  length = 10  dn = 25  nodes = 6"));
 
         Assert.DoesNotContain(quiet, static d => d.Code == "FS2402");
         var collapsed = Assert.Single(loud, static d => d.Code == "FS2402");
@@ -300,35 +307,33 @@ public sealed class LayoutHintsTests
     private static string TwoCircuitSubstation(bool districtFirst)
     {
         const string district = """
-            circuit district
-            fluid water
+            circuit "district":
+              fluid = water
 
-            NPS inlet t=85 p=600
-            NPR outlet p=350
-            PCV valve
-            PP  pipe length=12 dn=25
-            HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
+              NPS  inlet  t = 85  p = 600
+              NPR  outlet  p = 350
+              PCV  valve
+              PP  pipe  length = 12  dn = 25
+              HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300
 
-            connections
-            NPS - PCV - PP - HX1.in[2]
-            HX1.out[2] - NPR
+              NPS - PCV - PP - HX1.secondary.in
+              HX1.secondary.out - NPR
             """;
 
         const string heating = """
-            circuit heating
-            fluid water
+            circuit "heating":
+              fluid = water
 
-            SP   pump
-            SS   pipe length=30 dn=32
-            SR   pipe length=30 dn=32
-            LOAD heat_exchanger power=-150 dt=20
+              SP  pump
+              SS  pipe  length = 30  dn = 32
+              SR  pipe  length = 30  dn = 32
+              LOAD  heat_exchanger  power = -150  dt = 20
 
-            connections
-            HX1.out - SS - NSUP
-            NSUP - LOAD - NRET
-            NRET - SR - SP - HX1.in
+              HX1.primary.out - SS - NSUP
+              NSUP - LOAD - NRET
+              NRET - SR - SP - HX1.primary.in
             """;
 
-        return "fluidscript 1\n" + (districtFirst ? district + "\n\n" + heating : heating + "\n\n" + district) + "\n";
+        return "fluidscript 2\n\n" + (districtFirst ? district + "\n\n" + heating : heating + "\n\n" + district) + "\n";
     }
 }

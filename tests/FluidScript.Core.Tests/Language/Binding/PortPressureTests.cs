@@ -30,14 +30,16 @@ public sealed class PortPressureTests
 {
     private const string Loop =
         """
-        fluidscript 1
-        circuit loop
-        fluid water
-        HE1 heat_exchanger power=30 in.t=40 out.t=60
-        PU1 pump
-        CV1 valve
-        connections
-        HE1.out - N1 - PU1 - N2 - CV1 - N3 - HE1.in
+        fluidscript 2
+
+        circuit "loop":
+          fluid = water
+
+          HE1  heat_exchanger  power = 30  in.t = 40  out.t = 60
+          PU1  pump
+          CV1  valve
+
+          HE1.out - N1 - PU1 - N2 - CV1 - N3 - HE1.in
         """;
 
     private static BindResult Bind(string source) =>
@@ -53,7 +55,7 @@ public sealed class PortPressureTests
     public void APortPressureIsTheTouchingNodesPressure()
     {
         // `PU1 out.p=250` and `N2 node p=250` are one statement: N2 is the node PU1.out is wired to.
-        var model = GraphFixture.Bind(Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal));
+        var model = GraphFixture.Bind(Loop.Edited("PU1  pump", "PU1  pump  out.p = 250"));
 
         Assert.Equal(250_000, StatedPressure(model, "N2"));
         Assert.Null(StatedPressure(model, "N1"));
@@ -63,7 +65,7 @@ public sealed class PortPressureTests
         Assert.Equal(250_000, Symbol(model, "PU1").Parameters["p_out"].Value?.SiValue);
 
         // And the lowered node carries it as a stated pressure like any other, so it is the datum.
-        var lowered = GraphFixture.Lower(Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal));
+        var lowered = GraphFixture.Lower(Loop.Edited("PU1  pump", "PU1  pump  out.p = 250"));
         var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(lowered.Graph);
 
         Assert.Equal(0, posedness.Counting.Excess);
@@ -74,8 +76,8 @@ public sealed class PortPressureTests
     public void APortPressureLandsOnTheNodeInferenceInserted()
     {
         // With no node named, I2's `PU1__CV1` is the node the port touches, and it takes the pressure.
-        var source = Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal)
-            .Replace("HE1.out - N1 - PU1 - N2 - CV1 - N3 - HE1.in", "HE1.out - N1 - PU1 - CV1 - N3 - HE1.in", StringComparison.Ordinal);
+        var source = Loop.Edited("PU1  pump", "PU1  pump  out.p = 250")
+            .Edited("HE1.out - N1 - PU1 - N2 - CV1 - N3 - HE1.in", "HE1.out - N1 - PU1 - CV1 - N3 - HE1.in");
         var model = GraphFixture.Bind(source);
 
         Assert.Equal(250_000, StatedPressure(model, "PU1__CV1"));
@@ -83,15 +85,17 @@ public sealed class PortPressureTests
 
     private const string Balanced =
         """
-        fluidscript 1
-        circuit loop
-        fluid water
-        HE1 heat_exchanger power=30 in.t=40 out.t=60
-        LO1 heat_exchanger power=-30
-        PU1 pump
-        CV1 valve
-        connections
-        HE1.out - N1 - PU1 - N2 - CV1 - N3 - LO1 - N4 - HE1.in
+        fluidscript 2
+
+        circuit "loop":
+          fluid = water
+
+          HE1  heat_exchanger  power = 30  in.t = 40  out.t = 60
+          LO1  heat_exchanger  power = -30
+          PU1  pump
+          CV1  valve
+
+          HE1.out - N1 - PU1 - N2 - CV1 - N3 - LO1 - N4 - HE1.in
         """;
 
     [Fact]
@@ -99,8 +103,8 @@ public sealed class PortPressureTests
     {
         // The equivalence the rule is defined by, measured: every solved pressure identical to the
         // last pascal, because the two scripts lower to the same graph.
-        var byPort = await Solve(Balanced.Replace("CV1 valve", "CV1 valve in.p=250", StringComparison.Ordinal));
-        var byNode = await Solve(Balanced + "\nN2 node p=250\n");
+        var byPort = await Solve(Balanced.Edited("CV1  valve", "CV1  valve  in.p = 250"));
+        var byNode = await Solve(Balanced + "\n  N2  node  p = 250\n");
 
         foreach (var node in new[] { "N1", "N2", "N3", "N4" })
         {
@@ -114,7 +118,7 @@ public sealed class PortPressureTests
     public void FS1539_ANodeStatedByItselfAndByAPortIsStatedTwice()
     {
         // Agreeing or not: the second copy is the line that will disagree after the next edit.
-        var result = Bind(Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal) + "\nN2 node p=250\n");
+        var result = Bind(Loop.Edited("PU1  pump", "PU1  pump  out.p = 250") + "\n  N2  node  p = 250\n");
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1539");
 
         Assert.Equal(DiagnosticSeverity.Error, error.Severity);
@@ -127,8 +131,8 @@ public sealed class PortPressureTests
     public void FS1539_TwoPortsOnOneNodeStateItTwice()
     {
         // PU1.out and CV1.in are both N2; the later line is the one reported and names the first.
-        var result = Bind(Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal)
-            .Replace("CV1 valve", "CV1 valve in.p=240", StringComparison.Ordinal));
+        var result = Bind(Loop.Edited("PU1  pump", "PU1  pump  out.p = 250")
+            .Edited("CV1  valve", "CV1  valve  in.p = 240"));
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1539");
 
         Assert.Contains("'CV1 in.p'", error.Message, StringComparison.Ordinal);
@@ -140,7 +144,7 @@ public sealed class PortPressureTests
     {
         // Before D-124 `in.p=300` on an exchanger scored 0.75 against `in.t` and bound as 300 °C under
         // an information notice. It is a pressure, on the node HX1.in touches.
-        var result = Bind(Loop.Replace("HE1 heat_exchanger power=30 in.t=40 out.t=60", "HE1 heat_exchanger power=30 in.t=40 out.t=60 in.p=300", StringComparison.Ordinal));
+        var result = Bind(Loop.Edited("HE1  heat_exchanger  power = 30  in.t = 40  out.t = 60", "HE1  heat_exchanger  power = 30  in.t = 40  out.t = 60  in.p = 300"));
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS1512" or "FS1503" or "FS1538");
         Assert.Equal(300_000, StatedPressure(result.Model, "N3"));
@@ -148,12 +152,12 @@ public sealed class PortPressureTests
     }
 
     [Theory]
-    [InlineData("PU1 pump in.h=5", "pump", "in", "h", "p")]
-    [InlineData("HE1 heat_exchanger power=30 in.rho=990", "heat_exchanger", "in", "rho", "dp, dt, flow, p, t, vflow")]
-    [InlineData("HE1 heat_exchanger power=30 out[2].h=5", "heat_exchanger", "out[2]", "h", "p, t")]
+    [InlineData("PU1  pump  in.h = 5", "pump", "in", "h", "p")]
+    [InlineData("HE1  heat_exchanger  power = 30  in.rho = 990", "heat_exchanger", "in", "rho", "dp, dt, flow, p, t, vflow")]
+    [InlineData("HE1  heat_exchanger  power = 30  secondary.out.h = 5", "heat_exchanger", "secondary.out", "h", "p, t")]
     public void FS1538_APortQuantityTheKindDoesNotTakeListsWhatThePortTakes(string line, string kind, string port, string quantity, string takes)
     {
-        var source = Loop.Replace(line.StartsWith("PU1", StringComparison.Ordinal) ? "PU1 pump" : "HE1 heat_exchanger power=30 in.t=40 out.t=60", line, StringComparison.Ordinal);
+        var source = Loop.Edited(line.StartsWith("PU1", StringComparison.Ordinal) ? "PU1  pump" : "HE1  heat_exchanger  power = 30  in.t = 40  out.t = 60", line);
         var result = Bind(source);
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1538");
 
@@ -167,17 +171,18 @@ public sealed class PortPressureTests
     {
         var source =
             """
-            fluidscript 1
-            circuit tank
-            fluid water
-            T1 tank in[3].p=120
-            S1 inlet t=60 flow=0.1
-            S2 inlet t=40 flow=0.1
-            R1 outlet
-            connections
-            S1 - T1.in
-            S2 - T1.in[3]
-            T1.out - R1
+            fluidscript 2
+
+            circuit "tank":
+              fluid = water
+
+              T1  tank  in[3].p = 120
+              S1  inlet  t = 60  flow = 0.1
+              S2  inlet  t = 40  flow = 0.1
+              R1  outlet
+              S1 - T1.in
+              S2 - T1.in[3]
+              T1.out - R1
             """;
         var result = Bind(source);
 
@@ -190,7 +195,7 @@ public sealed class PortPressureTests
     public void APortPressureReadsBackAsAPropertyOfTheComponent()
     {
         // D-120's own example: a deferred read of the node's solved pressure, spelled on the port.
-        var result = Bind(Loop.Replace("PU1 pump", "PU1 pump head=1.2*HE1.in[1].p", StringComparison.Ordinal));
+        var result = Bind(Loop.Edited("PU1  pump", "PU1  pump  head = 1.2*HE1.in.p"));
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1406");
         var deferred = Assert.Single(result.Model.Deferred);
@@ -204,7 +209,7 @@ public sealed class PortPressureTests
         // two stated pressures, and the message said "remove HE1.in.t" -- the inlet the dropped
         // enthalpy level had already paid for (found by P5.13b, fixed with it).
         var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(
-            GraphFixture.Lower(Loop.Replace("PU1 pump", "PU1 pump in.p=100 out.p=250", StringComparison.Ordinal)).Graph);
+            GraphFixture.Lower(Loop.Edited("PU1  pump", "PU1  pump  in.p = 100  out.p = 250")).Graph);
         var over = Assert.Single(posedness.Diagnostics, static d => d.Code == "FS2210");
 
         Assert.Equal(1, posedness.Counting.Excess);

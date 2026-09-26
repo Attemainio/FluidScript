@@ -196,23 +196,25 @@ public sealed class PinnedViewTests
     /// nominal outlet, run backwards -- it pushes each layer's water into the one below. Every rate is one product.
     /// </remarks>
     [Theory]
-    [InlineData("S1 - T1.in\nT1.out - LD", new[] { 60.0, 30.0, 30.0, 40.0, 40.0, 50.0 })]
-    [InlineData("S1 - T1.out\nT1.in - LD", new[] { 40.0, 30.0, 50.0, 40.0, 60.0, 50.0 })]
+    [InlineData("S1 - T1.in\n  T1.out - LD", new[] { 60.0, 30.0, 30.0, 40.0, 40.0, 50.0 })]
+    [InlineData("S1 - T1.out\n  T1.in - LD", new[] { 40.0, 30.0, 50.0, 40.0, 60.0, 50.0 })]
     public async Task EachInterfaceCarriesTheLayerItsFlowLeavesIntoTheNext(string connections, double[] pairs)
     {
         var source = $"""
-            fluidscript 1
-            circuit tank
-            fluid dynamic water
+            fluidscript 2
 
-            S1 inlet t=60 flow=0.1
-            T1 tank volume=300 layers=3 layer[1].t=30 layer[2].t=40 layer[3].t=50 in.level=10% out.level=90%
-            LD outlet flow=0.1
+            circuit "tank":
+              fluid = water
 
-            connections
-            {connections}
+              S1  inlet  t = 60  flow = 0.1
+              T1  tank  volume = 300  layers = 3  layer[1].t = 30  layer[2].t = 40  layer[3].t = 50  in.level = 10%  out.level = 90%
+              LD  outlet  flow = 0.1
+
+              {connections}
+
+            run "Transient":
             """;
-        var result = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, "tank", TestContext.Current.CancellationToken);
+        var result = await Loop().RunAsync(GraphFixture.BindRun(source), Water.Instance, "tank", TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
         Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());

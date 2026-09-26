@@ -85,36 +85,37 @@ public sealed class SolverScaleDiagnostics
     public static string Header(int consumers)
     {
         var text = new StringBuilder()
-            .AppendLine("fluidscript 1")
-            .AppendLine(CultureInfo.InvariantCulture, $"project static scale_{consumers}")
+            .AppendLine("fluidscript 2")
             .AppendLine()
-            .AppendLine("circuit heating 100")
-            .AppendLine("fluid water")
+            .AppendLine(CultureInfo.InvariantCulture, $"project \"scale_{consumers}\":")
+            .AppendLine("circuit \"heating\":")
+            .AppendLine("  fluid = water")
+            .AppendLine("  number = 100")
+            .AppendLine("  role = heating")
             .AppendLine()
-            .AppendLine(CultureInfo.InvariantCulture, $"HS1 heat_exchanger power={24 * consumers} kW out.t=60")
+            .AppendLine(CultureInfo.InvariantCulture, $"  HS1  heat_exchanger  power = {24 * consumers} kW  out.t = 60")
             .AppendLine()
-            .AppendLine("connections")
-            .AppendLine("N1 - HS1 - N3")
-            .AppendLine("N5 - N1")
+            .AppendLine("  N1 - HS1 - N3")
+            .AppendLine("  N5 - N1")
             .AppendLine()
-            .AppendLine("N1 node p=250");
+            .AppendLine("  N1  node  p = 250");
 
         for (var i = 1; i <= consumers; i++)
         {
             text.AppendLine()
-                .AppendLine(CultureInfo.InvariantCulture, $"circuit c{i} {100 + i}")
+                .AppendLine(CultureInfo.InvariantCulture, $"circuit \"c{i}\":")
+                .AppendLine(CultureInfo.InvariantCulture, $"  number = {100 + i}")
                 .AppendLine()
-                .AppendLine(CultureInfo.InvariantCulture, $"HE{i} load in.t=50 out.t=30 power=24 kW")
-                .AppendLine(CultureInfo.InvariantCulture, $"TV{i} three_way_valve")
-                .AppendLine(CultureInfo.InvariantCulture, $"PU{i} pump")
-                .AppendLine(CultureInfo.InvariantCulture, $"PA{i} pipe length=12 dn=25")
-                .AppendLine(CultureInfo.InvariantCulture, $"PB{i} pipe length=12 dn=25")
+                .AppendLine(CultureInfo.InvariantCulture, $"  HE{i}  load  in.t = 50  out.t = 30  power = 24 kW")
+                .AppendLine(CultureInfo.InvariantCulture, $"  TV{i}  three_way_valve")
+                .AppendLine(CultureInfo.InvariantCulture, $"  PU{i}  pump")
+                .AppendLine(CultureInfo.InvariantCulture, $"  PA{i}  pipe  length = 12  dn = 25")
+                .AppendLine(CultureInfo.InvariantCulture, $"  PB{i}  pipe  length = 12  dn = 25")
                 .AppendLine()
-                .AppendLine("connections")
-                .AppendLine(CultureInfo.InvariantCulture, $"N3 - PA{i} - TV{i}.a")
-                .AppendLine(CultureInfo.InvariantCulture, $"NM{i} - TV{i}.b")
-                .AppendLine(CultureInfo.InvariantCulture, $"TV{i}.ab - PU{i} - HE{i} - NM{i}")
-                .AppendLine(CultureInfo.InvariantCulture, $"NM{i} - PB{i} - N5");
+                .AppendLine(CultureInfo.InvariantCulture, $"  N3 - PA{i} - TV{i}.a")
+                .AppendLine(CultureInfo.InvariantCulture, $"  NM{i} - TV{i}.b")
+                .AppendLine(CultureInfo.InvariantCulture, $"  TV{i}.ab - PU{i} - HE{i} - NM{i}")
+                .AppendLine(CultureInfo.InvariantCulture, $"  NM{i} - PB{i} - N5");
         }
 
         return text.ToString();

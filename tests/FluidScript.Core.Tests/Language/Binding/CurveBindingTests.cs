@@ -10,7 +10,7 @@ namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// Binding step 0b and the curve half of step 5: <c>D-57</c>'s tables, <c>D-58</c>'s design point,
-/// <c>D-59</c>'s driver registry, <c>D-60</c>'s timestamps and <c>D-61</c>'s placed observers.
+/// drivers as <c>let</c>s (<c>D-167</c>), timestamps (<c>D-60</c>) and <c>D-61</c>'s placed observers.
 /// </summary>
 public sealed class CurveBindingTests
 {
@@ -40,17 +40,21 @@ public sealed class CurveBindingTests
             .Parameters["power"].Value!.Value.SiValue;
 
     private const string HeatingCurve = """
-        fluidscript 1
-        design tout=-26
+        fluidscript 2
 
-        curve heating tout
-        -26  50
-        -10  40
-         20   0
+        let tout = -26 °C
 
-        circuit ahu 300
-        fluid static water
-        HX1 load in.t=50 out.t=30 power=heating
+        curve heating: tout
+          -26  50
+          -10  40
+          20   0
+
+        circuit "ahu":
+          fluid = water
+          number = 300
+          role = ahu
+
+          HX1  load  in.t = 50  out.t = 30  power = heating
 
         """;
 
@@ -62,7 +66,7 @@ public sealed class CurveBindingTests
     {
         // Written out of order on purpose. A weather file is not obliged to arrive monotonic, and
         // sorting is cheaper than making the user do it.
-        var model = Model("fluidscript 1\ncurve heating tout\n20 0\n-26 50\n-10 40\n");
+        var model = Model("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  20 0\n  -26 50\n  -10 40\n");
         var heating = Curve(model, "heating");
 
         Assert.Equal([-26, -10, 20], heating.Points.Select(static point => point.X));
@@ -81,7 +85,7 @@ public sealed class CurveBindingTests
     {
         // −18 sits halfway between −26 and −10, so it is halfway between 50 and 40. 5 is halfway
         // between −10 and 20, so it is halfway between 40 and 0.
-        var curve = Curve(Model("fluidscript 1\ncurve heating tout\n-26 50\n-10 40\n20 0\n"), "heating");
+        var curve = Curve(Model("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  -26 50\n  -10 40\n  20 0\n"), "heating");
 
         Assert.Equal(expected, curve.Evaluate(x), 9);
     }
@@ -94,7 +98,7 @@ public sealed class CurveBindingTests
     {
         // Clamping is the default because it is the answer that cannot produce a nonsense number:
         // continuing a heating curve to −40 °C invents a duty from two points nobody validated there.
-        var curve = Curve(Model("fluidscript 1\ncurve heating tout\n-26 50\n-10 40\n20 0\n"), "heating");
+        var curve = Curve(Model("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  -26 50\n  -10 40\n  20 0\n"), "heating");
 
         Assert.Equal(expected, curve.Evaluate(x), 9);
     }
@@ -109,7 +113,7 @@ public sealed class CurveBindingTests
         // 50 + 14 × 10/16 = 58.75. Above: the last pair runs 40 → 0 over 30 degrees, so 32 is 12
         // further at 0 − 12 × 40/30 = −16.
         var curve = Curve(
-            Model("fluidscript 1\ncurve heating tout extrapolated\n-26 50\n-10 40\n20 0\n"), "heating");
+            Model("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout extrapolated\n  -26 50\n  -10 40\n  20 0\n"), "heating");
 
         Assert.True(curve.IsExtrapolated);
         Assert.Equal(expected, curve.Evaluate(x), 9);
@@ -119,7 +123,7 @@ public sealed class CurveBindingTests
     [Trait("Category", "Unit")]
     public void TwoRowsAtOneXAreAStepAndTheLaterOneWins()
     {
-        var result = Bind("fluidscript 1\ncurve heating tout\n-26 50\n0 40\n0 10\n20 0\n");
+        var result = Bind("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  -26 50\n  0 40\n  0 10\n  20 0\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1529");
         Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
@@ -131,7 +135,7 @@ public sealed class CurveBindingTests
     [Trait("Category", "Unit")]
     public void ACurveWithOneRowHasNothingToInterpolateBetween()
     {
-        Assert.Contains("FS1530", Codes("fluidscript 1\ncurve heating tout\n-26 50\n"));
+        Assert.Contains("FS1530", Codes("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  -26 50\n"));
     }
 
     [Fact]
@@ -140,7 +144,7 @@ public sealed class CurveBindingTests
     {
         // Three columns, not two. The split takes the last whitespace run, so x reads as "12 34",
         // which is not a number.
-        var result = Bind("fluidscript 1\ncurve heating tout\n-26 50\n12 34 56\n20 0\n");
+        var result = Bind("fluidscript 2\n\nlet tout = -26 C\n\ncurve heating: tout\n  -26 50\n  12 34 56\n  20 0\n");
 
         Assert.Single(result.Diagnostics, static d => d.Code == "FS1117");
         Assert.Equal(2, Curve(result.Model, "heating").Points.Length);
@@ -150,80 +154,29 @@ public sealed class CurveBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ADriverResolvesThroughTheRoleRegistryLikeACircuitName()
-    {
-        // `D-59`: `tout`, `t_out`, `outdoor` and `outdoorTemperature` are one driver, and the registry
-        // is what buys that without touching the grammar.
-        foreach (var spelling in new[] { "tout", "t_out", "outdoor", "outdoorTemperature", "oat" })
-        {
-            var model = Model($"fluidscript 1\ncurve heating {spelling}\n-26 50\n20 0\n");
-
-            Assert.Equal(CurveDriverKind.Role, Curve(model, "heating").DriverKind);
-            Assert.Equal("tout", Curve(model, "heating").DriverRole!.CanonicalName);
-        }
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void ADriverThatNamesNothingAnywhereIsReported()
     {
-        // `D-59` says an unregistered name is not an error and `FS1527` says a driver naming nothing
-        // is. Both hold: a driver has to supply a number, and this one has no source for it.
+        // A driver is a `let` (`D-167`), so a curve driven by a name that is none has no source for
+        // its number, and `FS1811` says what to write.
         var diagnostic = Assert.Single(
-            Bind("fluidscript 1\ncurve heating nothingKnown\n-26 50\n20 0\n").Diagnostics,
-            static d => d.Code == "FS1527");
+            Bind("fluidscript 2\n\ncurve heating: nothingKnown\n  -26 50\n  20 0\n").Diagnostics,
+            static d => d.Code == "FS1811");
 
         Assert.Contains("nothingKnown", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void AnUnregisteredDriverWithADesignValueBehindItWorks()
+    public void AnyLetIsADriverOnceItHasAValue()
     {
         // The other half of the same rule. A plant is full of drivers nobody registered; what makes
-        // one usable is that something supplies its number.
+        // one usable is that something supplies its number, and in language 2 that is a `let` (`D-167`).
         var model = Model(
-            "fluidscript 1\ndesign flueTemp=180\ncurve recovery flueTemp\n100 5\n200 20\n"
-            + "circuit hr 100\nHX1 load in.t=50 out.t=30 power=recovery\n");
+            "fluidscript 2\n\nlet flueTemp = 180\n\ncurve recovery: flueTemp\n  100 5\n  200 20\n\n"
+            + "circuit \"hr\":\n  number = 100\n\n  HX1  load  in.t = 50  out.t = 30  power = recovery\n");
 
-        Assert.Equal(CurveDriverKind.DesignOnly, Curve(model, "recovery").DriverKind);
+        Assert.Equal(CurveDriverKind.Let, Curve(model, "recovery").DriverKind);
         Assert.Equal(17_000, Power(model, "HX1"), 6);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ACurveMayDriveAnotherAndTheChainIsNumericThroughout()
-    {
-        // `outdoor` maps 3600 seconds to −3; `heating` reads −3 against (−26, 50) and (20, 0), which
-        // is exactly halfway, for 25; the assignment makes that 25 kW.
-        var model = Model("""
-            fluidscript 1
-            curve outdoor time
-            0     -1
-            3600  -3
-
-            curve heating outdoor
-            -26  50
-             20   0
-
-            circuit ahu 300
-            fluid static water
-            HX1 load in.t=50 out.t=30 power=heating
-
-            design time=3600
-            """);
-
-        Assert.Equal(CurveDriverKind.Curve, Curve(model, "heating").DriverKind);
-        Assert.Equal(25_000, Power(model, "HX1"), 6);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void TwoCurvesThatDriveEachOtherAreTheSameCycleALetWouldBe()
-    {
-        Assert.Contains(
-            "FS1402",
-            Codes("fluidscript 1\ncurve a b\n0 1\n1 2\n\ncurve b a\n0 1\n1 2\n"));
     }
 
     // ---- the design point ---------------------------------------------------------------------
@@ -243,15 +196,15 @@ public sealed class CurveBindingTests
         // `L-35`, the half of `D-57` that was deferred: the table's 50 is bare, `power=heating` reads it
         // through the parameter's canonical unit as 50 kW, and `power=heating W` says the table is in
         // watts, so the same row is 50 W. A slashed spelling is one unit too.
-        var watts = Model(HeatingCurve.Replace("power=heating", "power=heating W", StringComparison.Ordinal));
+        var watts = Model(HeatingCurve.Edited("power = heating", "power = heating W"));
         Assert.Equal(50, Power(watts, "HX1"), 6);
 
-        var kilowatts = Model(HeatingCurve.Replace("power=heating", "power=heating kW", StringComparison.Ordinal));
+        var kilowatts = Model(HeatingCurve.Edited("power = heating", "power = heating kW"));
         Assert.Equal(50_000, Power(kilowatts, "HX1"), 6);
 
         var flow = Model(
-            "fluidscript 1\ndesign tout=-26\ncurve demand tout\n-26 0.5\n20 0.1\n"
-            + "circuit ahu 300\nfluid static water\nHX1 load in.t=50 out.t=30 flow=demand kg/s\n");
+            "fluidscript 2\n\nlet tout = -26 C\n\ncurve demand: tout\n  -26 0.5\n  20 0.1\n\n"
+            + "circuit \"ahu\":\n  fluid = water\n\n  HX1  load  in.t = 50  out.t = 30  flow = demand kg/s\n");
         Assert.Equal(0.5, Assert.Single(flow.Components, c => c.Name == "HX1").Parameters["flow"].Value!.Value.SiValue, 9);
     }
 
@@ -261,134 +214,89 @@ public sealed class CurveBindingTests
     {
         // `power=heating kPa` reads the table in kilopascals and hands a pressure to a power: the
         // ordinary mismatch. A unit after a value that already has a dimension may only agree with it.
-        Assert.Contains("FS1304", Codes(HeatingCurve.Replace("power=heating", "power=heating kPa", StringComparison.Ordinal)));
+        Assert.Contains("FS1304", Codes(HeatingCurve.Edited("power = heating", "power = heating kPa")));
 
-        const string Referenced = "fluidscript 1\ncircuit demo\nfluid water\nHE1 heat_exchanger dp=20\nPU1 pump dp=HE1.dp kW\n";
+        const string Referenced = "fluidscript 2\n\ncircuit \"demo\":\n  fluid = water\n\n  HE1  heat_exchanger  dp = 20\n  PU1  pump  dp = HE1.dp kW\n";
         Assert.Contains("FS1304", Codes(Referenced));
-        Assert.DoesNotContain("FS1304", Codes(Referenced.Replace(" kW", " kPa", StringComparison.Ordinal)));
-    }
-
-    [Theory]
-    [Trait("Category", "Unit")]
-    [InlineData("design tout=-26")]
-    [InlineData("design tout=-26 C")]
-    [InlineData("design outdoor=-26")]
-    public void TheRoleIsWhatMakesADesignValueCheckableAndSpellingIndependent(string design)
-    {
-        // `D-59`: the role's dimension is the only place a curve meets one. A bare −26 and −26 °C are
-        // the same point on a table whose own x column says −26, and `outdoor` is the same driver.
-        var model = Model(
-            $"fluidscript 1\n{design}\ncurve heating tout\n-26 50\n20 0\n"
-            + "circuit ahu 300\nfluid static water\nHX1 load in.t=50 out.t=30 power=heating\n");
-
-        Assert.Equal(50_000, Power(model, "HX1"), 6);
-        Assert.Equal(-26, model.Project.Design["tout"].Number);
+        Assert.DoesNotContain("FS1304", Codes(Referenced.Edited(" kW", " kPa")));
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ADesignValueInTheWrongDimensionIsCaught()
-    {
-        Assert.Contains(
-            "FS1304",
-            Codes("fluidscript 1\ndesign tout=3 bar\ncurve heating tout\n-26 50\n20 0\n"));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ADesignValueShortCircuitsTheCurveOfTheSameDriver()
-    {
-        // `D-58`'s worked example, and the reason a file carrying a year of weather data still solves
-        // statically: with `design tout=-26` the chain time → outdoor → heating is not walked, and
-        // `heating` is read at −26 directly for 50 kW rather than at outdoor's own −1.
-        var model = Model("""
-            fluidscript 1
-            design tout=-26
-
-            curve outdoor time
-            0     -1
-            3600  -3
-
-            curve heating outdoor
-            -26  50
-             20   0
-
-            circuit ahu 300
-            fluid static water
-            HX1 load in.t=50 out.t=30 power=heating
-            """);
-
-        Assert.Equal(50_000, Power(model, "HX1"), 6);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void AStaticCircuitReadingACurveWithNoDesignValueIsAnError()
+    public void AStaticCircuitReadingACurveOfTimeIsAnError()
     {
         // An error rather than a default: guessing zero, or the table's first row, would put a number
-        // in front of an engineer that nothing chose.
+        // in front of an engineer that nothing chose. A curve of time has a value only inside a run.
         var diagnostic = Assert.Single(
             Bind("""
-                fluidscript 1
-                curve outdoor time
-                0     -1
-                3600  -3
+                fluidscript 2
 
-                curve heating outdoor
-                -26  50
-                 20   0
+                curve heating: time
+                  0     50
+                  3600  0
 
-                circuit ahu 300
-                fluid static water
-                HX1 load in.t=50 out.t=30 power=heating
+                circuit "ahu":
+                  fluid = water
+
+                  HX1  load  in.t = 50  out.t = 30  power = heating
                 """).Diagnostics,
             static d => d.Code == "FS1528");
 
-        // The curve and driver named are the ones written on the line, so the `design` line it
-        // suggests is one the user can write as it stands.
         Assert.Contains("'heating'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("outdoor", diagnostic.Message, StringComparison.Ordinal);
     }
+
+    /// <summary>A driver with a design value, handed a curve of time by a run (`D-169`).</summary>
+    private const string Weather = """
+        fluidscript 2
+
+        let outdoor = -26 C
+
+        curve weather: time
+          0     -1
+          3600  -3
+
+        curve heating: outdoor
+          -26  50
+           20   0
+
+        circuit "ahu":
+          fluid = water
+
+          HX1  load  in.t = 50  out.t = 30  power = heating
+
+        run "Hour":
+          duration = 1 h
+          outdoor  = weather
+        """;
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ADynamicCircuitReadingACurveDefersItInsteadOfFailing()
+    public void ARunReadingACurveDefersItInsteadOfFailing()
     {
-        // `D-58`: in a dynamic solve a curve is a live function of time. Nothing is wrong here, and
-        // the reference is recorded for the transient stage to read again at each step.
-        var result = Bind("""
-            fluidscript 1
-            curve outdoor time
-            0     -1
-            3600  -3
-
-            curve heating outdoor
-            -26  50
-             20   0
-
-            circuit ahu 300
-            fluid dynamic water
-            HX1 load in.t=50 out.t=30 power=heating
-            """);
+        // `D-58`: in a run a curve is a live function of time. Nothing is wrong here, and the reference
+        // is recorded for the transient stage to read again at each step.
+        var result = Bind(Weather);
+        var run = RunProjection.Project(result.Model, Assert.Single(result.Model.Runs));
 
         Assert.DoesNotContain("FS1528", result.Diagnostics.Select(static d => d.Code));
         Assert.Contains(
-            result.Model.Deferred,
+            run.Deferred,
             deferred => deferred.Target is ValueId.ComponentParameter { Component: "HX1", Parameter: "power" });
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ADesignPointSizesEvenWhenTheCircuitSolvesInTime()
+    public void ADesignPointSizesEvenWhenARunPlaysInTime()
     {
-        // The half of `D-58` that is easy to lose: `design` is the sizing point in *every* mode, so a
-        // dynamic circuit still carries the design-point value as the number it was sized for.
-        var result = Bind(
-            "fluidscript 1\ndesign tout=-26\ncurve heating tout\n-26 50\n20 0\n"
-            + "circuit ahu 300\nfluid dynamic water\nHX1 load in.t=50 out.t=30 power=heating\n");
+        // The half of `D-58` that is easy to lose: the driver's own value is the sizing point in *every*
+        // mode, so the model a run plays still carries the design-point value as the number it was sized
+        // for.
+        var result = Bind(Weather);
+        var run = RunProjection.Project(result.Model, Assert.Single(result.Model.Runs));
 
         Assert.Equal(50_000, Power(result.Model, "HX1"), 6);
-        Assert.Contains(result.Model.Deferred, deferred => deferred.CurrentEstimate is not null);
+        Assert.Equal(50_000, Power(run, "HX1"), 6);
+        Assert.Contains(run.Deferred, deferred => deferred.CurrentEstimate is not null);
     }
 
     [Fact]
@@ -398,17 +306,21 @@ public sealed class CurveBindingTests
         // The whole point of a bare table (`D-57`): `D-14`'s rule reinterprets the same 0.5 as
         // kilowatts on one parameter and as a fraction on the other.
         var model = Model("""
-            fluidscript 1
-            design tout=0
+            fluidscript 2
 
-            curve shared tout
-            -10  0.5
-             10  0.5
+            let tout = 0 °C
 
-            circuit ahu 300
-            fluid static water
-            HX1 load in.t=50 out.t=30 power=shared
-            TV1 valve position=shared
+            curve shared: tout
+              -10  0.5
+              10  0.5
+
+            circuit "ahu":
+              fluid = water
+              number = 300
+              role = ahu
+
+              HX1  load  in.t = 50  out.t = 30  power = shared
+              TV1  valve  position = shared
             """);
 
         Assert.Equal(500, Power(model, "HX1"), 6);
@@ -424,7 +336,7 @@ public sealed class CurveBindingTests
     [Trait("Category", "Unit")]
     public void ATimeDrivenCurveReadsUnixSecondsAndIso8601WithoutBeingTold()
     {
-        var model = Model("fluidscript 1\ncurve outdoor time\n0 -1\n2026-01-01T01:00:00 -3\n");
+        var model = Model("fluidscript 2\n\ncurve outdoor: time\n  0 -1\n  2026-01-01T01:00:00 -3\n");
 
         // 2026-01-01T01:00:00 is 1 767 229 200 seconds after the epoch.
         Assert.Equal([0, 1_767_229_200], Curve(model, "outdoor").Points.Select(static p => p.X));
@@ -432,57 +344,11 @@ public sealed class CurveBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void AStatedFormatIsDotNetsAndItsCaseMatters()
-    {
-        // `D-60`: `MM` is the month and `mm` the minute. The proposal wrote `dd/mm/yyyy hh:mm:ss`,
-        // which taken literally is day / minute / year on a 12-hour clock.
-        var model = Model(
-            "fluidscript 1\ncurve outdoor time format=\"dd/MM/yyyy HH:mm:ss\"\n"
-            + "01/01/2026 00:00:00 -1\n01/01/2026 01:00:00 -3\n");
-
-        Assert.Equal("dd/MM/yyyy HH:mm:ss", Curve(model, "outdoor").TimeFormat);
-        Assert.Equal(3600, Curve(model, "outdoor").Points[1].X - Curve(model, "outdoor").Points[0].X);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ATimestampTheStatedFormatDoesNotFitIsReportedPerRow()
-    {
-        var result = Bind(
-            "fluidscript 1\ncurve outdoor time format=\"yyyy-MM-dd\"\n"
-            + "2026-01-01 -1\n01/02/2026 -3\n2026-01-03 -2\n");
-
-        Assert.Single(result.Diagnostics, static d => d.Code == "FS1117");
-        Assert.Equal(2, Curve(result.Model, "outdoor").Points.Length);
-    }
-
-    [Theory]
-    [Trait("Category", "Unit")]
-    [InlineData("format=ddMMyyyy", "it is not a quoted string")]
-    [InlineData("format=\"HH:mm\"", "it has no day (d)")]
-    [InlineData("format=\"dd/mm/yyyy\"", "it has no month (M)")]
-    public void AFormatThatCannotReadADateIsOneDiagnosticOnTheHeaderAndNoRowIsBlamed(string written, string reason)
-    {
-        // L-40, D-60: a bad `format=` was ignored and every row then failed on its own line. The
-        // header is the fault, so the header is what is marked -- once, with the reason -- and the
-        // rows are neither read nor reported. `dd/mm/yyyy` is the classic: minutes where months go.
-        var text = $"fluidscript 1\ncurve outdoor time {written}\n"
-            + "01/01/2026 00:00 -1\n01/01/2026 01:00 -3\n01/01/2026 02:00 -2\n";
-        var result = Bind(text);
-
-        var header = Assert.Single(result.Diagnostics, static d => d.Code == "FS1534");
-        Assert.Contains(reason, header.Message, StringComparison.Ordinal);
-        Assert.Equal(written, text.Substring(header.Span!.Value.Start, header.Span.Value.Length));
-        Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS1117" or "FS1530" or "FS1535");
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void UnreadableRowsAreMarkedFiveAtATimeAndTheRestCountedOnTheHeader()
     {
         // L-40's cap: a year of hourly data with one wrong column layout is one mistake, not 8 760.
-        var rows = string.Concat(Enumerable.Range(0, 12).Select(static i => $"2026-01-{i + 1:00} x y\n"));
-        var result = Bind("fluidscript 1\ncurve outdoor time\n2026-01-20 -1\n2026-01-21 -3\n" + rows);
+        var rows = string.Concat(Enumerable.Range(0, 12).Select(static i => $"  2026-01-{i + 1:00} x y\n"));
+        var result = Bind("fluidscript 2\n\ncurve outdoor: time\n  2026-01-20 -1\n  2026-01-21 -3\n" + rows);
 
         Assert.Equal(5, result.Diagnostics.Count(static d => d.Code == "FS1117"));
         var rest = Assert.Single(result.Diagnostics, static d => d.Code == "FS1535");
@@ -497,13 +363,16 @@ public sealed class CurveBindingTests
     public void ASensorIsPlacedOnANodeAndStaysOutOfTheHydraulicGraph()
     {
         var model = Model("""
-            fluidscript 1
-            circuit ahu 300
-            HX1 load in.t=50 out.t=30 power=24
-            TE1 t_sensor at N2
+            fluidscript 2
 
-            connections
-            N1 - HX1 - N2
+            circuit "ahu":
+              number = 300
+              role = ahu
+
+              HX1  load  in.t = 50  out.t = 30  power = 24
+              TE1  t_sensor at N2
+
+              N1 - HX1 - N2
             """);
 
         var sensor = Assert.Single(model.Components, c => c.Name == "TE1");
@@ -521,7 +390,7 @@ public sealed class CurveBindingTests
     {
         // An observer is exempt from FS1507 because it is never connected to anything; without its
         // own code it would bind in silence, and with FS1507 the advice would be wrong.
-        var codes = Codes("fluidscript 1\ncircuit ahu 300\nTE1 t_sensor\n");
+        var codes = Codes("fluidscript 2\n\ncircuit \"ahu\":\n  number = 300\n  role = ahu\n\n  TE1  t_sensor\n");
 
         Assert.Contains("FS1533", codes);
         Assert.DoesNotContain("FS1507", codes);
@@ -531,7 +400,7 @@ public sealed class CurveBindingTests
     [Trait("Category", "Unit")]
     public void OnlyAnInstrumentIsPlacedWithAt()
     {
-        Assert.Contains("FS1532", Codes("fluidscript 1\ncircuit ahu 300\nPU1 pump at N2\n"));
+        Assert.Contains("FS1532", Codes("fluidscript 2\n\ncircuit \"ahu\":\n  number = 300\n  role = ahu\n\n  PU1  pump at N2\n"));
     }
 
     [Fact]
@@ -540,7 +409,7 @@ public sealed class CurveBindingTests
     {
         Assert.Contains(
             "FS1404",
-            Codes("fluidscript 1\ncircuit ahu 300\nTE1 t_sensor at N9\n\nconnections\nN1 - N2\n"));
+            Codes("fluidscript 2\n\ncircuit \"ahu\":\n  number = 300\n  role = ahu\n\n  TE1  t_sensor at N9\n\n  N1 - N2\n"));
     }
 
     [Fact]
@@ -550,17 +419,22 @@ public sealed class CurveBindingTests
         // `D-61` amends `D-43`: of a valve's `position`, `kv` and `authority`, only `position` moves
         // during a solve, so the bare form is unambiguous by construction.
         var model = Model("""
-            fluidscript 1
-            circuit ahu 300
-            HX1  load in.t=50 out.t=30 power=24
-            TV1  valve
-            PID1 pid kp=3
-            TE1  t_sensor at N2
+            fluidscript 2
 
-            connections
-            N1 - HX1 - TV1 - N2
+            circuit "ahu":
+              number = 300
+              role = ahu
 
-            control TV1 with TE1 by PID1 setpoint=21
+              HX1  load  in.t = 50  out.t = 30  power = 24
+              TV1  valve
+              PID1 controller:
+                kp = 3
+                moves = TV1
+                reads = TE1
+                setpoint = 21
+              TE1  t_sensor at N2
+
+              N1 - HX1 - TV1 - N2
             """);
 
         var binding = Assert.Single(model.ControlBindings);
@@ -576,16 +450,21 @@ public sealed class CurveBindingTests
     public void TheQualifiedFormStaysLegalInTheShortShape()
     {
         var model = Model("""
-            fluidscript 1
-            circuit ahu 300
-            TV1  valve
-            PID1 pid kp=3
-            TE1  t_sensor at N2
+            fluidscript 2
 
-            connections
-            N1 - TV1 - N2
+            circuit "ahu":
+              number = 300
+              role = ahu
 
-            control TV1.position with TE1.t by PID1 setpoint=21
+              TV1  valve
+              PID1 controller:
+                kp = 3
+                moves = TV1.position
+                reads = TE1.t
+                setpoint = 21
+              TE1  t_sensor at N2
+
+              N1 - TV1 - N2
             """);
 
         Assert.Equal(new PropertyReference("TV1", "position"), Assert.Single(model.ControlBindings).Actuator);
@@ -599,16 +478,21 @@ public sealed class CurveBindingTests
         // of the form that works.
         var diagnostic = Assert.Single(
             Bind("""
-                fluidscript 1
-                circuit ahu 300
-                HX1  load in.t=50 out.t=30 power=24
-                PID1 pid kp=3
-                TE1  t_sensor at N2
+                fluidscript 2
 
-                connections
-                N1 - HX1 - N2
+                circuit "ahu":
+                  number = 300
+                  role = ahu
 
-                control HX1 with TE1 by PID1 setpoint=21
+                  HX1  load  in.t = 50  out.t = 30  power = 24
+                  PID1 controller:
+                    kp = 3
+                    moves = HX1
+                    reads = TE1
+                    setpoint = 21
+                  TE1  t_sensor at N2
+
+                  N1 - HX1 - N2
                 """).Diagnostics,
             static d => d.Code == "FS1531");
 
@@ -622,16 +506,20 @@ public sealed class CurveBindingTests
         Assert.Contains(
             "FS1521",
             Codes("""
-                fluidscript 1
-                circuit ahu 300
-                TV1  valve
-                PID1 pid kp=3
-                TE1  t_sensor at N2
+                fluidscript 2
 
-                connections
-                N1 - TV1 - N2
+                circuit "ahu":
+                  number = 300
+                  role = ahu
 
-                control TV1 with TE1 by PID1
+                  TV1  valve
+                  PID1 controller:
+                    kp = 3
+                    moves = TV1
+                    reads = TE1
+                  TE1  t_sensor at N2
+
+                  N1 - TV1 - N2
                 """));
     }
 
@@ -642,23 +530,28 @@ public sealed class CurveBindingTests
         // The feature this was all asked for: a compensated setpoint. The curve yields a bare 45,
         // which `D-14` reinterprets in the measured property's dimension.
         var model = Model("""
-            fluidscript 1
-            design tout=-26
+            fluidscript 2
 
-            curve supplyTemp tout
-            -26  45
-             20  20
+            let tout = -26 °C
 
-            circuit ahu 300
-            fluid static water
-            TV1  valve
-            PID1 pid kp=3
-            TE1  t_sensor at N2
+            curve supplyTemp: tout
+              -26  45
+              20  20
 
-            connections
-            N1 - TV1 - N2
+            circuit "ahu":
+              fluid = water
+              number = 300
+              role = ahu
 
-            control TV1 with TE1 by PID1 setpoint=supplyTemp
+              TV1  valve
+              PID1 controller:
+                kp = 3
+                moves = TV1
+                reads = TE1
+                setpoint = supplyTemp
+              TE1  t_sensor at N2
+
+              N1 - TV1 - N2
             """);
 
         Assert.Equal(

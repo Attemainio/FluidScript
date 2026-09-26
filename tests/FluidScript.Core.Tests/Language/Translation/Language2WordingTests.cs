@@ -93,23 +93,6 @@ public sealed class Language2WordingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ALanguage1FileKeepsLanguage1sWording()
-    {
-        var diagnostic = Only("""
-            circuit loop
-            fluid water
-            S1 inlet   t=[85 C, 70 C]   p=300 kPa
-            S2 outlet  p=100 kPa
-            PU1 pump
-            connections
-            S1 - PU1 - S2
-            """, "FS1541");
-
-        Assert.Contains("scenarios", diagnostic.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void AnExchangersSecondSideIsNamedAsLanguage2WritesIt()
     {
         var diagnostics = All("""

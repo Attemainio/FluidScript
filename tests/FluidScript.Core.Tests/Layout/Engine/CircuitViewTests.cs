@@ -78,7 +78,7 @@ public sealed class CircuitViewTests
     {
         // Two bare nodes joined twice: each has two connections, so both would be points on a line that ends
         // nowhere. The first keeps its box and the other is a point on the one run from it back to itself.
-        var runs = Runs(Solve("fluidscript 1\n\ncircuit plant\n\nconnections\nN1 - N2 - N1\n"));
+        var runs = Runs(Solve("fluidscript 2\n\ncircuit \"plant\":\n  N1 - N2 - N1\n"));
         var run = Assert.Single(runs).Split(" > ");
 
         Assert.Equal(3, run.Length);

@@ -27,15 +27,17 @@ public sealed class ScenarioBindingTests
 {
     private const string Two =
         """
-        fluidscript 1
-        scenarios winter summer
-        design winter
-        circuit plant
-        fluid water
-        HX1 heat_exchanger power=[30, 10] out.t=[60, 45]
-        PU1 pump
-        connections
-        HX1.out - N1 - PU1 - N2 - HX1.in
+        fluidscript 2
+
+        project:
+          cases = [winter, summer]
+
+        circuit "plant":
+          fluid = water
+
+          HX1  heat_exchanger  power = [30, 10]  out.t = [60, 45]
+          PU1  pump
+          HX1.out - N1 - PU1 - N2 - HX1.in
         """;
 
     private static BindResult Bind(string source) =>
@@ -78,23 +80,6 @@ public sealed class ScenarioBindingTests
     }
 
     [Fact]
-    public void TheDesignCaseNeedNotBeTheFirstOne()
-    {
-        // `Value` follows `design`, not the position. If it followed position 0 this file would draw
-        // winter's numbers while saying summer.
-        var model = Bind(Two.Replace("design winter", "design summer", StringComparison.Ordinal)).Model;
-        var parameters = Symbol(model, "HX1").Parameters;
-
-        Assert.Equal(1, model.Project.DesignScenarioIndex);
-        Assert.Equal(10_000, parameters["power"].Value?.SiValue);
-        Assert.Equal(318.15, parameters["out"].Value!.Value.SiValue, 0.01);
-
-        // Both slots are filled even though one expression served two homes.
-        Assert.Equal(30_000, parameters["power"].Scenarios[0].Value?.SiValue);
-        Assert.Equal(10_000, parameters["power"].Scenarios[1].Value?.SiValue);
-    }
-
-    [Fact]
     public void ProjectingSwapsTheScalarAndTouchesNothingElse()
     {
         var model = Bind(Two).Model;
@@ -117,8 +102,8 @@ public sealed class ScenarioBindingTests
     public void AFileWithNoScenariosProjectsToItself()
     {
         var model = Bind(Two
-            .Replace("scenarios winter summer\ndesign winter\n", string.Empty, StringComparison.Ordinal)
-            .Replace("power=[30, 10] out.t=[60, 45]", "power=30 out.t=60", StringComparison.Ordinal)).Model;
+            .Edited("project:\n  cases = [winter, summer]\n\n", string.Empty)
+            .Edited("power = [30, 10]  out.t = [60, 45]", "power = 30  out.t = 60")).Model;
 
         Assert.Empty(model.Project.Scenarios);
         Assert.Null(model.Project.DesignScenario);
@@ -129,7 +114,7 @@ public sealed class ScenarioBindingTests
     [Fact]
     public void AnElementIsAnOrdinaryValueWithItsOwnUnitsAndExpressions()
     {
-        var model = Bind(Two.Replace("power=[30, 10]", "power=[30 kW, 10000 W * 1]", StringComparison.Ordinal)).Model;
+        var model = Bind(Two.Edited("power = [30, 10]", "power = [30 kW, 10000 W * 1]")).Model;
         var power = Symbol(model, "HX1").Parameters["power"];
 
         Assert.Equal(30_000, power.Scenarios[0].Value?.SiValue);
@@ -139,10 +124,10 @@ public sealed class ScenarioBindingTests
     [Fact]
     public void FS1540_AListOfTheWrongLengthBindsNothingRatherThanBeingPadded()
     {
-        var result = Bind(Two.Replace("power=[30, 10]", "power=[30, 10, 5]", StringComparison.Ordinal));
+        var result = Bind(Two.Edited("power = [30, 10]", "power = [30, 10, 5]"));
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1540");
 
-        Assert.Contains("3 values for 2 scenarios", error.Message, StringComparison.Ordinal);
+        Assert.Contains("3 values for 2 cases", error.Message, StringComparison.Ordinal);
         Assert.Contains("winter, summer", error.Message, StringComparison.Ordinal);
 
         // Nothing bound: a half-bound parameter would size the plant from a case nobody stated.
@@ -152,45 +137,25 @@ public sealed class ScenarioBindingTests
     [Fact]
     public void FS1540_TooFewIsTheSameError()
     {
-        var result = Bind(Two.Replace("power=[30, 10]", "power=[30]", StringComparison.Ordinal));
+        var result = Bind(Two.Edited("power = [30, 10]", "power = [30]"));
 
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1540");
-        Assert.Contains("1 value for 2 scenarios", error.Message, StringComparison.Ordinal);
+        Assert.Contains("1 value for 2 cases", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void FS1541_AListNeedsAScenariosLine()
+    public void FS1541_AListNeedsItsCases()
     {
-        var result = Bind(Two.Replace("scenarios winter summer\ndesign winter\n", string.Empty, StringComparison.Ordinal));
+        var result = Bind(Two.Edited("project:\n  cases = [winter, summer]\n\n", string.Empty));
 
         Assert.Contains(result.Diagnostics, static d => d.Code == "FS1541");
-    }
-
-    [Fact]
-    public void FS1542_DesignMustNameADeclaredCase()
-    {
-        var result = Bind(Two.Replace("design winter", "design autumn", StringComparison.Ordinal));
-        var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1542");
-
-        Assert.Contains("winter, summer", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void FS1543_TheFirstCaseIsAPositionAndNotADefault()
-    {
-        var result = Bind(Two.Replace("design winter\n", string.Empty, StringComparison.Ordinal));
-        var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1543");
-
-        Assert.Contains("Add 'design winter'", error.Message, StringComparison.Ordinal);
-        Assert.Null(result.Model.Project.DesignScenario);
     }
 
     [Fact]
     public void FS1544_ARepeatedNameIsRefusedAndDoesNotShiftThePositions()
     {
         var result = Bind(Two
-            .Replace("scenarios winter summer", "scenarios winter winter summer", StringComparison.Ordinal)
-            .Replace("power=[30, 10]", "power=[30, 10]", StringComparison.Ordinal));
+            .Edited("cases = [winter, summer]", "cases = [winter, winter, summer]"));
 
         Assert.Contains(result.Diagnostics, static d => d.Code == "FS1544");
 
@@ -204,7 +169,7 @@ public sealed class ScenarioBindingTests
 
     /// <summary>The two-case circuit with the exchanger's line replaced.</summary>
     private static string WithExchanger(string line) =>
-        Two.Replace("HX1 heat_exchanger power=[30, 10] out.t=[60, 45]", line, StringComparison.Ordinal);
+        Two.Edited("HX1  heat_exchanger  power = [30, 10]  out.t = [60, 45]", line);
 
     private static Diagnostic[] Coded(BindResult result, string code) =>
         [.. result.Diagnostics.Where(d => string.Equals(d.Code, code, StringComparison.Ordinal))];
@@ -215,11 +180,11 @@ public sealed class ScenarioBindingTests
         // C-120's own fixture. Winter heats 35 -> 45 with 50 kW, which is consistent; summer states 40 kW
         // *into* side 1 while it cools from 12 to 7 °C. The review read only the design case, so this bound
         // clean and failed two layers down as a non-finite residual.
-        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, 40] in.t=[35, 12] out.t=[45, 7]"));
+        var result = Bind(WithExchanger("HX1  heat_exchanger  power = [50, 40]  in.t = [35, 12]  out.t = [45, 7]"));
 
         var diagnostic = Assert.Single(Coded(result, "FS2119"));
 
-        Assert.Contains("in.t=12 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in.t = 12 °C", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("cools in summer.", diagnostic.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("winter", diagnostic.Message, StringComparison.Ordinal);
     }
@@ -229,11 +194,11 @@ public sealed class ScenarioBindingTests
     {
         // The user's call on C-120: one problem, one message, the cases named -- not one per case. The
         // numbers quoted are the first failing case's, and the sentence names that case first.
-        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, 40] in.t=[45, 12] out.t=[35, 7]"));
+        var result = Bind(WithExchanger("HX1  heat_exchanger  power = [50, 40]  in.t = [45, 12]  out.t = [35, 7]"));
 
         var diagnostic = Assert.Single(Coded(result, "FS2119"));
 
-        Assert.Contains("in.t=45 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in.t = 45 °C", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("cools in winter, and likewise in summer.", diagnostic.Message, StringComparison.Ordinal);
     }
 
@@ -243,7 +208,7 @@ public sealed class ScenarioBindingTests
         // A heat pump heating in winter and cooling in summer: the sign turns with the terminals, and
         // each case agrees with itself. Reading the design case's sign against summer's temperatures
         // would call this a contradiction; reading each case whole does not.
-        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]"));
+        var result = Bind(WithExchanger("HX1  heat_exchanger  power = [50, -40]  in.t = [35, 12]  out.t = [45, 7]"));
 
         Assert.Empty(Coded(result, "FS2119"));
     }
@@ -254,7 +219,7 @@ public sealed class ScenarioBindingTests
         // Scalars mean the same in every case, so the contradiction is the file's, not a case's, and
         // the message stays exactly what it is in a file without scenarios. The list on `out.t` is
         // side 1's and has no part in side 2's contradiction.
-        var result = Bind(WithExchanger("HX1 heat_exchanger power=40 out.t=[60, 45] in[2].t=40 out[2].t=60"));
+        var result = Bind(WithExchanger("HX1  heat_exchanger  power = 40  primary.out.t = [60, 45]  secondary.in.t = 40  secondary.out.t = 60"));
 
         var diagnostic = Assert.Single(Coded(result, "FS2119"));
 
@@ -266,7 +231,7 @@ public sealed class ScenarioBindingTests
     {
         // The role-sign check ran at publication on the design element only. Each element carries its
         // own span, so the warning goes on the number that is wrong rather than on the list.
-        var source = WithExchanger("HX1 load power=[24, -10] out.t=[60, 45]");
+        var source = WithExchanger("HX1  load  power = [24, -10]  out.t = [60, 45]");
         var result = Bind(source);
 
         var diagnostic = Assert.Single(Coded(result, "FS1308"));
@@ -279,7 +244,7 @@ public sealed class ScenarioBindingTests
     {
         // `PU1 pump` and a stated scalar mean the same value in every case, which is what they
         // already meant — so no file written before scenarios acquires a length.
-        var model = Bind(Two.Replace("power=[30, 10]", "power=30", StringComparison.Ordinal)).Model;
+        var model = Bind(Two.Edited("power = [30, 10]", "power = 30")).Model;
         var power = Symbol(model, "HX1").Parameters["power"];
 
         Assert.Equal(30_000, power.Value?.SiValue);

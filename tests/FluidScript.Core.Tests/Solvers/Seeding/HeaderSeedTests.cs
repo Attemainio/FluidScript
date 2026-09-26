@@ -21,45 +21,48 @@ public sealed class HeaderSeedTests
 {
     /// <summary>The no-bypass header: the source heats the return straight into the supply, two pumped consumers mix 80 °C down to 50 °C.</summary>
     private const string NoBypassHeader = """
-        fluidscript 1
-        project static plant_01
+        fluidscript 2
 
-        circuit heating 100
-        fluid water
+        project "plant_01":
+        circuit "heating":
+          fluid = water
+          number = 100
+          role = heating
 
-        HS1     heat_exchanger power=54 kW out.t=80
+          HS1  heat_exchanger  power = 54 kW  out.t = 80
 
-        connections
-        N1 - HS1 - N3
-        N3 - N4
-        N6 - N5
-        N5 - N1
+          N1 - HS1 - N3
+          N3 - N4
+          N6 - N5
+          N5 - N1
 
-        N1 node p=250
+          N1  node  p = 250
 
-        circuit AHU 101
+        circuit "AHU":
+          number = 101
+          role = ahu
 
-        HE_AHU  load in.t=50 out.t=30 power=24 kW
-        TV_AHU  three_way_valve
-        PU_AHU  pump
+          HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+          TV_AHU  three_way_valve
+          PU_AHU  pump
 
-        connections
-        N3 - TV_AHU.a length=12 dn=25
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - N5 length=12 dn=25
+          N3 - TV_AHU   12 m  DN25
+          NM_AHU - TV_AHU
+          TV_AHU - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - N5   12 m  DN25
 
-        circuit radiators 102
+        circuit "radiators":
+          number = 102
+          role = radiator
 
-        HE_RAD  load in.t=50 out.t=30 power=30 kW
-        TV_RAD  three_way_valve
-        PU_RAD  pump
+          HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+          TV_RAD  three_way_valve
+          PU_RAD  pump
 
-        connections
-        N4 - TV_RAD.a length=18 dn=25
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - N6 length=18 dn=25
+          N4 - TV_RAD   18 m  DN25
+          NM_RAD - TV_RAD
+          TV_RAD - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - N6   18 m  DN25
         """;
 
     [Fact]
@@ -104,49 +107,52 @@ public sealed class HeaderSeedTests
 
     /// <summary>The mixing-supply header (<c>S-55</c>): a source valve blends the 80 °C source with the return to the 60 °C the header states, and nothing but the consumer pumps moves anything.</summary>
     private const string MixingSupplyHeader = """
-        fluidscript 1
-        project static plant_01
+        fluidscript 2
 
-        circuit heating 100
-        fluid water
+        project "plant_01":
+        circuit "heating":
+          fluid = water
+          number = 100
+          role = heating
 
-        HS1     heat_exchanger power=54 kW out.t=80
-        TV_MAIN three_way_valve
+          HS1  heat_exchanger  power = 54 kW  out.t = 80
+          TV_MAIN  three_way_valve
 
-        connections
-        N1 - HS1 - TV_MAIN.a
-        N1 - TV_MAIN.b
-        TV_MAIN.ab - N3
-        N3 node t=60
-        N3 - N4
-        N6 - N5
-        N5 - N1
+          N1 - HS1 - TV_MAIN
+          N1 - TV_MAIN
+          TV_MAIN - N3
+          N3  node  t = 60
+          N3 - N4
+          N6 - N5
+          N5 - N1
 
-        N1 node p=250
+          N1  node  p = 250
 
-        circuit AHU 101
+        circuit "AHU":
+          number = 101
+          role = ahu
 
-        HE_AHU  load in.t=50 out.t=30 power=24 kW
-        TV_AHU  three_way_valve
-        PU_AHU  pump
+          HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+          TV_AHU  three_way_valve
+          PU_AHU  pump
 
-        connections
-        N3 - TV_AHU.a length=12 dn=25
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - N5 length=12 dn=25
+          N3 - TV_AHU   12 m  DN25
+          NM_AHU - TV_AHU
+          TV_AHU - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - N5   12 m  DN25
 
-        circuit radiators 102
+        circuit "radiators":
+          number = 102
+          role = radiator
 
-        HE_RAD  load in.t=50 out.t=30 power=30 kW
-        TV_RAD  three_way_valve
-        PU_RAD  pump
+          HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+          TV_RAD  three_way_valve
+          PU_RAD  pump
 
-        connections
-        N4 - TV_RAD.a length=18 dn=25
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - N6 length=18 dn=25
+          N4 - TV_RAD   18 m  DN25
+          NM_RAD - TV_RAD
+          TV_RAD - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - N6   18 m  DN25
         """;
 
     [Fact]
@@ -195,7 +201,7 @@ public sealed class HeaderSeedTests
         // leaves one degree free: 39 unknowns against 38 equations, refused with FS2211 naming the
         // temperature it needs (S-52's thermal-first advice), not a pressure.
         var check = WellPosedness.Check(GraphFixture.Lower(
-            NoBypassHeader.Replace("power=54 kW out.t=80", "power=54 kW", StringComparison.Ordinal)).Graph);
+            NoBypassHeader.Edited("power = 54 kW  out.t = 80", "power = 54 kW")).Graph);
 
         Assert.Equal(-1, check.Counting.Excess);
 
@@ -220,8 +226,8 @@ public sealed class HeaderSeedTests
         // The source's duty is left to the balance, as the entry's script has it: with one coil off the
         // plant carries the other's load and nothing else.
         var script = NoBypassHeader
-            .Replace("HS1     heat_exchanger power=54 kW out.t=80", "HS1     heat_exchanger out.t=60", StringComparison.Ordinal)
-            .Replace($"{off}  load in.t=50 out.t=30 power=", $"{off}  load in.t=50 out.t=30 power=0 kW #", StringComparison.Ordinal);
+            .Edited("HS1  heat_exchanger  power = 54 kW  out.t = 80", "HS1  heat_exchanger  out.t = 60")
+            .Edited($"{off}  load  in.t = 50  out.t = 30  power = ", $"{off}  load  in.t = 50  out.t = 30  power = 0 kW  #");
         var check = WellPosedness.Check(GraphFixture.Lower(script).Graph);
 
         Assert.Equal(0, check.Counting.Excess);
@@ -262,9 +268,9 @@ public sealed class HeaderSeedTests
         // is. The bound is lifted for that one column so the plant solves (−6.0 m measured), and FS3014
         // names the fix: close the branch. The leakage now crosses supply to return.
         var script = NoBypassHeader
-            .Replace("HS1     heat_exchanger power=54 kW out.t=80", "HS1     heat_exchanger out.t=60\nPU_MAIN pump head=8", StringComparison.Ordinal)
-            .Replace("HE_AHU  load in.t=50 out.t=30 power=", "HE_AHU  load in.t=50 out.t=30 power=0 kW #", StringComparison.Ordinal)
-            .Replace("N5 - N1", "N5 - PU_MAIN - N1", StringComparison.Ordinal);
+            .Edited("HS1  heat_exchanger  power = 54 kW  out.t = 80", "HS1  heat_exchanger  out.t = 60\n  PU_MAIN  pump  head = 8")
+            .Edited("HE_AHU  load  in.t = 50  out.t = 30  power = ", "HE_AHU  load  in.t = 50  out.t = 30  power = 0 kW  #")
+            .Edited("N5 - N1", "N5 - PU_MAIN - N1");
 
         var result = await Loop().RunAsync(GraphFixture.Bind(script), Water.Instance, "s56-main", TestContext.Current.CancellationToken);
 
@@ -292,17 +298,18 @@ public sealed class HeaderSeedTests
         // ṁ = 0: a zero row on a zero column, and the whole loop went Singular at zero iterations
         // naming N9.h. The closure S-56 built for a pinned branch applies with the live end as anchor.
         const string script = """
-            fluidscript 1
-            circuit simpleLoop
-            fluid water
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            CV1  valve
-            PU1  pump
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
-            N5 - N1 length=25
-            N3 - N9 length=5 dn=25
+            fluidscript 2
+
+            circuit "simpleLoop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              CV1  valve
+              PU1  pump
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+              N5 - N1   25 m
+              N3 - N9   5 m  DN25
             """;
 
         var result = await Loop().RunAsync(GraphFixture.Bind(script), Water.Instance, "s23", TestContext.Current.CancellationToken);

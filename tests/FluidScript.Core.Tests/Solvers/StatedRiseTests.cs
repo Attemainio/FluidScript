@@ -20,23 +20,25 @@ public sealed class StatedRiseTests
 {
     private const string Loop =
         """
-        fluidscript 1
-        circuit loop
-        fluid water
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0
-        CV1  valve
-        PU1  pump
-        P1   pipe length=25
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+        fluidscript 2
+
+        circuit "loop":
+          fluid = water
+
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
         """;
 
     [Fact]
     public async Task AStatedRiseIsHeldExactlyAndTheHeadFollowsFromTheSolvedDensity()
     {
         // 30 kPa across the pump whatever the density; the valve is what the flow constraint moves.
-        var run = await Solve(Loop.Replace("PU1  pump", "PU1  pump dp=30", StringComparison.Ordinal), "rise");
+        var run = await Solve(Loop.Edited("PU1  pump", "PU1  pump  dp = 30"), "rise");
         var (inlet, outlet) = PumpPorts(run, "PU1");
 
         var report = run.ToString();
@@ -53,7 +55,7 @@ public sealed class StatedRiseTests
     {
         // 14's example on the parameter it was meant for: 1.2 x the exchanger's 20 kPa, 24 kPa, from
         // the seed, held by the equation, and the valve opens to Kv 7.0 to pass the duty flow.
-        var run = await Solve(Loop.Replace("PU1  pump", "PU1  pump dp=1.2*HE1.dp", StringComparison.Ordinal), "deferred-rise");
+        var run = await Solve(Loop.Edited("PU1  pump", "PU1  pump  dp = 1.2*HE1.dp"), "deferred-rise");
         var (inlet, outlet) = PumpPorts(run, "PU1");
         var kv = Layout(run).Unknowns.Single(static u => u.Kind == UnknownKind.Parameter && u.OwnerComponentId == "CV1");
 
@@ -66,7 +68,7 @@ public sealed class StatedRiseTests
     public async Task AValvesStatedDropChoosesTheNextLargerKvAndReportsWhatItAsked()
     {
         // 0.2392 kg/s at 30 kPa asks Kv 1.57; the next R5 row is 1.6, which drops 29 kPa there.
-        var run = await Solve(Loop.Replace("CV1  valve", "CV1  valve dp=30", StringComparison.Ordinal), "valve-drop");
+        var run = await Solve(Loop.Edited("CV1  valve", "CV1  valve  dp = 30"), "valve-drop");
         var valve = Assert.IsType<ValveComponent>(run.Graph.Components.Single(static c => c.Name == "CV1"));
 
         Assert.Equal(1.6, valve.SizedParameters["kv"].SiValue, 6);

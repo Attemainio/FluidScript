@@ -3,4 +3,4 @@ style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern
 circuit script 100  neutral
 component PID1 controller in script at  tag 100PID01 style 
   kp = 3 Dimensionless  
-control PID1 moves PropertyReference { Component = TV1, Property = position } reads PropertyReference { Component = N2, Property = t } setpoint 20 Dimensionless [] band - differential - output -..- curve 
+FS1404 [75..87] Nothing named 'TV1'.

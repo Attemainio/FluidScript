@@ -82,9 +82,10 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     // ---- a reader of a curve -----------------------------------------------------------------
 
     /// <summary>
-    /// A load that follows a curve, in both languages. Package 3e held every language 2 reader of a curve for the
-    /// run's clock, as language 1 holds a dynamic circuit's, and the steady solve then evaluated it again in a scope
-    /// with no curves: <c>FS1404 Nothing named 'demand'</c>, and the design solve without its load.
+    /// A load that follows a curve, in a file with cases and in a file with a run. Package 3e held every language 2
+    /// reader of a curve for the run's clock, as language 1 held a dynamic circuit's, and the steady solve then
+    /// evaluated it again in a scope with no curves: <c>FS1404 Nothing named 'demand'</c>, and the design solve without
+    /// its load.
     /// </summary>
     public static TheoryData<string> CurveReaders =>
     [
@@ -106,31 +107,38 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
           N5 - N1  25 m
         """,
         """
-        fluidscript 1
-        design tout=-26
-        curve demand tout
-        -26 30
-        18 0
-        circuit demandStep
-        fluid dynamic water
-        HE1 heat_exchanger power=demand out.t=50 volume=0.5
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25
-        PB  pipe length=8 dn=20 nodes=4
-        TC1 pi
-        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
-        connections
-        N1 - N2
-        N2 - NS
-        NS - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - PB - N2
-        3WV - P1
-        P1 - N3
-        N1 inlet t=6 p=300
-        N3 outlet p=280
+        fluidscript 2
+
+        let tout = -26 °C
+
+        curve demand: tout
+          -26 30
+          18 0
+
+        circuit "demandStep":
+          fluid = water
+
+          HE1  heat_exchanger  power = demand  out.t = 50  volume = 0.5
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25
+          PB  pipe  length = 8  dn = 20  nodes = 4
+          TC1 controller:
+            moves = 3WV.position
+            reads = NS.t
+            setpoint = 20
+          N1 - N2
+          N2 - NS
+          NS - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - PB - N2
+          3WV - P1
+          P1 - N3
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
+
+        run "Transient":
         """,
     ];
 

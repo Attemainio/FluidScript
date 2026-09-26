@@ -144,7 +144,7 @@ public sealed class RunSnapshotTests
     {
         // The controller owns 3WV.position from t = 0 (D-140); a schedule that also moved it would
         // fight the loop every step. FS3109 refuses it and names the controller.
-        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   3WV.position = 0.3"));
+        var lowered = GraphFixture.LowerRun(DemandStepWith("at 60 s  3WV.position = 0.3"));
         var change = Assert.Single(lowered.Graph.Schedule);
 
         Assert.Equal("3WV", change.Component);
@@ -159,7 +159,7 @@ public sealed class RunSnapshotTests
     [Fact]
     public void AScheduleOnTheLoadIsNotAnActuatorAndPasses()
     {
-        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   HE1.power = 45"));
+        var lowered = GraphFixture.LowerRun(DemandStepWith("at 60 s  HE1.power = 45"));
 
         Assert.Single(lowered.Graph.Schedule);
         Assert.DoesNotContain(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3109");
@@ -170,7 +170,7 @@ public sealed class RunSnapshotTests
     {
         // `N1.t` binds — the inlet has a `t` — but a boundary state enters the model at assembly and a
         // run has no slot to write it at t > 0 (S-77). Silently ignoring it would be worse than the error.
-        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   N1.t = 10"));
+        var lowered = GraphFixture.LowerRun(DemandStepWith("at 60 s  N1.t = 10"));
         var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3105");
 
         Assert.Equal(DiagnosticSeverity.Error, error.Severity);
@@ -180,7 +180,7 @@ public sealed class RunSnapshotTests
     [Fact]
     public void AScheduleOnAPipeLengthNamesWhatARunCanMove()
     {
-        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   PU1.efficiency = 0.5"));
+        var lowered = GraphFixture.LowerRun(DemandStepWith("at 60 s  PU1.efficiency = 0.5"));
         var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3105");
 
         Assert.Contains("a run can move 'head' on a pump, not 'efficiency'", error.Message, StringComparison.Ordinal);
@@ -189,7 +189,7 @@ public sealed class RunSnapshotTests
     [Fact]
     public void ARampCarriesBothEndsInSi()
     {
-        var lowered = GraphFixture.Lower(DemandStepWith("over 60 s .. 120 s   HE1.power = 30 .. 45"));
+        var lowered = GraphFixture.LowerRun(DemandStepWith("over 60 s..120 s  HE1.power = 30..45"));
         var change = Assert.Single(lowered.Graph.Schedule);
 
         Assert.Equal(60, change.From);
@@ -199,32 +199,34 @@ public sealed class RunSnapshotTests
     }
 
     private static string DemandStepWith(string line) => $$"""
-        circuit demandStep
-        fluid water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30 out.t=50
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25
-        PB  pipe length=8 dn=20 nodes=4
-        TC1 pi
+        circuit "demandStep":
+          fluid = water
 
-        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
+          HE1  heat_exchanger  power = 30  out.t = 50
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25
+          PB  pipe  length = 8  dn = 20  nodes = 4
+          TC1  controller:
+            moves = 3WV.position
+            reads = NS.t
+            setpoint = 20
 
-        connections
-        N1 - N2
-        N2 - NS
-        NS - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - PB - N2
-        3WV - P1
-        P1 - N3
+          N1 - N2
+          N2 - NS
+          NS - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - PB - N2
+          3WV - P1
+          P1 - N3
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
 
-        schedule
-        {{line}}
+        run "Transient":
+          {{line}}
         """;
 }

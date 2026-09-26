@@ -19,38 +19,32 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class ImplicitPipeTests
 {
     private const string Loop = """
-        fluidscript 1
-        circuit loop 100
-        PU1 pump
-        HE1 heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4
-        N4 - N1 dn=25 length=12
-        N1 node p=250
+        fluidscript 2
+
+        circuit "loop":
+          number = 100
+
+          PU1  pump
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4
+          N4 - N1   DN25  12 m
+          N1  node  p = 250
 
         """;
 
     [Fact]
     public void AConnectionLineMayEndInPipePropertiesAndPrintsByteForByte()
     {
-        var source = "fluidscript 1\nconnections\nN1 - HE1 - N2 dn=25 length=12 # the loop's return\n";
+        var source = "fluidscript 2\n\ncircuit \"script\":\n  N1 - HE1   DN25  12 m  # the loop's return\n  HE1 - N2   DN25  12 m\n";
         var result = ScriptParse.Parse(new SourceText(source));
 
         Assert.Empty(result.Diagnostics);
-        var connection = Assert.IsType<ConnectionSyntax>(result.Root.Statements[2]);
-        Assert.Equal(["N1", "HE1", "N2"], connection.Endpoints.Select(static e => e.Component.Text));
-        Assert.Equal(["dn", "length"], connection.Parameters.Select(static p => p.Name.Text));
+        var circuit = Assert.Single(result.Root.Statements.OfType<BlockSyntax>());
+        var pipes = circuit.Body.Select(static line => Assert.IsType<PipedConnectionSyntax>(line)).ToArray();
+        Assert.Equal(2, pipes.Length);
+        Assert.All(pipes, static pipe => Assert.Equal(2, pipe.Properties.Length));
         Assert.Equal(source, SyntaxPrinter.Print(result));
-    }
-
-    [Fact]
-    public void APropertyWithoutAValueMakesTheLineMalformed()
-    {
-        var result = ScriptParse.Parse(new SourceText("fluidscript 1\nconnections\nN1 - HE1 dn\n"));
-
-        Assert.IsType<MalformedStatementSyntax>(result.Root.Statements[2]);
-        Assert.Contains(result.Diagnostics, static d => d.Code == "FS1105");
     }
 
     [Fact]
@@ -72,7 +66,7 @@ public sealed class ImplicitPipeTests
     public void ANodeBesideAnImplicitPipeIsNamedAfterThePipesPort()
     {
         // Two components joined through a pipe on the line: the pipe, then I2's node on each side of it.
-        var model = GraphFixture.Bind("fluidscript 1\nHE1 heat_exchanger power=30\nPU1 pump\nconnections\nHE1 - PU1 dn=25\n");
+        var model = GraphFixture.Bind("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n  PU1  pump\n  HE1 - PU1   DN25\n");
 
         Assert.Contains(model.Components, static c => c.Name == "HE1__PU1" && c.Kind?.Keyword == "pipe");
         Assert.Contains(model.Components, static c => c.Name == "HE1__PU1__in" && c.Origin is Origin.Inferred { Rule: "I2" });
@@ -86,7 +80,7 @@ public sealed class ImplicitPipeTests
     [Fact]
     public void ThePropertiesApplyToEveryConnectionOnTheLine()
     {
-        var model = GraphFixture.Bind("fluidscript 1\nconnections\nN1 - N2 - N3 dn=25\n");
+        var model = GraphFixture.Bind("fluidscript 2\n\ncircuit \"script\":\n  N1 - N2   DN25\n  N2 - N3   DN25\n");
 
         Assert.Contains(model.Components, static c => c.Name == "N1__N2" && c.Kind?.Keyword == "pipe");
         Assert.Contains(model.Components, static c => c.Name == "N2__N3" && c.Kind?.Keyword == "pipe");
@@ -95,8 +89,8 @@ public sealed class ImplicitPipeTests
     [Fact]
     public async Task ALengthTheLineDoesNotStateIsZeroAndTheCircuitSolves()
     {
-        // D-110: `dn=25` alone marks the drawing and the bore; the pipe drops nothing until a length is written.
-        var source = Loop.Replace("N4 - N1 dn=25 length=12", "N4 - N1 dn=25", StringComparison.Ordinal);
+        // D-110: `DN25` alone marks the drawing and the bore; the pipe drops nothing until a length is written.
+        var source = Loop.Edited("N4 - N1   DN25  12 m", "N4 - N1   DN25");
         var solved = await ContractFixture.SolveAsync(source);
         var contract = ModelContractBuilder.Build(solved);
         var pipe = contract.Components.Single(static c => c.Id == "N4__N1");
@@ -112,8 +106,8 @@ public sealed class ImplicitPipeTests
     public async Task AStatedLengthOnTheLineDropsPressureLikeADeclaredPipe()
     {
         var declared = Loop
-            .Replace("LOAD heat_exchanger power=-30", "LOAD heat_exchanger power=-30\nP1 pipe dn=25 length=12", StringComparison.Ordinal)
-            .Replace("N4 - N1 dn=25 length=12", "N4 - P1 - N1", StringComparison.Ordinal);
+            .Edited("LOAD  heat_exchanger  power = -30", "LOAD  heat_exchanger  power = -30\n  P1  pipe  dn = 25  length = 12")
+            .Edited("N4 - N1   DN25  12 m", "N4 - P1 - N1");
 
         var line = ModelContractBuilder.Build(await ContractFixture.SolveAsync(Loop));
         var component = ModelContractBuilder.Build(await ContractFixture.SolveAsync(declared));
@@ -136,15 +130,15 @@ public sealed class ImplicitPipeTests
         // wrote still has no span. The symbol map still answers the connection at that line (54).
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(Loop));
         var pipe = contract.Components.Single(static c => c.Id == "N4__N1");
-        var line = Loop.IndexOf("N4 - N1 dn=25 length=12", StringComparison.Ordinal);
+        var line = Loop.IndexOf("N4 - N1   DN25  12 m", StringComparison.Ordinal);
 
         Assert.NotNull(pipe.SourceSpan);
         Assert.Equal(line, pipe.SourceSpan.Start);
-        Assert.Equal("N4 - N1 dn=25 length=12".Length, pipe.SourceSpan.Length);
+        Assert.Equal("N4 - N1   DN25  12 m".Length, pipe.SourceSpan.Length);
         Assert.Null(contract.Components.Single(static c => c.Id == "N2").SourceSpan);
 
         var model = GraphFixture.Bind(Loop);
-        Assert.IsType<SymbolReference.Connection>(model.SymbolMap.AtOffset(line + "N4 - N1 dn=".Length));
+        Assert.IsType<SymbolReference.Connection>(model.SymbolMap.AtOffset(line + "N4 - N1   DN".Length));
     }
 
     [Fact]

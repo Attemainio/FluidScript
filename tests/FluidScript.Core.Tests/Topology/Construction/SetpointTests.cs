@@ -7,31 +7,32 @@ namespace FluidScript.Core.Tests.Topology.Construction;
 public sealed class SetpointTests
 {
     private const string DemandStep = """
-        fluidscript 1
-        circuit demandStep
-        fluid water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30 out.t=50
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25
-        PB  pipe length=8 dn=20 nodes=4
-        TC1 pi
+        circuit "demandStep":
+          fluid = water
 
-        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
+          HE1  heat_exchanger  power = 30  out.t = 50
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25
+          PB  pipe  length = 8  dn = 20  nodes = 4
+          TC1 controller:
+            moves = 3WV.position
+            reads = NS.t
+            setpoint = 20
 
-        connections
-        N1 - N2
-        N2 - NS
-        NS - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - PB - N2
-        3WV - P1
-        P1 - N3
+          N1 - N2
+          N2 - NS
+          NS - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - PB - N2
+          3WV - P1
+          P1 - N3
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
         """;
 
     [Fact]
@@ -67,7 +68,7 @@ public sealed class SetpointTests
     {
         // `3WV position=0.4` written by the user is the user's design; the solve cannot also hold NS
         // at 20 C with it, so the setpoint is not a constraint and FS3210 says why.
-        var graph = GraphFixture.Lower(DemandStep.Replace("3WV three_way_valve", "3WV three_way_valve position=0.4", StringComparison.Ordinal)).Graph;
+        var graph = GraphFixture.Lower(DemandStep.Edited("3WV  three_way_valve", "3WV  three_way_valve  position = 0.4")).Graph;
         var setpoint = Assert.Single(graph.Setpoints);
 
         Assert.False(setpoint.Applied);
@@ -88,25 +89,27 @@ public sealed class SetpointTests
         // setpoint of 50 there is the same statement twice -- square by count, singular in truth, and
         // non-finite in five iterations before this guard.
         const string source = """
-            fluidscript 1
-            circuit ladder
-            fluid water
+            fluidscript 2
 
-            PU1  pump
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30
-            CV1  valve kv=6.3
-            PID1 pid kp=2
-            TE1  t_sensor at N1
+            circuit "ladder":
+              fluid = water
 
-            connections
-            PU1 - HE1
-            HE1 - N1
-            N1 - LOAD
-            LOAD - CV1
-            CV1 - PU1
+              PU1  pump
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30
+              CV1  valve  kv = 6.3
+              PID1 controller:
+                kp = 2
+                moves = CV1
+                reads = TE1
+                setpoint = 50
+              TE1  t_sensor at N1
 
-            control CV1 with TE1 by PID1 setpoint=50
+              PU1 - HE1
+              HE1 - N1
+              N1 - LOAD
+              LOAD - CV1
+              CV1 - PU1
             """;
 
         var graph = GraphFixture.Lower(source).Graph;
@@ -125,7 +128,7 @@ public sealed class SetpointTests
     {
         // A boundary's temperature is what enters the model, not a demand on it; the loop still runs
         // from wherever the design solve lands, and FS3211 says so.
-        var graph = GraphFixture.Lower(DemandStep.Replace("measure=NS.t", "measure=N1.t", StringComparison.Ordinal)).Graph;
+        var graph = GraphFixture.Lower(DemandStep.Edited("reads = NS.t", "reads = N1.t")).Graph;
         var setpoint = Assert.Single(graph.Setpoints);
 
         Assert.False(setpoint.Applied);
@@ -138,22 +141,24 @@ public sealed class SetpointTests
     }
 
     private const string Circulator = """
-        fluidscript 1
-        circuit ladder
-        fluid water
+        fluidscript 2
 
-        PU1  pump
-        HE1  heat_exchanger power=30 out.t=50
-        TE_R t_sensor at NR
-        TC1  pid kp=2
-        LOAD heat_exchanger power=-30
+        circuit "ladder":
+          fluid = water
 
-        connections
-        PU1 - HE1
-        HE1 - NS - LOAD
-        LOAD - NR - PU1
+          PU1  pump
+          HE1  heat_exchanger  power = 30  out.t = 50
+          TE_R  t_sensor at NR
+          TC1 controller:
+            kp = 2
+            moves = PU1
+            reads = TE_R
+            setpoint = 20
+          LOAD  heat_exchanger  power = -30
 
-        control PU1 with TE_R by TC1 setpoint=20
+          PU1 - HE1
+          HE1 - NS - LOAD
+          LOAD - NR - PU1
         """;
 
     [Fact]

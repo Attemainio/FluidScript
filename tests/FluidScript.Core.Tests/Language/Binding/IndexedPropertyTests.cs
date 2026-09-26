@@ -22,7 +22,7 @@ public sealed class IndexedPropertyTests
 {
     private static BindResult Bind(string body) =>
         new Binder(ComponentRegistry.Default).Bind(
-            ScriptParse.Parse(new SourceText("fluidscript 1\n" + body + "\n")), "script");
+            ScriptParse.Parse(new SourceText("fluidscript 2\n" + body + "\n")), "script");
 
     private static void NoErrors(string body)
     {
@@ -104,16 +104,16 @@ public sealed class IndexedPropertyTests
 
     [Fact]
     public void AReferenceToALayerTemperatureBindsWithoutError() =>
-        NoErrors("T1 tank layers=3\nlet warm = T1.layer[3].t");
+        NoErrors("\nlet warm = T1.layer[3].t\n\ncircuit \"script\":\n  T1  tank  layers = 3");
 
     [Fact]
     public void AReferenceToAPortTemperatureBindsWithoutError() =>
-        NoErrors("T1 tank\nlet supply = T1.out.t");
+        NoErrors("\nlet supply = T1.out.t\n\ncircuit \"script\":\n  T1  tank");
 
     [Fact]
     public void FS1406_StillFiresForANameNoFamilyMatches()
     {
-        var result = Bind("T1 tank\nlet x = T1.nonsense");
+        var result = Bind("\nlet x = T1.nonsense\n\ncircuit \"script\":\n  T1  tank");
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1406");
 
         // The family patterns are in the list, not just the fixed names: a message that offered only

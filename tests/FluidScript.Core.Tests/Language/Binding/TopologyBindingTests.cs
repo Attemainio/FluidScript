@@ -6,6 +6,7 @@ using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Language.Binding;
@@ -92,7 +93,7 @@ public sealed class TopologyBindingTests
         // A tank has sixteen possible inlets. It gets the ones the script wrote and no others, which
         // is what keeps the model contract's port list a description of this script.
         var model = Model(
-            "fluidscript 1\nT1 tank v=300 in[3].level=0.8\nconnections\nT1.in[3] - N1\nT1.out - N2\n");
+            "fluidscript 2\n\ncircuit \"script\":\n  T1  tank  v = 300  in[3].level = 0.8\n  T1.in[3] - N1\n  T1.out - N2\n");
 
         var tank = model.Components.Single(static component => component.Name == "T1");
 
@@ -103,7 +104,7 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void APortOutsideItsFamilysRangeIsReported()
     {
-        var result = Bind("fluidscript 1\nT1 tank v=300\nconnections\nT1.in[17] - N1\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  T1  tank  v = 300\n  T1.in[17] - N1\n");
 
         Assert.Contains("FS1516", Codes(result));
     }
@@ -112,7 +113,7 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void APortTheKindDoesNotHaveIsReported()
     {
-        var result = Bind("fluidscript 1\nPU1 pump\nconnections\nPU1.middle - N1\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump\n  PU1.middle - N1\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1505");
         Assert.Contains("in, out", diagnostic.Message, StringComparison.Ordinal);
@@ -126,7 +127,7 @@ public sealed class TopologyBindingTests
     {
         // What makes the reference circuits work with no port names at all. Reversing it would make
         // `N1 - PU1 - N2` push flow backwards through the pump on a script that reads correctly.
-        var model = Model("fluidscript 1\nPU1 pump\nconnections\nN1 - PU1 - N2\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump\n  N1 - PU1 - N2\n");
 
         Assert.Equal(["N1-PU1.in", "PU1.out-N2"], model.Connections.Select(Link));
     }
@@ -135,22 +136,25 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void AChainBecomesOneConnectionPerDash()
     {
-        // Rule I6: one line, three endpoints, two connections — and both carry the line's span, so a
-        // diagnostic about either points at something the user can see.
-        var model = Model("fluidscript 1\nconnections\nN1 - N2 - N3\n");
+        // Rule I6: one line, three endpoints, two connections — and each carries its own link's span, so a
+        // diagnostic about either points at the part of the line it is about.
+        const string source = "fluidscript 2\n\ncircuit \"script\":\n  N1 - N2 - N3\n";
+        var model = Model(source);
 
         Assert.Equal(["N1-N2", "N2-N3"], model.Connections.Select(Link));
-        Assert.Single(model.Connections.Select(static connection => connection.SourceSpan).Distinct());
+        Assert.Equal(
+            ["N1 - N2", "N2 - N3"],
+            model.Connections.Select(static connection => source.Substring(connection.SourceSpan.Start, connection.SourceSpan.Length)));
     }
 
     [Fact]
     [Trait("Category", "Unit")]
     public void APortConnectedTwiceIsReportedOnceWithTheEarlierLine()
     {
-        var result = Bind("fluidscript 1\nPU1 pump\nconnections\nPU1.out - N1\nPU1.out - N2\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump\n  PU1.out - N1\n  PU1.out - N2\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1506");
-        Assert.Contains("line 4", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("line 5", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -159,7 +163,7 @@ public sealed class TopologyBindingTests
     {
         // The one case I1 cannot absorb. Inferring here would put a value and a component under one
         // identifier, and nothing could then say what `x.t` meant.
-        var result = Bind("fluidscript 1\nlet x = 30 kW\nconnections\nx - N1\n");
+        var result = Bind("fluidscript 2\n\nlet x = 30 kW\n\ncircuit \"script\":\n  x - N1\n");
 
         Assert.Contains("FS1504", Codes(result));
         Assert.DoesNotContain(result.Model.Components, static component => component.Name == "x");
@@ -171,7 +175,7 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void AnUndeclaredEndpointBecomesANodeKeepingItsName()
     {
-        var model = Model("fluidscript 1\nconnections\nN1 - N2\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  N1 - N2\n");
 
         Assert.Equal(["N1", "N2"], model.Components.Select(static component => component.Name));
         Assert.All(model.Components, static component =>
@@ -187,7 +191,7 @@ public sealed class TopologyBindingTests
     public void TwoComponentsJoinedDirectlyGetANodeBetweenThem()
     {
         // I2. Without the node there is no state between them to write an equation about.
-        var model = Model("fluidscript 1\nHE1 heat_exchanger power=30\nPU1 pump\nconnections\nHE1 - PU1\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n  PU1  pump\n  HE1 - PU1\n");
 
         Assert.Contains(model.Components, static component => component.Name == "HE1__PU1");
         Assert.Contains(model.Connections, static connection => Link(connection) == "HE1.out-HE1__PU1");
@@ -201,8 +205,8 @@ public sealed class TopologyBindingTests
         // A closed loop rather than an exchanger with one secondary port open: since P4.1 that is FS2112,
         // an error, and this test is about ordinals.
         var model = Model(
-            "fluidscript 1\nHE1 heat_exchanger power=30\nPU1 pump\n"
-            + "connections\nHE1.out - PU1.in\nHE1.in - PU1.out\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  HE1  heat_exchanger  power = 30\n  PU1  pump\n"
+            + "  HE1.out - PU1.in\n  HE1.in - PU1.out\n");
 
         Assert.Contains(model.Components, static component => component.Name == "HE1__PU1");
         Assert.Contains(model.Components, static component => component.Name == "HE1__PU1_2");
@@ -215,7 +219,7 @@ public sealed class TopologyBindingTests
         // The other half of the exemption below. A pump wired on one side only is a stub the user has
         // not finished, and terminating `out` at zero flow keeps the graph solvable -- so the warning
         // is the only thing separating it from a dead end somebody meant.
-        var result = Bind("fluidscript 1\nPU1 pump\nN1 node\nconnections\nN1 - PU1.in\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  PU1  pump\n  N1  node\n  N1 - PU1.in\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS2202");
         Assert.Contains("'PU1'", diagnostic.Message, StringComparison.Ordinal);
@@ -229,7 +233,7 @@ public sealed class TopologyBindingTests
         // I3 fires on the ports a component must have, not on the ones it may have. A heat exchanger
         // with no secondary side is the common case, and terminating `in2` would invent a second
         // circuit nobody wrote.
-        var model = Model("fluidscript 1\nHE1 heat_exchanger power=30\nconnections\nN1 - HE1 - N2\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n  N1 - HE1 - N2\n");
 
         Assert.DoesNotContain(model.Components, static component => component.Name == "HE1__in2");
         Assert.DoesNotContain(model.Components, static component => component.Name == "HE1__out2");
@@ -239,88 +243,13 @@ public sealed class TopologyBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ASubcircuitsAttachmentsResolveIntoItsParent()
-    {
-        // M1: `supply` and `return` bind. The lookup is unqualified because identifiers are unique
-        // across the model (`D-41`) — which is the whole reason an attachment can be written this way.
-        var model = Model(
-            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
-            + "connections\nNB1 - NB2\n\ncircuit ahu 300\ninlet NB1\noutlet NB2\n");
-
-        var subcircuit = model.Circuits.Single(static circuit => circuit.Name == "ahu");
-
-        Assert.Equal("NB1", subcircuit.Supply!.ParentComponentName);
-        Assert.Equal("NB2", subcircuit.Return!.ParentComponentName);
-        Assert.Equal("primary", subcircuit.ParentCircuit);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void OneAttachmentWithoutTheOtherIsReported()
-    {
-        var result = Bind(
-            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\n\ncircuit ahu 300\ninlet NB1\n");
-
-        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1520");
-        Assert.Contains("'inlet NB1'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("no 'outlet'", diagnostic.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void AnAttachmentNamingNothingIsReported()
-    {
-        var result = Bind("fluidscript 1\ncircuit ahu 300\ninlet NB9\noutlet NB8\n");
-
-        Assert.Equal(2, Codes(result).Count(static code => code == "FS1518"));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ASubcircuitAttachingToOneOfItsOwnComponentsIsReported()
-    {
-        // FS2217 and FS1518 partition one mistake and never both fire: FS1518 is the name resolving to
-        // nothing, this is the name resolving to a component of the attaching circuit. The absent
-        // FS1518 is the half of that claim which would rot silently if the split were ever collapsed.
-        var result = Bind(
-            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
-            + "connections\nNB1 - NB2\n\ncircuit ahu 300\nNA1 node\nNA2 node\n"
-            + "connections\nNA1 - NA2\ninlet NA1\noutlet NB2\n");
-
-        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS2217");
-        Assert.Contains("'ahu'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("'NA1'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("FS1518", Codes(result));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ASubcircuitDrawingFromOneCircuitAndReturningToAnotherIsReported()
-    {
-        // One parent, or the model cannot carry it. A circuit fed from `primary` and drained into
-        // `secondary` is a real topology and a legal one -- written as connections, which is what the
-        // message says, because it is the attachment pair that cannot express it.
-        var result = Bind(
-            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
-            + "connections\nNB1 - NB2\n\ncircuit secondary 200\nNC1 node t=6 p=300\n"
-            + "NC2 node p=280\nconnections\nNC1 - NC2\n\ncircuit ahu 300\n"
-            + "inlet NB1\noutlet NC2\n");
-
-        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1526");
-        Assert.Contains("'primary'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("'secondary'", diagnostic.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void AControlLineBindsItsFourNamedArguments()
     {
-        // M1, and `D-40`: every field comes from a named argument, so transposing two is an error
+        // M1, and `D-40`: every field comes from a named setting, so transposing two is an error
         // rather than a silent reversal that drives the valve the wrong way.
         var model = Model(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN2 node t=6 p=300\n"
-            + "connections\nN2 - TV1\n"
-            + "control actuate=TV1.position measure=N2.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N2  node  t = 6  p = 300\n  N2 - TV1.ab\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = N2.t\n    setpoint = 20\n");
 
         var binding = Assert.Single(model.ControlBindings);
 
@@ -332,16 +261,15 @@ public sealed class TopologyBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ABareComponentNameIsNotAnActuator()
+    public void AnEventOnAComponentRatherThanAPropertyIsReported()
     {
-        // `D-43`. There is deliberately no per-kind default: a valve has more than one thing that
-        // could move, so guessing one would drive the wrong thing on a script that looks right.
+        // `D-43`: a run changes a property. `PU1 = 3` does not say which of the pump's.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN2 node t=6 p=300\n"
-            + "control actuate=TV1 measure=N2.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  fluid = water\n  PU1  pump\n"
+            + "\nrun \"Transient\":\n  at 60 s  PU1 = 3\n");
 
         Assert.Contains("FS1515", Codes(result));
-        Assert.Empty(result.Model.ControlBindings);
+        Assert.Empty(Assert.Single(result.Model.Runs).Events);
     }
 
     [Fact]
@@ -349,23 +277,26 @@ public sealed class TopologyBindingTests
     public void AControlLineMissingAnArgumentNamesTheOneItLacks()
     {
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\n"
-            + "control actuate=TV1.position by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    setpoint = 20\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1521");
-        Assert.Contains("Missing: measure.", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("reads", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void AControllerThatIsNotOneIsReported()
+    public void AControllerMovingAComponentThatDoesNotExistIsReported()
     {
+        // Bound as written until P6.11 package 7, when a short-form line was checked for nothing: `TV9.position` was a
+        // loop that moved nothing and said so nowhere.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPU1 pump\nN2 node t=6 p=300\n"
-            + "control actuate=TV1.position measure=N2.t by=PU1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N2  node  t = 6  p = 300\n  N2 - TV1.ab\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV9.position\n    reads = N2.t\n    setpoint = 20\n");
 
-        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1523");
-        Assert.Contains("is a pump", diagnostic.Message, StringComparison.Ordinal);
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1404");
+        Assert.Contains("'TV9'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Empty(result.Model.ControlBindings);
     }
 
     [Fact]
@@ -376,9 +307,8 @@ public sealed class TopologyBindingTests
         // kind does not have it. `D-61` makes `.position` optional on the one actuated parameter a kind
         // has, which is exactly why a *wrong* property has to be rejected rather than assumed.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN2 node t=6 p=300\n"
-            + "connections\nN2 - TV1\n"
-            + "control actuate=TV1.altitude measure=N2.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N2  node  t = 6  p = 300\n  N2 - TV1.ab\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.altitude\n    reads = N2.t\n    setpoint = 20\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1522");
         Assert.Contains("'altitude'", diagnostic.Message, StringComparison.Ordinal);
@@ -387,16 +317,16 @@ public sealed class TopologyBindingTests
 
     [Theory]
     [Trait("Category", "Unit")]
-    [InlineData("TE1 t_sensor at N2\n", "'TE1' reads 'N2', where 3 pipes meet")]
-    [InlineData("control actuate=TV1.position measure=N2.t by=PID1 setpoint=20\n", "'PID1' reads 'N2', where 3 pipes meet")]
+    [InlineData("  TE1  t_sensor  at N2\n", "'TE1' reads 'N2', where 3 pipes meet")]
+    [InlineData("  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = N2.t\n    setpoint = 20\n", "'PID1' reads 'N2', where 3 pipes meet")]
     public void AReadingAtAJunctionIsFs1548(string reader, string expected)
     {
         // `D-150`. Three streams meet at N2 and the node's one state is their mix, which no instrument
         // on any of the three pipes reads; the script has to say which pipe it means. A sensor's `at`
         // and a controller's `measure=` read the same number, so they are refused alike.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
-            + "connections\nN1 - N2\nN2 - TV1.a\nN2 - N3\n"
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
+            + "  N1 - N2\n  N2 - TV1.a\n  N2 - N3\n"
             + reader);
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1548");
@@ -410,10 +340,10 @@ public sealed class TopologyBindingTests
     {
         // Two connections is a point on one pipe, one is a terminal: each has a single stream.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
-            + "TE1 t_sensor at N1\n"
-            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
-            + "control actuate=TV1.position measure=NS.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
+            + "  TE1  t_sensor  at N1\n"
+            + "  N1 - NS\n  NS - TV1.a\n  TV1.ab - N3\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = NS.t\n    setpoint = 20\n");
 
         Assert.DoesNotContain("FS1548", Codes(result));
     }
@@ -428,9 +358,9 @@ public sealed class TopologyBindingTests
         // I8, D-151: a sensor is a physical component and is always drawn, so a controller that reads a node
         // directly reads it through one the binder places on the node, named after it, and says so.
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
-            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
-            + $"control actuate=TV1.position measure=NS.{property} by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
+            + "  N1 - NS\n  NS - TV1.a\n  TV1.ab - N3\n"
+            + $"  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = NS.{property}\n    setpoint = 20\n");
 
         var sensor = Assert.Single(result.Model.Components, c => c.Name == name);
         Assert.Equal(kind, sensor.Kind?.Keyword);
@@ -446,9 +376,9 @@ public sealed class TopologyBindingTests
     {
         // The sensor the script placed is the one read; nothing is added beside it.
         var model = Model(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nTE1 t_sensor at NS\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
-            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
-            + "control actuate=TV1.position measure=NS.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  TE1  t_sensor  at NS\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
+            + "  N1 - NS\n  NS - TV1.a\n  TV1.ab - N3\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = NS.t\n    setpoint = 20\n");
 
         Assert.Single(model.Components, static c => c.AttachedTo == "NS");
         Assert.DoesNotContain(model.Components, static c => c.Name == "NS__TE");
@@ -459,9 +389,9 @@ public sealed class TopologyBindingTests
     public void AJunctionIsRefusedAndGetsNoSensor()
     {
         var result = Bind(
-            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
-            + "connections\nN1 - N2\nN2 - TV1.a\nN2 - N3\n"
-            + "control actuate=TV1.position measure=N2.t by=PID1 setpoint=20\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
+            + "  N1 - N2\n  N2 - TV1.a\n  N2 - N3\n"
+            + "  PID1  controller:\n    kp = 3\n    moves = TV1.position\n    reads = N2.t\n    setpoint = 20\n");
 
         Assert.Contains("FS1548", Codes(result));
         Assert.DoesNotContain(result.Model.Components, static c => c.Name == "N2__TE");
@@ -473,11 +403,12 @@ public sealed class TopologyBindingTests
     {
         // The step `15`'s binding order never had: the parser produced a disturbance and nothing
         // consumed it. A step and a ramp, with the bare values reinterpreted in the parameter's
-        // canonical unit — `HE4.power = 45` is 45 kW, exactly as `power=45` would be (`D-14`).
-        var model = Model(
-            "fluidscript 1\ncircuit demandStep 400\nfluid dynamic water\n"
-            + "HE4 load in.t=50 out.t=30 power=30 kW\n"
-            + "schedule\nat 60 s HE4.power = 45\nover 60 s .. 120 s HE4.power = 30 .. 45\n");
+        // canonical unit — `HE4.power = 45` is 45 kW, exactly as `power = 45` would be (`D-14`). The run's
+        // events are the schedule of the model it projects (`D-169`).
+        var model = GraphFixture.BindRun(
+            "fluidscript 2\n\ncircuit \"demandStep\":\n  fluid = water\n  number = 400\n"
+            + "  HE4  load  in.t = 50  out.t = 30  power = 30 kW\n"
+            + "\nrun \"Transient\":\n  at 60 s  HE4.power = 45\n  over 60 s..120 s  HE4.power = 30..45\n");
 
         Assert.Equal(2, model.Disturbances.Length);
 
@@ -499,11 +430,11 @@ public sealed class TopologyBindingTests
     public void AScheduledParameterTheKindDoesNotHaveIsReported()
     {
         var result = Bind(
-            "fluidscript 1\ncircuit demandStep 400\nfluid dynamic water\nPU1 pump\n"
-            + "schedule\nat 60 s PU1.colour = 3\n");
+            "fluidscript 2\n\ncircuit \"demandStep\":\n  fluid = water\n  PU1  pump\n"
+            + "\nrun \"Transient\":\n  at 60 s  PU1.colour = 3\n");
 
         Assert.Contains("FS1503", Codes(result));
-        Assert.Empty(result.Model.Disturbances);
+        Assert.Empty(Assert.Single(result.Model.Runs).Events);
     }
 
     // ---- step 10: validation ----------------------------------------------------------------------
@@ -515,7 +446,7 @@ public sealed class TopologyBindingTests
         // FS1511 is about a cluster and FS1507 about a component on its own; the two partition the
         // same mistake and never both fire for one component.
         var result = Bind(
-            "fluidscript 1\nconnections\nN1 - N2 - N3\nN8 - N9\n");
+            "fluidscript 2\n\ncircuit \"script\":\n  N1 - N2 - N3\n  N8 - N9\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1511");
         Assert.Contains("'N8' and 1 others", diagnostic.Message, StringComparison.Ordinal);
@@ -529,13 +460,13 @@ public sealed class TopologyBindingTests
         // Since D-115 the kind says mass crosses: a degree-1 `inlet` is the shape FS2107 exists to ask
         // for, and a degree-1 `node` that states t and p is a datum on a stub -- still a dead end, and
         // the message says which word makes it a boundary (C-106).
-        var result = Bind("fluidscript 1\nN1 inlet t=6 p=300\nconnections\nN1 - N2\n");
+        var result = Bind("fluidscript 2\n\ncircuit \"script\":\n  N1  inlet  t = 6  p = 300\n  N1 - N2\n");
 
         Assert.Equal(["N2"], result.Diagnostics
             .Where(static d => d.Code == "FS2107")
             .Select(static d => d.Message.Split('\'')[1]));
 
-        var datum = Bind("fluidscript 1\nN1 node t=6 p=300\nconnections\nN1 - N2\n");
+        var datum = Bind("fluidscript 2\n\ncircuit \"script\":\n  N1  node  t = 6  p = 300\n  N1 - N2\n");
 
         Assert.Equal(["N1", "N2"], datum.Diagnostics
             .Where(static d => d.Code == "FS2107")
@@ -551,8 +482,8 @@ public sealed class TopologyBindingTests
     public void TagsNumberFromOnePerCircuitAndCodeInDeclarationOrder()
     {
         var model = Model(
-            "fluidscript 1\ncircuit primary 100\nPU1 pump\nPU2 pump\nHE1 heat_exchanger power=30\n"
-            + "\ncircuit secondary 200\nPU3 pump\n");
+            "fluidscript 2\n\ncircuit \"primary\":\n  number = 100\n  PU1  pump\n  PU2  pump\n  HE1  heat_exchanger  power = 30\n"
+            + "\ncircuit \"secondary\":\n  number = 200\n  PU3  pump\n");
 
         Assert.Equal(
             ["100PU01", "100PU02", "100HE01", "200PU01"],
@@ -567,7 +498,7 @@ public sealed class TopologyBindingTests
     {
         // `D-34`: a tag goes on an equipment schedule, and scaffolding the user did not write has no
         // business on one.
-        var model = Model("fluidscript 1\nconnections\nN1 - N2\n");
+        var model = Model("fluidscript 2\n\ncircuit \"script\":\n  N1 - N2\n");
 
         Assert.All(model.Components, static component => Assert.Null(component.Tag));
     }
@@ -595,8 +526,8 @@ public sealed class TopologyBindingTests
         // `D-34`: a tag is a schedule number, and a schedule renumbers when a row is inserted above. The
         // identifier the script, the canvas and every diagnostic hold on to is the name, which is why
         // the anchor of a diagnostic on `HE1` reads `HE1` before and after -- never `100HE01`.
-        const string before = "fluidscript 1\ncircuit primary 100\nPU1 pump\nHE1 heat_exchanger power=30 flavour=1\n";
-        const string after = "fluidscript 1\ncircuit primary 100\nPU2 pump\nPU1 pump\nHE1 heat_exchanger power=30 flavour=1\n";
+        const string before = "fluidscript 2\n\ncircuit \"primary\":\n  number = 100\n  role = distribution\n\n  PU1  pump\n  HE1  heat_exchanger  power = 30  flavour = 1\n";
+        const string after = "fluidscript 2\n\ncircuit \"primary\":\n  number = 100\n  role = distribution\n\n  PU2  pump\n  PU1  pump\n  HE1  heat_exchanger  power = 30  flavour = 1\n";
 
         var first = Bind(before);
         var second = Bind(after);
@@ -641,7 +572,7 @@ public sealed class TopologyBindingTests
         // M1: recovery leaves a bound model. The malformed line contributes its own diagnostic and
         // nothing else — every statement around it binds exactly as it would alone.
         var result = Bind(
-            "fluidscript 1\nHE1 heat_exchanger power=30\n?????\nPU1 pump\nconnections\nN1 - HE1 - PU1 - N1\n");
+            "fluidscript 2\n\ncircuit \"c\":\n  HE1  heat_exchanger  power = 30\n  ?????\n  PU1  pump\n  N1 - HE1 - PU1 - N1\n");
 
         Assert.Contains(result.Model.Components, static component => component.Name == "HE1");
         Assert.Contains(result.Model.Components, static component => component.Name == "PU1");
@@ -655,7 +586,7 @@ public sealed class TopologyBindingTests
     public void APositionInsideADeclarationResolvesToItsSymbol()
     {
         // Invariant 6, and what hover and canvas write-back rest on.
-        const string Text = "fluidscript 1\nHE1 heat_exchanger power=30\nconnections\nN1 - HE1\n";
+        const string Text = "fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30\n  N1 - HE1\n";
         var model = Model(Text);
 
         var reference = model.SymbolMap.AtOffset(Text.IndexOf("heat_exchanger", StringComparison.Ordinal));

@@ -170,19 +170,19 @@ public sealed class OuterLoopTests
     /// the one-pump loop solves in five iterations.
     /// </remarks>
     private const string SeriesPumps = """
-        fluidscript 1
-        circuit series
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30
-        CV1  valve
-        PU1  pump
-        PU2  pump head=3
-        P1   pipe length=25 dn=25
+        circuit "series":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N6 - PU2 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30
+          CV1  valve
+          PU1  pump
+          PU2  pump  head = 3
+          P1  pipe  length = 25  dn = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N6 - PU2 - N1
         """;
 
     // `C-62`. A two-way valve on a path between two stated pressures with no pump anywhere: the
@@ -190,19 +190,20 @@ public sealed class OuterLoopTests
     // selection has to round *up*. `Offered` needs exactly two stated pressures and `Driven` needs no
     // free pump on a circuit through the valve, and this shape gives both.
     private const string BoundedValve = """
-        fluidscript 1
-        circuit district
-        fluid water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30
-        CV1 valve
-        P1  pipe length=25 dn=25
+        circuit "district":
+          fluid = water
+          role = district
 
-        connections
-        N1 - HE1 - N2 - CV1 - N3 - P1 - N4
+          HE1  heat_exchanger  power = 30
+          CV1  valve
+          P1  pipe  length = 25  dn = 25
 
-        N1 inlet t=20 p=300
-        N4 outlet p=280
+          N1 - HE1 - N2 - CV1 - N3 - P1 - N4
+
+          N1  inlet  t = 20  p = 300
+          N4  outlet  p = 280
         """;
 
     [Fact]
@@ -240,21 +241,21 @@ public sealed class OuterLoopTests
         // stream: the solved return at 50 °C is that fix's pin.
         var result = await Loop().RunAsync(
             GraphFixture.Bind("""
-                fluidscript 1
-                circuit parallel
-                fluid water
+                fluidscript 2
 
-                HS1  heat_exchanger power=50 out.t=70
-                PU1  pump
-                RAD1 load power=30 dt=20 dp=10 kPa
-                RAD2 load power=20 dt=20
-                CV1  valve
+                circuit "parallel":
+                  fluid = water
 
-                connections
-                N1 - PU1 - N2 - HS1 - N3
-                N3 - RAD1 - CV1 - N4
-                N3 - RAD2 - N4
-                N4 - N1
+                  HS1  heat_exchanger  power = 50  out.t = 70
+                  PU1  pump
+                  RAD1  load  power = 30  dt = 20  dp = 10 kPa
+                  RAD2  load  power = 20  dt = 20
+                  CV1  valve
+
+                  N1 - PU1 - N2 - HS1 - N3
+                  N3 - RAD1 - CV1 - N4
+                  N3 - RAD2 - N4
+                  N4 - N1
                 """),
             Water.Instance,
             "parallel",
@@ -860,80 +861,82 @@ public sealed class OuterLoopTests
     }
 
     private const string OneUnstatedSourceAndOneLoad = """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        SOURCE heater in.t=30 out.t=80
-        LOAD   load power=20 in.t=80 out.t=30
-        PU1    pump
-        P1     pipe length=10 dn=25
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        connections
-        N1 - PU1 - SOURCE - N2 - LOAD - P1 - N1
+          SOURCE  heater  in.t = 30  out.t = 80
+          LOAD  load  power = 20  in.t = 80  out.t = 30
+          PU1  pump
+          P1  pipe  length = 10  dn = 25
+
+          N1 - PU1 - SOURCE - N2 - LOAD - P1 - N1
         """;
 
     private const string OneUnstatedSourceAndTwoLoads = """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        SOURCE heater in.t=30 out.t=80
-        LOAD1  load power=20
-        LOAD2  load power=20
-        PU1    pump
-        P1     pipe length=10 dn=25
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        connections
-        N1 - PU1 - SOURCE - N2 - LOAD1 - N3 - LOAD2 - P1 - N1
+          SOURCE  heater  in.t = 30  out.t = 80
+          LOAD1  load  power = 20
+          LOAD2  load  power = 20
+          PU1  pump
+          P1  pipe  length = 10  dn = 25
+
+          N1 - PU1 - SOURCE - N2 - LOAD1 - N3 - LOAD2 - P1 - N1
         """;
 
     private const string DistributedHeaderWithAutomaticSourceDuty = """
-        fluidscript 1
-        project static plant_01
+        fluidscript 2
 
-        circuit heating
-        fluid water
+        project "plant_01":
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        PB      pipe length=4 dn=32
-        SOURCE  heater out.t=80
-        TV_MAIN three_way_valve kv=25
+          PB  pipe  length = 4  dn = 32
+          SOURCE  heater  out.t = 80
+          TV_MAIN  three_way_valve  kv = 25
 
-        connections
-        N1 - SOURCE - TV_MAIN.a
-        N1 - PB - TV_MAIN.b
-        TV_MAIN.ab - N3
+          N1 - SOURCE - TV_MAIN
+          N1 - PB - TV_MAIN
+          TV_MAIN - N3
 
-        N1 node p=250
-        N3 node t=60
+          N1  node  p = 250
+          N3  node  t = 60
 
-        circuit AHU
+        circuit "AHU":
+          role = ahu
 
-        HE_AHU load in.t=50 out.t=30 power=20 kW
-        TV_AHU three_way_valve kv=25
-        PU_AHU pump
-        PA1 pipe length=12 dn=25
-        PA2 pipe length=12 dn=25
+          HE_AHU  load  in.t = 50  out.t = 30  power = 20 kW
+          TV_AHU  three_way_valve  kv = 25
+          PU_AHU  pump
+          PA1  pipe  length = 12  dn = 25
+          PA2  pipe  length = 12  dn = 25
 
-        connections
-        N3 - PA1 - TV_AHU.a
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - PA2 - N1
+          N3 - PA1 - TV_AHU
+          NM_AHU - TV_AHU
+          TV_AHU - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - PA2 - N1
 
-        circuit radiators
+        circuit "radiators":
+          role = radiator
 
-        HE_RAD load in.t=50 out.t=30 power=20 kW
-        TV_RAD three_way_valve kv=25
-        PU_RAD pump
-        PR1 pipe length=18 dn=25
-        PR2 pipe length=18 dn=25
+          HE_RAD  load  in.t = 50  out.t = 30  power = 20 kW
+          TV_RAD  three_way_valve  kv = 25
+          PU_RAD  pump
+          PR1  pipe  length = 18  dn = 25
+          PR2  pipe  length = 18  dn = 25
 
-        connections
-        N3 - PR1 - TV_RAD.a
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - PR2 - N1
+          N3 - PR1 - TV_RAD
+          NM_RAD - TV_RAD
+          TV_RAD - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - PR2 - N1
         """;
 
     [Fact]
@@ -967,25 +970,25 @@ public sealed class OuterLoopTests
     }
 
     private const string MachineHoldingItsLeavingTemperature = """
-        fluidscript 1
+        fluidscript 2
 
-        circuit heating
-        fluid water
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        HPC  heater out.t=45 dp=30
-        HL   load power=120 out.t=40 dp=20
-        TVH  three_way_valve position=1
-        PUH  pump
-        PR   pipe length=5 dn=65
+          HPC  heater  out.t = 45  dp = 30
+          HL  load  power = 120  out.t = 40  dp = 20
+          TVH  three_way_valve  position = 1
+          PUH  pump
+          PR  pipe  length = 5  dn = 65
 
-        connections
-        NB_in - NM
-        NM - PUH - HPC - TVH.ab
-        TVH.a - HL - PR - NM
-        TVH.b - NB_out
+          NB_in - NM
+          NM - PUH - HPC - TVH.ab
+          TVH.a - HL - PR - NM
+          TVH.b - NB_out
 
-        NB_in  inlet t=10 p=200
-        NB_out outlet p=200
+          NB_in  inlet  t = 10  p = 200
+          NB_out  outlet  p = 200
         """;
 
     [Fact]
@@ -1041,67 +1044,71 @@ public sealed class OuterLoopTests
     }
 
     private const string TwoPumpedSourcesThreePumpedConsumers = """
-        fluidscript 1
-        project static plant_02
+        fluidscript 2
 
-        circuit heating 100
-        fluid water
+        project "plant_02":
+        circuit "heating":
+          fluid = water
+          number = 100
+          role = heating
 
-        HS_A    heater power=40 kW out.t=70
-        HS_B    heater out.t=70
-        PU_A    pump
-        PU_B    pump
-        PS_A    pipe length=6 dn=32
-        PS_B    pipe length=6 dn=32
+          HS_A  heater  power = 40 kW  out.t = 70
+          HS_B  heater  out.t = 70
+          PU_A  pump
+          PU_B  pump
+          PS_A  pipe  length = 6  dn = 32
+          PS_B  pipe  length = 6  dn = 32
 
-        connections
-        N1 - PU_A - HS_A - PS_A - N3
-        N1 - PU_B - HS_B - PS_B - N3
-        N3 - N4
-        N4 - N7
-        N8 - N6
-        N6 - N5
-        N5 - N1
+          N1 - PU_A - HS_A - PS_A - N3
+          N1 - PU_B - HS_B - PS_B - N3
+          N3 - N4
+          N4 - N7
+          N8 - N6
+          N6 - N5
+          N5 - N1
 
-        N1 node p=250
+          N1  node  p = 250
 
-        circuit AHU 101
+        circuit "AHU":
+          number = 101
+          role = ahu
 
-        HE_AHU  load in.t=50 out.t=30 power=24 kW
-        TV_AHU  three_way_valve
-        PU_AHU  pump
-        PA1     pipe length=12 dn=25
-        PA2     pipe length=12 dn=25
+          HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+          TV_AHU  three_way_valve
+          PU_AHU  pump
+          PA1  pipe  length = 12  dn = 25
+          PA2  pipe  length = 12  dn = 25
 
-        connections
-        N3 - PA1 - TV_AHU.a
-        NM_AHU - TV_AHU.b
-        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-        NM_AHU - PA2 - N5
+          N3 - PA1 - TV_AHU
+          NM_AHU - TV_AHU
+          TV_AHU - PU_AHU - HE_AHU - NM_AHU
+          NM_AHU - PA2 - N5
 
-        circuit radiators 102
+        circuit "radiators":
+          number = 102
+          role = radiator
 
-        HE_RAD  load in.t=50 out.t=30 power=30 kW
-        TV_RAD  three_way_valve
-        PU_RAD  pump
-        PR1     pipe length=18 dn=25
-        PR2     pipe length=18 dn=25
+          HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+          TV_RAD  three_way_valve
+          PU_RAD  pump
+          PR1  pipe  length = 18  dn = 25
+          PR2  pipe  length = 18  dn = 25
 
-        connections
-        N4 - PR1 - TV_RAD.a
-        NM_RAD - TV_RAD.b
-        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-        NM_RAD - PR2 - N6
+          N4 - PR1 - TV_RAD
+          NM_RAD - TV_RAD
+          TV_RAD - PU_RAD - HE_RAD - NM_RAD
+          NM_RAD - PR2 - N6
 
-        circuit dhw 103
+        circuit "dhw":
+          number = 103
+          role = hot_water
 
-        HE_DHW  load out.t=40 power=16 kW
-        PU_DHW  pump
-        PD1     pipe length=10 dn=25
-        PD2     pipe length=10 dn=25
+          HE_DHW  load  out.t = 40  power = 16 kW
+          PU_DHW  pump
+          PD1  pipe  length = 10  dn = 25
+          PD2  pipe  length = 10  dn = 25
 
-        connections
-        N7 - PD1 - PU_DHW - HE_DHW - PD2 - N8
+          N7 - PD1 - PU_DHW - HE_DHW - PD2 - N8
         """;
 
     [Fact]
@@ -1198,18 +1205,19 @@ public sealed class OuterLoopTests
         // a load takes its heat out of whichever node it discharges into (`D-69`) -- and that is exactly
         // why the reversal is worth a warning: nothing else in the answer would show it.
         const string reversed = """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            CV1  valve
-            PU1  pump
-            P1   pipe length=25
-            connections
-            N1 - PU1 - N2 - HE1 - N3
-            N4 - LOAD - N3
-            N4 - CV1 - N5 - P1 - N1
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              CV1  valve
+              PU1  pump
+              P1  pipe  length = 25
+              N1 - PU1 - N2 - HE1 - N3
+              N4 - LOAD - N3
+              N4 - CV1 - N5 - P1 - N1
             """;
 
         var result = await Loop().RunAsync(
@@ -1229,23 +1237,25 @@ public sealed class OuterLoopTests
     }
 
     private const string BivalentPair = """
-        fluidscript 1
-        design tout=-26
-        curve heating tout
-        -26  50
-         20   0
+        fluidscript 2
 
-        circuit heating
-        fluid water
+        let tout = -26 °C
 
-        HP1  heater power=heating sized_at tout=-5
-        BL1  heater
-        LOAD load power=heating in.t=70 out.t=40
-        PU1  pump
-        P1   pipe length=20 dn=32
+        curve heating: tout
+          -26  50
+          20   0
 
-        connections
-        N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1
+        circuit "heating":
+          fluid = water
+          role = heating
+
+          HP1  heater  power = heating  sized_at.tout = -5 °C
+          BL1  heater
+          LOAD  load  power = heating  in.t = 70  out.t = 40
+          PU1  pump
+          P1  pipe  length = 20  dn = 32
+
+          N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1
         """;
 
     [Fact]
@@ -1281,21 +1291,22 @@ public sealed class OuterLoopTests
     }
 
     private const string RoofLoop = """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0 elevation=32
-        CV1  valve
-        PU1  pump
-        P1   pipe length=32
-        P2   pipe length=32
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0  elevation = 32
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 32
+          P2  pipe  length = 32
 
-        N1 node p=450
+          N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+
+          N1  node  p = 450
         """;
 
     [Fact]
@@ -1335,10 +1346,8 @@ public sealed class OuterLoopTests
         // The return from the roof is N5 - N6, a bare connection: D-25's ideal link with D-70's
         // hydrostatic term. Sizing has to count the same 313 kPa the assembler writes, or the pump is
         // sized to the riser alone: measured at 45.8 m before `BranchResistance.Along` walked links.
-        var script = RoofLoop.Replace(
-            "N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1",
-            "N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5\nN5 - N6\nN6 - CV1 - N7 - P2 - N1",
-            StringComparison.Ordinal);
+        var script = RoofLoop.Edited("N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1",
+            "N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5\n  N5 - N6\n  N6 - CV1 - N7 - P2 - N1");
 
         var result = await Loop().RunAsync(
             GraphFixture.Bind(script), Water.Instance, "link", TestContext.Current.CancellationToken);
@@ -1370,17 +1379,18 @@ public sealed class OuterLoopTests
         // dissipated -- +0.0125 K, the sign the Joule-Thomson coefficient of liquid water requires.
         var result = await Loop().RunAsync(
             GraphFixture.Bind("""
-                fluidscript 1
-                circuit heating
-                fluid water
+                fluidscript 2
 
-                P1   pipe length=10 dn=25
+                circuit "heating":
+                  fluid = water
+                  role = heating
 
-                connections
-                N1 - P1 - N2
+                  P1  pipe  length = 10  dn = 25
 
-                N1 inlet t=20 p=300
-                N2 outlet p=150 elevation=10
+                  N1 - P1 - N2
+
+                  N1  inlet  t = 20  p = 300
+                  N2  outlet  p = 150  elevation = 10
                 """),
             Water.Instance,
             "open-riser",
@@ -1403,18 +1413,18 @@ public sealed class OuterLoopTests
     // ---- M2a exit criteria that had no test (05) ----------------------------------------------------
 
     private const string SimpleLoop = """
-        fluidscript 1
-        circuit simpleLoop
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0
-        CV1  valve
-        PU1  pump
-        P1   pipe length=25
+        circuit "simpleLoop":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
         """;
 
     private static async Task<OuterLoopResult> Solve(string script, string name)
@@ -1437,7 +1447,7 @@ public sealed class OuterLoopTests
         // into u, so it *rises* along the run, by dP/(rho*cp) = 33.7 kPa / (998 * 4184) = 8 mK. That is
         // the sign the Joule-Thomson coefficient of liquid water gives, and the one a model carrying h
         // constant across a falling pressure would get wrong (`D-70`'s remark on friction).
-        var run = await Solve(SimpleLoop.Replace("P1   pipe length=25", "P1   pipe length=25 nodes=4", StringComparison.Ordinal), "cells");
+        var run = await Solve(SimpleLoop.Edited("P1  pipe  length = 25", "P1  pipe  length = 25  nodes = 4"), "cells");
         var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
@@ -1474,7 +1484,7 @@ public sealed class OuterLoopTests
         // the one term K * v^2 / 2g: 0.2392 kg/s through DN25's 27.3 mm bore is 0.41 m/s, so K=5 is
         // 5 * 0.41^2 / 19.6 = 0.043 m on a 5.26 m head. The sizing basis names the absence.
         var plain = await Solve(SimpleLoop, "plain");
-        var fitted = await Solve(SimpleLoop.Replace("P1   pipe length=25", "P1   pipe length=25 minor_loss=5", StringComparison.Ordinal), "fitted");
+        var fitted = await Solve(SimpleLoop.Edited("P1  pipe  length = 25", "P1  pipe  length = 25  minor_loss = 5"), "fitted");
 
         static double Head(OuterLoopResult run)
         {
@@ -1502,16 +1512,16 @@ public sealed class OuterLoopTests
         // un-promoted case only, and FS2312 itself is one of thirteen FS23xx codes `24` specifies that
         // nothing registers (`C-74`).
         var run = await Solve("""
-            fluidscript 1
-            circuit loop
-            fluid water
+            fluidscript 2
 
-            HE1  heat_exchanger power=30 in.t=20 out.t=50 dp=0
-            LOAD heat_exchanger power=-30 dp=0
-            PU1  pump
+            circuit "loop":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N1
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50  dp = 0
+              LOAD  heat_exchanger  power = -30  dp = 0
+              PU1  pump
+
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N1
             """, "no-resistance");
 
         var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
@@ -1534,7 +1544,7 @@ public sealed class OuterLoopTests
         // reports a Kv or an authority for it, and `FS3008` is silent: the iterate passed through Kv 0
         // on its way down from the bootstrap's 630, and a bound it passed through is not one it sits on
         // (`S-61`).
-        var run = await Solve(SimpleLoop.Replace("PU1  pump", "PU1  pump head=15", StringComparison.Ordinal), "head15");
+        var run = await Solve(SimpleLoop.Edited("PU1  pump", "PU1  pump  head = 15"), "head15");
 
         var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;

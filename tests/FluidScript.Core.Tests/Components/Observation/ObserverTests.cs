@@ -20,13 +20,16 @@ namespace FluidScript.Core.Tests.Components.Observation;
 public sealed class ObserverTests
 {
     private const string Script = """
-        fluidscript 1
-        circuit heating
-        NB1 node
-        NB2 node
-        TE1 t_sensor at NB2
-        PE1 p_sensor at NB2
-        FE1 flow_sensor at NB1
+        fluidscript 2
+
+        circuit "heating":
+          role = heating
+
+          NB1  node
+          NB2  node
+          TE1  t_sensor at NB2
+          PE1  p_sensor at NB2
+          FE1  flow_sensor at NB1
         """;
 
     private static SemanticModel Model(string source)
@@ -136,10 +139,13 @@ public sealed class ObserverTests
     public void TheKindReportedIsTheCanonicalSpellingNotTheAlias()
     {
         var model = Model("""
-            fluidscript 1
-            circuit heating
-            NB1 node
-            TE1 te at NB1
+            fluidscript 2
+
+            circuit "heating":
+              role = heating
+
+              NB1  node
+              TE1  te at NB1
             """);
 
         var sensor = Assert.Single(ModelObservers.Collect(model));
@@ -161,11 +167,14 @@ public sealed class ObserverTests
     public void AComponentThatCarriesFlowIsNotAnInstrument()
     {
         var model = Model("""
-            fluidscript 1
-            circuit heating
-            PU1 pump
-            NB1 node
-            TE1 t_sensor at NB1
+            fluidscript 2
+
+            circuit "heating":
+              role = heating
+
+              PU1  pump
+              NB1  node
+              TE1  t_sensor at NB1
             """);
 
         Assert.Equal(["TE1"], ModelObservers.Collect(model).Select(static o => o.Name));
@@ -178,9 +187,12 @@ public sealed class ObserverTests
         // a second complaint here would be noise -- and throwing would break the pipeline rule.
         var result = new Binder(ComponentRegistry.Default).Bind(
             ScriptParse.Parse(new SourceText("""
-                fluidscript 1
-                circuit heating
-                TE1 t_sensor
+                fluidscript 2
+
+                circuit "heating":
+                  role = heating
+
+                  TE1  t_sensor
                 """)),
             "unplaced");
 

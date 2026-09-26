@@ -40,30 +40,30 @@ public static class ReferenceModels
             power += LoadKilowatts(k);
         }
 
-        script.Append("fluidscript 1\n");
-        script.Append("project static header_").Append(consumers.ToString(CultureInfo.InvariantCulture)).Append('\n');
+        script.Append("fluidscript 2\n");
         script.Append('\n');
-        script.Append("circuit heating 100\n");
-        script.Append("fluid water\n");
+        script.Append("project \"header_").Append(consumers.ToString(CultureInfo.InvariantCulture)).Append("\":\n");
+        script.Append("circuit \"heating\":\n");
+        script.Append("  fluid = water\n");
+        script.Append("  number = 100\n");
         script.Append('\n');
-        script.Append("HS1     heat_exchanger power=").Append(power.ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW out.t=60\n");
+        script.Append("  HS1  heat_exchanger  power = ").Append(power.ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW  out.t = 60\n");
         script.Append('\n');
-        script.Append("connections\n");
-        script.Append("N1 - HS1 - S1\n");
+        script.Append("  N1 - HS1 - S1\n");
 
         for (var k = 1; k < consumers; k++)
         {
-            script.Append('S').Append(k).Append(" - S").Append(k + 1).Append('\n');
+            script.Append("  S").Append(k).Append(" - S").Append(k + 1).Append('\n');
         }
 
         for (var k = consumers; k > 1; k--)
         {
-            script.Append('R').Append(k).Append(" - R").Append(k - 1).Append('\n');
+            script.Append("  R").Append(k).Append(" - R").Append(k - 1).Append('\n');
         }
 
-        script.Append("R1 - N1\n");
+        script.Append("  R1 - N1\n");
         script.Append('\n');
-        script.Append("N1 node p=250\n");
+        script.Append("  N1  node  p = 250\n");
 
         for (var k = 1; k <= consumers; k++)
         {
@@ -71,19 +71,19 @@ public static class ReferenceModels
             var length = (10 + (2 * (k % 5))).ToString(CultureInfo.InvariantCulture);
 
             script.Append('\n');
-            script.Append("circuit consumer_").Append(n).Append(' ').Append(100 + k).Append('\n');
+            script.Append("circuit \"consumer_").Append(n).Append("\":\n");
+            script.Append("  number = ").Append(100 + k).Append('\n');
             script.Append('\n');
-            script.Append("HE_").Append(n).Append("  load in.t=50 out.t=30 power=").Append(LoadKilowatts(k).ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW\n");
-            script.Append("TV_").Append(n).Append("  three_way_valve\n");
-            script.Append("PU_").Append(n).Append("  pump\n");
-            script.Append("PA_").Append(n).Append("  pipe length=").Append(length).Append(" dn=25\n");
-            script.Append("PB_").Append(n).Append("  pipe length=").Append(length).Append(" dn=25\n");
+            script.Append("  HE_").Append(n).Append("  load  in.t = 50  out.t = 30  power = ").Append(LoadKilowatts(k).ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW\n");
+            script.Append("  TV_").Append(n).Append("  three_way_valve\n");
+            script.Append("  PU_").Append(n).Append("  pump\n");
+            script.Append("  PA_").Append(n).Append("  pipe  length = ").Append(length).Append("  dn = 25\n");
+            script.Append("  PB_").Append(n).Append("  pipe  length = ").Append(length).Append("  dn = 25\n");
             script.Append('\n');
-            script.Append("connections\n");
-            script.Append('S').Append(n).Append(" - PA_").Append(n).Append(" - TV_").Append(n).Append(".a\n");
-            script.Append("NM_").Append(n).Append(" - TV_").Append(n).Append(".b\n");
-            script.Append("TV_").Append(n).Append(".ab - PU_").Append(n).Append(" - HE_").Append(n).Append(" - NM_").Append(n).Append('\n');
-            script.Append("NM_").Append(n).Append(" - PB_").Append(n).Append(" - R").Append(n).Append('\n');
+            script.Append("  S").Append(n).Append(" - PA_").Append(n).Append(" - TV_").Append(n).Append(".a\n");
+            script.Append("  NM_").Append(n).Append(" - TV_").Append(n).Append(".b\n");
+            script.Append("  TV_").Append(n).Append(".ab - PU_").Append(n).Append(" - HE_").Append(n).Append(" - NM_").Append(n).Append('\n');
+            script.Append("  NM_").Append(n).Append(" - PB_").Append(n).Append(" - R").Append(n).Append('\n');
         }
 
         return script.ToString();

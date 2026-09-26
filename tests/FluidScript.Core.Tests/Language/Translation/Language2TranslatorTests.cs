@@ -1099,19 +1099,6 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ACaseVariantOfAParameterBindsInLanguage1Too()
-    {
-        // D-15's first stage, which the binder skipped for parameters: `HEAD=5` was FS1503 in language 1.
-        var result = new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText("fluidscript 1\ncircuit c\nfluid water\nPU1 pump HEAD=5\nconnections\nN1 - PU1 - N1\n")),
-            "script");
-
-        Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS1503" or "FS1512");
-        Assert.Equal(Dimension.Head, Stated(result, "PU1", "head").Dimension);
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void AliasesAndCaseStillBind()
     {
         var result = Clean("""

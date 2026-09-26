@@ -15,7 +15,7 @@ namespace FluidScript.Core.Tests.Topology;
 public static class GraphFixture
 {
     /// <summary>Binds a script, asserting it produced no errors.</summary>
-    /// <param name="source">The script, with its <c>fluidscript 1</c> header already on it.</param>
+    /// <param name="source">The script, with its <c>fluidscript 2</c> header already on it.</param>
     /// <returns>The bound model.</returns>
     public static SemanticModel Bind(string source)
     {
@@ -31,7 +31,8 @@ public static class GraphFixture
 
     /// <summary>Binds a script and projects it onto its run, as a run is played in time (<c>D-169</c>).</summary>
     /// <param name="source">The script.</param>
-    /// <returns>The model its one run describes, or the bound model when the script has no run.</returns>
+    /// <returns>The model its one run describes, or the bound model -- the steady design -- when the script has no run or
+    /// several.</returns>
     /// <remarks>
     /// A language 2 file keeps its mode on a run, so the bound model alone is the steady design; the run makes its
     /// circuits dynamic and carries its schedule (<see cref="RunProjection"/>).
@@ -40,7 +41,7 @@ public static class GraphFixture
     {
         var model = Bind(source);
 
-        return model.Runs.IsEmpty ? model : RunProjection.Project(model, Assert.Single(model.Runs));
+        return model.Runs.Length == 1 ? RunProjection.Project(model, model.Runs[0]) : model;
     }
 
     /// <summary>The shipped catalogue's bores, resolved the way a solve resolves them.</summary>
@@ -73,6 +74,10 @@ public static class GraphFixture
     /// <param name="source">The script.</param>
     /// <returns>The lowering result, graph and all.</returns>
     /// <remarks>
+    /// <para>
+    /// The model lowered is the steady design, which a run starts from; <see cref="LowerRun"/> lowers the run itself.
+    /// </para>
+    /// <para>
     /// <strong>It goes through <see cref="OuterLoop.Prepare"/> rather than calling lowering directly,
     /// because the two do not produce the same graph.</strong> A pipe with no chosen diameter has no
     /// bore and is therefore not built at all, so a script that leaves sizing to do its job comes back
@@ -80,8 +85,16 @@ public static class GraphFixture
     /// <c>m2-simple-loop</c> stopped stating <c>dn=25</c>: three tests failed and four skipped, all of
     /// them reporting the pipe as dropped. A fixture that lowers differently from the solver is a
     /// fixture testing a model nobody runs.
+    /// </para>
     /// </remarks>
-    public static LoweringResult Lower(string source)
+    public static LoweringResult Lower(string source) => Prepare(Bind(source));
+
+    /// <summary>Binds and lowers a script as its one run is played: dynamic, with the run's schedule (<c>D-169</c>).</summary>
+    /// <param name="source">The script, with one run.</param>
+    /// <returns>The lowering result, graph and all.</returns>
+    public static LoweringResult LowerRun(string source) => Prepare(BindRun(source));
+
+    private static LoweringResult Prepare(SemanticModel model)
     {
         var resolved = PipeCatalogs.Resolve(pin: null);
 
@@ -91,7 +104,7 @@ public static class GraphFixture
                 new NewtonSolver(),
                 new CatalogBoreLookup(resolved.Value, PipeCatalogs.All),
                 OuterLoop.Rules(resolved.Value.Catalog, available: PipeCatalogs.All))
-            .Prepare(Bind(source), ConstantPropertyWater.Instance)
+            .Prepare(model, ConstantPropertyWater.Instance)
             .Lowered;
     }
 
@@ -102,24 +115,26 @@ public static class GraphFixture
     /// of every two-port component, so I3 does not fire at all.
     /// </remarks>
     public const string CoolingLoop = """
-        fluidscript 1
-        circuit cooling 100
-        fluid water
+        fluidscript 2
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
-        PU1 pump head=6 flow=0.24
-        HE1 heat_exchanger power=30
-        3WV three_way_valve kv=6.3
-        P1 pipe length=10 dn=25
+        circuit "cooling":
+          fluid = water
+          number = 100
+          role = cooling
 
-        connections
-        N1 - N2
-        N2 - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - N2
-        3WV - P1
-        P1 - N3
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
+          PU1  pump  head = 6  flow = 0.24
+          HE1  heat_exchanger  power = 30
+          3WV  three_way_valve  kv = 6.3
+          P1  pipe  length = 10  dn = 25
+
+          N1 - N2
+          N2 - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - N2
+          3WV - P1
+          P1 - N3
         """;
 }

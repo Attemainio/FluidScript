@@ -73,22 +73,22 @@ public sealed class TwoWayConfigurationTests
     [Fact]
     public void LoweringDecidesItFromTheConnectionsAndNotFromTheScript()
     {
-        // The decision is topology's, exactly as an exchanger's mode is. Two connections and no
-        // qualified `c` is a two-way; a third connection makes it a three-way with nothing else
-        // changing in the script.
+        // The decision is topology's, exactly as an exchanger's mode is. Two connections and nothing on
+        // `b` is a two-way; a third connection makes it a three-way with nothing else changing in the script.
+        // The ports are written: a valve on two links has no plant to label its legs from (`D-175`, FS1804).
         const string TwoWay = """
-            fluidscript 1
+            fluidscript 2
 
-            fluid water
+            circuit "c":
+              fluid = water
+              number = 100
 
-            circuit c 100
+              N1  node  p = 300
+              N2  node  p = 280
+              TV1  three_way_valve  kv = 6.3
 
-            N1  node p=300
-            N2  node p=280
-            TV1 three_way_valve kv=6.3
-
-            connections
-            N1 - TV1 - N2
+              N1 - TV1.a
+              TV1.ab - N2
             """;
 
         var valve = Valve(GraphFixture.Lower(TwoWay).Graph);
@@ -96,8 +96,7 @@ public sealed class TwoWayConfigurationTests
         Assert.Equal("two_way", valve.Mode);
         Assert.Equal(1, valve.EquationCount);
 
-        var threeWay = Valve(GraphFixture.Lower(TwoWay.Replace(
-            "N1 - TV1 - N2", "N1 - TV1 - N2\nTV1.b - N3", StringComparison.Ordinal)).Graph);
+        var threeWay = Valve(GraphFixture.Lower(TwoWay.Edited("TV1.ab - N2", "TV1.ab - N2\n  N3 - TV1.b")).Graph);
 
         Assert.Equal("three_way", threeWay.Mode);
         Assert.Equal(3, threeWay.EquationCount);

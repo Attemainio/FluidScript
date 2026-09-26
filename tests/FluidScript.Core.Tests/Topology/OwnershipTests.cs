@@ -12,18 +12,18 @@ namespace FluidScript.Core.Tests.Topology;
 public sealed class OwnershipTests
 {
     private const string Script = """
-        fluidscript 1
-        circuit simpleLoop
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger dp=0
-        CV1  valve
-        PU1  pump head=15
-        P1   pipe length=25 dn=25
+        circuit "simpleLoop":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  dp = 0
+          CV1  valve
+          PU1  pump  head = 15
+          P1  pipe  length = 25  dn = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
         """;
 
     private static IFlowComponent Component(CircuitGraph graph, string name) =>

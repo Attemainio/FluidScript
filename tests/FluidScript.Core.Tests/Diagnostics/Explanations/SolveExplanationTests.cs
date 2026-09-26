@@ -102,16 +102,17 @@ public sealed class SolveExplanationTests
         // nothing determines is the uniform enthalpy offset -- every node's `h` at weight 1, which is the
         // one answer a reader can check by hand.
         const string source = """
-            fluidscript 1
-            circuit loop
-            fluid water
-            HE1  heat_exchanger power=30
-            LOAD heat_exchanger power=-30 dp=0
-            CV1  valve
-            PU1  pump
-            P1   pipe length=25
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30
+              LOAD  heat_exchanger  power = -30  dp = 0
+              CV1  valve
+              PU1  pump
+              P1  pipe  length = 25
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
             """;
 
         var report = await Explain(source, "loop-no-temperature");
@@ -201,20 +202,22 @@ public sealed class SolveExplanationTests
         // branch direction is read off the port map too -- a ring's walk may start anywhere, and
         // both rings were labelled "reversed" while every pump pushed the way it was written.
         const string source = """
-            fluidscript 1
-            fluid water
+            fluidscript 2
 
-            circuit first
-            PU1 pump
-            HX1 heat_exchanger power=40 in.t=40 out.t=60 in[2].t=80 out[2].t=60
-            connections
-            HX1.out - N1 length=10 dn=32
-            N1 - PU1 - HX1.in
+            circuit "script":
+              fluid = water
 
-            circuit second
-            PU2 pump
-            connections
-            HX1.out[2] - PU2 - N3 - HX1.in[2] length=10 dn=25
+            circuit "first":
+              PU1  pump
+              HX1  heat_exchanger  power = 40  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 80  secondary.out.t = 60
+              HX1.primary.out - N1   10 m  DN32
+              N1 - PU1 - HX1.primary.in
+
+            circuit "second":
+              PU2  pump
+              HX1.secondary.out - PU2   10 m  DN25
+              PU2 - N3   10 m  DN25
+              N3 - HX1.secondary.in   10 m  DN25
             """;
 
         var report = await Explain(source, "two-rings");

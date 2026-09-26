@@ -47,30 +47,38 @@ public sealed class WellPosednessTests
     /// <c>dn=25</c> is added, because the catalogue that would supply it is <c>P3.5</c>.
     /// </remarks>
     private const string Documented = """
-        fluidscript 1
-        circuit cooling 100
-        fluid water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30 in.t=20 out.t=50
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25 dn=25
+        circuit "cooling":
+          fluid = water
+          number = 100
+          role = cooling
 
-        connections
-        N1 - N2
-        N2 - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - N2
-        3WV - P1
-        P1 - N3
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25  dn = 25
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
+          N1 - N2
+          N2 - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - N2
+          3WV - P1
+          P1 - N3
+
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
         """;
 
     private static WellPosednessResult Check(string source) =>
         WellPosedness.Check(GraphFixture.Lower(source).Graph);
+
+    private static WellPosednessResult CheckRun(string source) =>
+        WellPosedness.Check(GraphFixture.LowerRun(source).Graph);
+
+    /// <summary>A run appended to a circuit, which makes it dynamic for as long as the run plays (<c>D-169</c>).</summary>
+    private const string WarmUp = "\n\nrun \"warm-up\":\n  duration = 10 min\n";
 
     private static string[] Codes(WellPosednessResult result) =>
         [.. result.Diagnostics.Select(static diagnostic => diagnostic.Code)];
@@ -120,7 +128,7 @@ public sealed class WellPosednessTests
     {
         // The check that the counting scheme is the right one: the equation and the unknown disappear
         // together, so the system stays square rather than swinging by one in either direction.
-        var without = Check(Documented.Replace(" out.t=50", string.Empty, StringComparison.Ordinal));
+        var without = Check(Documented.Edited("  out.t = 50", string.Empty));
         var table = without.Counting;
 
         Assert.Single(table.Constraints);
@@ -160,45 +168,45 @@ public sealed class WellPosednessTests
     }
 
     private const string Ring = """
-        fluidscript 1
-        circuit ring
-        fluid water
+        fluidscript 2
 
-        PU1 pump head=6 flow=0.24
-        P1  pipe length=10 dn=25
+        circuit "ring":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - P1 - N1
+          PU1  pump  head = 6  flow = 0.24
+          P1  pipe  length = 10  dn = 25
 
-        N1 node t=60
+          N1 - PU1 - N2 - P1 - N1
+
+          N1  node  t = 60
         """;
 
     // ---- the substation: two hydraulic components, coupled by heat -------------------------------
 
     private const string Substation = """
-        fluidscript 1
-        circuit substation
-        fluid water
+        fluidscript 2
 
-        NPS inlet t=85 p=600
-        NPR outlet p=350
-        PCV valve
-        PP  pipe length=12 dn=25
+        circuit "substation":
+          fluid = water
 
-        SP   pump
-        SS   pipe length=30 dn=32
-        SR   pipe length=30 dn=32
-        LOAD heat_exchanger power=-150 dt=20
+          NPS  inlet  t = 85  p = 600
+          NPR  outlet  p = 350
+          PCV  valve
+          PP  pipe  length = 12  dn = 25
 
-        HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45
+          SP  pump
+          SS  pipe  length = 30  dn = 32
+          SR  pipe  length = 30  dn = 32
+          LOAD  heat_exchanger  power = -150  dt = 20
 
-        connections
-        NPS - PCV - PP - HX1.in[2]
-        HX1.out[2] - NPR
+          HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45
 
-        HX1.out - SS - NSUP
-        NSUP - LOAD - NRET
-        NRET - SR - SP - HX1.in
+          NPS - PCV - PP - HX1.secondary.in
+          HX1.secondary.out - NPR
+
+          HX1.primary.out - SS - NSUP
+          NSUP - LOAD - NRET
+          NRET - SR - SP - HX1.primary.in
         """;
 
     [Fact]
@@ -255,11 +263,11 @@ public sealed class WellPosednessTests
         // The other half of the same check: without the shared component nothing couples the sides, and
         // FS2213 still names them -- as information now (`D-132`), since each side is a system of its own.
         var split = Substation
-            .Replace("NPS - PCV - PP - HX1.in[2]", "NPS - PCV - PP - NPX", StringComparison.Ordinal)
-            .Replace("HX1.out[2] - NPR", "NPX - NPR", StringComparison.Ordinal)
-            .Replace("HX1.out - SS - NSUP", "NSX - SS - NSUP", StringComparison.Ordinal)
-            .Replace("NRET - SR - SP - HX1.in", "NRET - SR - SP - NSX", StringComparison.Ordinal)
-            .Replace("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45", string.Empty, StringComparison.Ordinal);
+            .Edited("NPS - PCV - PP - HX1.secondary.in", "NPS - PCV - PP - NPX")
+            .Edited("HX1.secondary.out - NPR", "NPX - NPR")
+            .Edited("HX1.primary.out - SS - NSUP", "NSX - SS - NSUP")
+            .Edited("NRET - SR - SP - HX1.primary.in", "NRET - SR - SP - NSX")
+            .Edited("HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45", string.Empty);
 
         Assert.Contains("FS2213", Codes(Check(split)));
     }
@@ -327,21 +335,23 @@ public sealed class WellPosednessTests
     }
 
     private const string StorageHeader = """
-        fluidscript 1
-        circuit storageHeader
-        fluid dynamic water
+        fluidscript 2
 
-        S1 inlet t=60 flow=0.12
-        S2 inlet t=45 flow=0.08
-        T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
-        RAD_NETWORK outlet flow=0.12
-        AHU_NETWORK outlet flow=0.08
+        circuit "storageHeader":
+          fluid = water
 
-        connections
-        S1 - T1.in
-        S2 - T1.in[2]
-        T1.out - RAD_NETWORK
-        T1.out[2] - AHU_NETWORK
+          S1  inlet  t = 60  flow = 0.12
+          S2  inlet  t = 45  flow = 0.08
+          T1  tank  volume = 300  layers = 5  layer[1].t = 25  layer[2].t = 30  layer[3].t = 40  layer[4].t = 50  layer[5].t = 60  in.level = 90%  in[2].level = 30%  out.level = 90%  out[2].level = 30%
+          RAD_NETWORK  outlet  flow = 0.12
+          AHU_NETWORK  outlet  flow = 0.08
+
+          S1 - T1.in
+          S2 - T1.in[2]
+          T1.out - RAD_NETWORK
+          T1.out[2] - AHU_NETWORK
+
+        run "Transient":
         """;
 
     // ---- over- and under-specification ------------------------------------------------------------
@@ -354,8 +364,7 @@ public sealed class WellPosednessTests
         // the same level a second time. Nothing is free to meet it: there is no mixing valve for either
         // to promote, and letting one fall back to the valve's kv would square the count by moving a
         // parameter that changes no temperature.
-        var result = Check(BalancedRing.Replace(
-            "circuit ring", "circuit simpleLoop", StringComparison.Ordinal) + "\nN1 node t=20\n");
+        var result = Check(BalancedRing + "\n  N1  node  t = 20\n");
 
         Assert.Equal(1, result.Counting.Excess);
         Assert.False(result.CanSolve);
@@ -393,20 +402,20 @@ public sealed class WellPosednessTests
         // neither branch holds a valve to absorb it. "Remove one of" is the wrong advice for a flow
         // the designer wants; the second sentence says what is missing.
         var result = Check("""
-            fluidscript 1
-            circuit parallel
-            fluid water
+            fluidscript 2
 
-            HS1  heat_exchanger power=50 out.t=70
-            PU1  pump
-            RAD1 load power=30 dt=20
-            RAD2 load power=20 dt=20
+            circuit "parallel":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HS1 - N3
-            N3 - RAD1 - N4
-            N3 - RAD2 - N4
-            N4 - N1
+              HS1  heat_exchanger  power = 50  out.t = 70
+              PU1  pump
+              RAD1  load  power = 30  dt = 20
+              RAD2  load  power = 20  dt = 20
+
+              N1 - PU1 - N2 - HS1 - N3
+              N3 - RAD1 - N4
+              N3 - RAD2 - N4
+              N4 - N1
             """);
 
         Assert.False(result.CanSolve);
@@ -425,18 +434,18 @@ public sealed class WellPosednessTests
         // constraint found nothing, `FS2210` fired and named `HE1.in`/`HE1.out` -- the exchanger's own
         // duty temperatures -- as the things to remove.
         var result = Check("""
-            fluidscript 1
-            circuit simpleLoop
-            fluid water
+            fluidscript 2
 
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            CV1  valve
-            PU1  pump head=15
-            P1   pipe length=25
+            circuit "simpleLoop":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              CV1  valve
+              PU1  pump  head = 15
+              P1  pipe  length = 25
+
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
             """);
 
         Assert.DoesNotContain(result.Counting.Promotions, static p => p.Label == "PU1.head");
@@ -454,18 +463,18 @@ public sealed class WellPosednessTests
         // `CV1.kv` is a provisional there and counts as free; a graph whose overlay carries a rule's
         // choice for the same parameter -- the second lowering of any run -- does not offer it.
         const string script = """
-            fluidscript 1
-            circuit simpleLoop
-            fluid water
+            fluidscript 2
 
-            HE1  heat_exchanger power=30 in.t=20 out.t=50
-            LOAD heat_exchanger power=-30 dp=0
-            CV1  valve
-            PU1  pump head=15
-            P1   pipe length=25 dn=25
+            circuit "simpleLoop":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              CV1  valve
+              PU1  pump  head = 15
+              P1  pipe  length = 25  dn = 25
+
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
             """;
 
         var bootstrapped = Check(script);
@@ -533,15 +542,15 @@ public sealed class WellPosednessTests
         // that is not a vertex of the branch graph. Indexing that end threw -- on a script that is
         // merely incomplete, which no stage may do.
         var lowered = GraphFixture.Lower("""
-            fluidscript 1
-            circuit broken
-            fluid water
+            fluidscript 2
 
-            PU1 pump head=6 flow=0.24
-            P1  pipe length=10 dn=999
+            circuit "broken":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - P1 - N1
+              PU1  pump  head = 6  flow = 0.24
+              P1  pipe  length = 10  dn = 999
+
+              N1 - PU1 - N2 - P1 - N1
             """);
 
         Assert.Equal(["P1"], lowered.Unresolved);
@@ -560,19 +569,19 @@ public sealed class WellPosednessTests
         // D-25 makes a bare connection a zero-drop link, so nothing between these two can develop a
         // pressure difference and the second is not a boundary condition at all.
         Assert.Contains("FS2212", Codes(Check("""
-            fluidscript 1
-            circuit twoDatums
-            fluid water
+            fluidscript 2
 
-            PU1 pump head=6 flow=0.24
+            circuit "twoDatums":
+              fluid = water
 
-            connections
-            N1 - N2
-            N2 - PU1 - N3
-            N3 - N1
+              PU1  pump  head = 6  flow = 0.24
 
-            N1 node p=300
-            N2 node p=280
+              N1 - N2
+              N2 - PU1 - N3
+              N3 - N1
+
+              N1  node  p = 300
+              N2  node  p = 280
             """)));
     }
 
@@ -582,17 +591,17 @@ public sealed class WellPosednessTests
         // A warning rather than information: the loop simply carries no flow, and every temperature
         // downstream of it is then wrong in a way that still looks like a solved circuit.
         var result = Check("""
-            fluidscript 1
-            circuit passive
-            fluid water
+            fluidscript 2
 
-            P1 pipe length=10 dn=25
-            P2 pipe length=10 dn=25
+            circuit "passive":
+              fluid = water
 
-            connections
-            N1 - P1 - N2 - P2 - N1
+              P1  pipe  length = 10  dn = 25
+              P2  pipe  length = 10  dn = 25
 
-            N1 node t=60
+              N1 - P1 - N2 - P2 - N1
+
+              N1  node  t = 60
             """);
 
         Assert.Contains("FS2214", Codes(result));
@@ -603,33 +612,33 @@ public sealed class WellPosednessTests
 
     /// <summary>A closed ring with a 30 kW source and no sink.</summary>
     private const string SourceRing = """
-        fluidscript 1
-        circuit ring
-        fluid water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30 in.t=20 out.t=50
-        CV1 valve
-        PU1 pump
-        P1  pipe length=25 dn=25
+        circuit "ring":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 25  dn = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
         """;
 
     /// <summary>The same ring with the load it was missing.</summary>
     private const string BalancedRing = """
-        fluidscript 1
-        circuit ring
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD load power=30
-        CV1  valve
-        PU1  pump
-        P1   pipe length=25 dn=25
+        circuit "ring":
+          fluid = water
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  load  power = 30
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 25  dn = 25
+
+          N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
         """;
 
     [Fact]
@@ -662,7 +671,7 @@ public sealed class WellPosednessTests
         // would reject every warm-up study there is.
         Assert.DoesNotContain(
             "FS2203",
-            Codes(Check(SourceRing.Replace("fluid water", "fluid dynamic water", StringComparison.Ordinal))));
+            Codes(CheckRun(SourceRing + WarmUp)));
 
     [Fact]
     public void ACoupledExchangerIsAHeatPathOutOfAClosedCircuit() =>
@@ -675,16 +684,16 @@ public sealed class WellPosednessTests
     public void ASupplyWithNothingToReturnThroughIsReported()
     {
         var reported = Check("""
-            fluidscript 1
-            circuit probe
-            fluid water
+            fluidscript 2
 
-            S1  inlet t=60 flow=0.2
-            HE1 heat_exchanger power=-30
-            PU1 pump
+            circuit "probe":
+              fluid = water
 
-            connections
-            S1 - PU1 - N2 - HE1 - N3
+              S1  inlet  t = 60  flow = 0.2
+              HE1  heat_exchanger  power = -30
+              PU1  pump
+
+              S1 - PU1 - N2 - HE1 - N3
             """).Diagnostics.Single(static d => d.Code == "FS2204");
 
         Assert.Contains("inlet", reported.Message, StringComparison.Ordinal);
@@ -695,17 +704,17 @@ public sealed class WellPosednessTests
     public void ASupplyPairedWithAReturnIsNotReported()
     {
         var result = Check("""
-            fluidscript 1
-            circuit probe
-            fluid water
+            fluidscript 2
 
-            S1  inlet t=60 flow=0.2
-            R1  outlet
-            HE1 heat_exchanger power=-30
-            PU1 pump
+            circuit "probe":
+              fluid = water
 
-            connections
-            S1 - PU1 - N2 - HE1 - N3 - R1
+              S1  inlet  t = 60  flow = 0.2
+              R1  outlet
+              HE1  heat_exchanger  power = -30
+              PU1  pump
+
+              S1 - PU1 - N2 - HE1 - N3 - R1
             """);
 
         Assert.DoesNotContain("FS2204", Codes(result));
@@ -718,27 +727,26 @@ public sealed class WellPosednessTests
         // D-115's fourth point, verified: the check runs per hydraulic component, so a closed loop in
         // the same project is neither blamed nor excused for the open fragment beside it.
         var result = Check("""
-            fluidscript 1
-            circuit open
-            fluid water
+            fluidscript 2
 
-            S1  inlet t=60 flow=0.2
-            HE1 heat_exchanger power=-30
-            PU1 pump
+            circuit "open":
+              fluid = water
 
-            connections
-            S1 - PU1 - N2 - HE1 - N3
+              S1  inlet  t = 60  flow = 0.2
+              HE1  heat_exchanger  power = -30
+              PU1  pump
 
-            circuit closed
-            fluid water
+              S1 - PU1 - N2 - HE1 - N3
 
-            HS2 heat_exchanger power=30 out.t=60
-            HE2 heat_exchanger power=-30
-            PU2 pump
-            N4 node p=150 t=40
+            circuit "closed":
+              fluid = water
 
-            connections
-            N4 - PU2 - HS2 - HE2 - N4
+              HS2  heat_exchanger  power = 30  out.t = 60
+              HE2  heat_exchanger  power = -30
+              PU2  pump
+              N4  node  p = 150  t = 40
+
+              N4 - PU2 - HS2 - HE2 - N4
             """);
 
         var reported = Assert.Single(result.Diagnostics, static d => d.Code == "FS2204");
@@ -752,18 +760,18 @@ public sealed class WellPosednessTests
     {
         // D-115: a boundary is a terminal with one connection; the split belongs to a node after it.
         var reported = Check("""
-            fluidscript 1
-            circuit probe
-            fluid water
+            fluidscript 2
 
-            S1  inlet t=60 p=300
-            R1  outlet p=280
-            HE1 heat_exchanger power=-20
-            HE2 heat_exchanger power=-10
+            circuit "probe":
+              fluid = water
 
-            connections
-            S1 - HE1 - R1
-            S1 - HE2 - R1
+              S1  inlet  t = 60  p = 300
+              R1  outlet  p = 280
+              HE1  heat_exchanger  power = -20
+              HE2  heat_exchanger  power = -10
+
+              S1 - HE1 - R1
+              S1 - HE2 - R1
             """).Diagnostics.Where(static d => d.Code == "FS2205").ToList();
 
         Assert.Equal(2, reported.Count);
@@ -798,15 +806,15 @@ public sealed class WellPosednessTests
         // is left and the level floats -- which the count now sees, and reports as the thing to add
         // rather than as a pressure.
         var result = Check("""
-            fluidscript 1
-            circuit ring
-            fluid water
+            fluidscript 2
 
-            PU1 pump head=6 flow=0.24
-            P1  pipe length=10 dn=25
+            circuit "ring":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - P1 - N1
+              PU1  pump  head = 6  flow = 0.24
+              P1  pipe  length = 10  dn = 25
+
+              N1 - PU1 - N2 - P1 - N1
             """);
 
         var reported = result.Diagnostics.Single(static d => d.Code == "FS2211");
@@ -826,19 +834,20 @@ public sealed class WellPosednessTests
         // square -- advice that made the header square and singular when taken. Read from the
         // constraint list, it leads with the temperatures and keeps the pressure as the last resort.
         var result = Check("""
-            fluidscript 1
-            circuit ring
-            fluid water
+            fluidscript 2
 
-            PU1 pump
-            HS1 heat_exchanger power=50 in.t=40 out.t=70
-            LD1 load power=50
-            3WV three_way_valve
-            P1  pipe length=10 dn=25
+            circuit "ring":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - HS1 - N3 - LD1 - N4 - 3WV - N1
-            N3 - P1 - 3WV
+              PU1  pump
+              HS1  heat_exchanger  power = 50  in.t = 40  out.t = 70
+              LD1  load  power = 50
+              3WV  three_way_valve
+              P1  pipe  length = 10  dn = 25
+
+              N1 - PU1 - N2 - HS1 - N3 - LD1 - N4 - 3WV
+              3WV - N1
+              N3 - P1 - 3WV
             """);
 
         var reported = result.Diagnostics.Single(static d => d.Code == "FS2211");
@@ -858,7 +867,7 @@ public sealed class WellPosednessTests
         // It starts from an initial state, which fixes the level before the first step.
         Assert.Equal(
             0,
-            Check(BalancedRing.Replace("fluid water", "fluid dynamic water", StringComparison.Ordinal))
+            CheckRun(BalancedRing + WarmUp)
                 .Counting.EnthalpyLevels);
 
     [Fact]
@@ -869,17 +878,17 @@ public sealed class WellPosednessTests
     public void AStatedBoundaryOutsideTheSubstancesRangeIsReported()
     {
         var reported = Check("""
-            fluidscript 1
-            circuit hot
-            fluid water
+            fluidscript 2
 
-            PU1 pump head=6 flow=0.24
-            P1  pipe length=10 dn=25
+            circuit "hot":
+              fluid = water
 
-            connections
-            N1 - PU1 - N2 - P1 - N1
+              PU1  pump  head = 6  flow = 0.24
+              P1  pipe  length = 10  dn = 25
 
-            N1 node t=500 p=300
+              N1 - PU1 - N2 - P1 - N1
+
+              N1  node  t = 500  p = 300
             """).Diagnostics.Single(static d => d.Code == "FS2215");
 
         Assert.Contains("500", reported.Message, StringComparison.Ordinal);
@@ -894,19 +903,19 @@ public sealed class WellPosednessTests
         // hydraulics that make it a question at all. Until P4.3 this circuit raised FS2216 from here,
         // for a fallback the check did not apply.
         var result = Check("""
-            fluidscript 1
-            circuit pair
-            fluid water
+            fluidscript 2
 
-            HX1 heat_exchanger power=10
-            PA  pump head=6 flow=0.24
-            PB  pump head=6 flow=0.24
+            circuit "pair":
+              fluid = water
 
-            connections
-            NA1 - PA - NA2 - HX1.in
-            HX1.out - NA1
-            NB1 - PB - NB2 - HX1.in[2]
-            HX1.out[2] - NB1
+              HX1  heat_exchanger  power = 10
+              PA  pump  head = 6  flow = 0.24
+              PB  pump  head = 6  flow = 0.24
+
+              NA1 - PA - NA2 - HX1.primary.in
+              HX1.primary.out - NA1
+              NB1 - PB - NB2 - HX1.secondary.in
+              HX1.secondary.out - NB1
             """);
 
         Assert.DoesNotContain("FS2216", Codes(result));
@@ -1035,19 +1044,20 @@ public sealed class WellPosednessTests
     }
 
     private const string RoofLoopWithoutAFillPressure = """
-        fluidscript 1
-        circuit heating
-        fluid water
+        fluidscript 2
 
-        HE1  heat_exchanger power=30 in.t=20 out.t=50
-        LOAD heat_exchanger power=-30 dp=0 elevation=32
-        CV1  valve
-        PU1  pump
-        P1   pipe length=32
-        P2   pipe length=32
+        circuit "heating":
+          fluid = water
+          role = heating
 
-        connections
-        N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+          HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+          LOAD  heat_exchanger  power = -30  dp = 0  elevation = 32
+          CV1  valve
+          PU1  pump
+          P1  pipe  length = 32
+          P2  pipe  length = 32
+
+          N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
         """;
 
     [Fact]
@@ -1073,7 +1083,7 @@ public sealed class WellPosednessTests
     [Fact]
     public void AStatedFillPressureThatCoversTheStaticHeadIsNotReported()
     {
-        var result = Check(RoofLoopWithoutAFillPressure + "\nN1 node p=450\n");
+        var result = Check(RoofLoopWithoutAFillPressure + "\n  N1  node  p = 450\n");
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS2220");
         Assert.True(result.CanSolve);

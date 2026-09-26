@@ -43,7 +43,7 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
     {
         // `character` counts UTF-16 code units, as the editor does; the emoji is two of them. `zzz` is
         // nothing the registry can read as a parameter, so it is FS1503 rather than a corrected spelling.
-        const string Script = "fluidscript 1\n# \U0001F525 hot\nHE1 heat_exchanger zzz=30\n";
+        const string Script = "fluidscript 2\n# \U0001F525 hot\ncircuit \"c\":\n  HE1  heat_exchanger  zzz = 30\n";
         using var client = factory.CreateClient();
         using var response = await client.PostAsync(Validate, new { script = Script });
         var body = await response.ReadAsync<ValidateResponse>();
@@ -52,8 +52,8 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
         Assert.NotNull(unknown.Range);
         Assert.Equal(3, unknown.Range.Length); // the name alone, never `zzz=30` (L-53)
         Assert.True(unknown.Range.Length >= 3, "the span does not cover the name"); // the binder spans `zzz=30`, not `zzz` alone: L-53
-        Assert.Equal(2, unknown.Range.Start.Line);
-        Assert.Equal("HE1 heat_exchanger ".Length, unknown.Range.Start.Character);
+        Assert.Equal(3, unknown.Range.Start.Line);
+        Assert.Equal("  HE1  heat_exchanger  ".Length, unknown.Range.Start.Character);
         AssertAgree(Script, unknown.Range, "FS1503");
     }
 
@@ -61,7 +61,7 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
     public async Task DiagnosticsAreOrderedBySeverityThenOffset()
     {
         // 44's worked example: the unit error is produced before the binder's, and read after it.
-        const string Script = "fluidscript 1\nHE1 heat_exchanger zzz=30 in.t=20 out.t=20C+30C\n";
+        const string Script = "fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  zzz = 30  in.t = 20  out.t = 20C+30C\n";
         using var client = factory.CreateClient();
         using var response = await client.PostAsync(Validate, new { script = Script });
         var body = await response.ReadAsync<ValidateResponse>();
@@ -82,18 +82,18 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
         // check's text, with the code, the component and the range of the real finding lost. The
         // boundary wired twice is FS2205, naming the node.
         const string Script = """
-            fluidscript 1
-            circuit probe
-            fluid water
+            fluidscript 2
 
-            S1  inlet t=60 p=300
-            R1  outlet p=280
-            HE1 heat_exchanger power=-20
-            HE2 heat_exchanger power=-10
+            circuit "probe":
+              fluid = water
 
-            connections
-            S1 - HE1 - R1
-            S1 - HE2 - R1
+              S1  inlet  t = 60  p = 300
+              R1  outlet  p = 280
+              HE1  heat_exchanger  power = -20
+              HE2  heat_exchanger  power = -10
+
+              S1 - HE1 - R1
+              S1 - HE2 - R1
             """;
         using var client = factory.CreateClient();
         using var response = await client.PostAsync("/api/v1/solve", new { sessionId = "s65", script = Script });

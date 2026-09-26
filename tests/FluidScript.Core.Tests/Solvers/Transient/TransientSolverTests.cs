@@ -24,35 +24,38 @@ namespace FluidScript.Core.Tests.Solvers.Transient;
 public sealed class TransientSolverTests
 {
     private const string DemandStep = """
-        fluidscript 1
-        circuit demandStep
-        fluid dynamic water
+        fluidscript 2
 
-        HE1 heat_exchanger power=30 out.t=50
-        3WV three_way_valve
-        PU1 pump
-        P1  pipe length=25
-        PB  pipe length=8 dn=20 nodes={NODES}
-        TC1 pi
+        circuit "demandStep":
+          fluid = water
 
-        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
+          HE1  heat_exchanger  power = 30  out.t = 50
+          3WV  three_way_valve
+          PU1  pump
+          P1  pipe  length = 25
+          PB  pipe  length = 8  dn = 20  nodes = {NODES}
+          TC1  controller:
+            moves = 3WV.position
+            reads = NS.t
+            setpoint = 20
 
-        connections
-        N1 - N2
-        N2 - NS
-        NS - PU1
-        PU1 - HE1
-        HE1 - 3WV
-        3WV - PB - N2
-        3WV - P1
-        P1 - N3
+          N1 - N2
+          N2 - NS
+          NS - PU1
+          PU1 - HE1
+          HE1 - 3WV
+          3WV - PB - N2
+          3WV - P1
+          P1 - N3
 
-        N1 inlet t=6 p=300
-        N3 outlet p=280
-        {SCHEDULE}
+          N1  inlet  t = 6  p = 300
+          N3  outlet  p = 280
+
+        run "Transient":
+          {SCHEDULE}
         """;
 
-    private static string Script(int nodes = 4, string schedule = "schedule\nat 60 s   HE1.power = 45") =>
+    private static string Script(int nodes = 4, string schedule = "at 60 s  HE1.power = 45") =>
         DemandStep.Replace("{NODES}", nodes.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal)
             .Replace("{SCHEDULE}", schedule, StringComparison.Ordinal);
 
@@ -193,7 +196,7 @@ public sealed class TransientSolverTests
     public async Task ARampMovesTheLoadLinearly()
     {
         // `over 60 s .. 120 s HE1.power = 30 .. 45`: half way, 37.5 kW lifts the outlet 37.5 K above N2.
-        var run = await TransientRunFixture.RunAsync("m4-demand-step-ramp", Script(schedule: "schedule\nover 60 s .. 120 s   HE1.power = 30 .. 45"), new TransientSettings { Horizon = 130 }, TestContext.Current.CancellationToken);
+        var run = await TransientRunFixture.RunAsync("m4-demand-step-ramp", Script(schedule: "over 60 s..120 s  HE1.power = 30..45"), new TransientSettings { Horizon = 130 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(30.0, run.NodeCelsius(run.At(60), "HE1__3WV.h") - run.NodeCelsius(run.At(60), "N2.h"), 0.3);
         Assert.Equal(37.5, run.NodeCelsius(run.At(90), "HE1__3WV.h") - run.NodeCelsius(run.At(90), "N2.h"), 0.3);
@@ -222,7 +225,7 @@ public sealed class TransientSolverTests
         // A gigawatt into 0.24 kg/s of water leaves the property domain; the algebraic solve at the step
         // fails, halving does not help, and the run ends on that frame saying so. FS3102 (the step under
         // its floor) and FS3107 (a non-finite state) are the same shape of exit and are not provoked here.
-        var run = await TransientRunFixture.RunAsync("m4-demand-step-overload", Script(schedule: "schedule\nat 3 s   HE1.power = 1000000"), new TransientSettings { Horizon = 10 }, TestContext.Current.CancellationToken);
+        var run = await TransientRunFixture.RunAsync("m4-demand-step-overload", Script(schedule: "at 3 s  HE1.power = 1000000"), new TransientSettings { Horizon = 10 }, TestContext.Current.CancellationToken);
         var last = run.Frames[^1];
         var error = Assert.Single(last.Diagnostics, d => d.Code == "FS3103");
 
