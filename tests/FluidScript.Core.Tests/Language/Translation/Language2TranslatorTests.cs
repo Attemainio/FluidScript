@@ -16,9 +16,10 @@ using FluidScript.Fixtures;
 namespace FluidScript.Core.Tests.Language.Translation;
 
 /// <summary>
-/// Language 2's translation into the statements the binder reads (<c>plan/10-language/19-fluidscript-2.md</c>
-/// §Translation to the binder): each translated shape binds to what its language 1 spelling binds to, and a
-/// language 2 twin of a sample binds to the sample's model (invariant 6).
+/// Language 2 as the binder reads it (<c>plan/10-language/19-fluidscript-2.md</c> §Reading language 2 into the
+/// binder): each shape binds to what its language 1 spelling binds to, and a language 2 twin of a sample binds to the
+/// sample's model (invariant 6). Written against the translation (packages 3 and 4); since package 6 the same tests
+/// hold the binder's own reader.
 /// </summary>
 public sealed class Language2TranslatorTests
 {

@@ -5134,11 +5134,13 @@
       "code": "FS1540",
       "severity": "error",
       "area": "Binder",
-      "message": "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.",
+      "message": "'{written}' states {given} {values} for {count} scenario{plural}: {names}. State one per scenario, or one value for all of them.",
       "arguments": [
         "written",
         "given",
+        "values",
         "count",
+        "plural",
         "names"
       ]
     },

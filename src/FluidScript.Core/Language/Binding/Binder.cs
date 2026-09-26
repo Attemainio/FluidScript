@@ -50,7 +50,7 @@ public sealed class Binder
 
         // The binder's messages are language 1's; a language 2 file reads them in its own words (19 §Diagnostics).
         return parse.Language == 2
-            ? bound with { Diagnostics = Translation.Language2Wording.Apply(bound.Diagnostics) }
+            ? bound with { Diagnostics = Translation.Language2Wording.Apply(bound.Diagnostics, Translation.Language2Wording.Exchangers(bound.Model.Components)) }
             : bound;
     }
 }

@@ -154,7 +154,8 @@ public sealed class ScenarioBindingTests
     {
         var result = Bind(Two.Replace("power=[30, 10]", "power=[30]", StringComparison.Ordinal));
 
-        Assert.Single(result.Diagnostics, static d => d.Code == "FS1540");
+        var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1540");
+        Assert.Contains("1 value for 2 scenarios", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

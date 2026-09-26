@@ -1860,8 +1860,12 @@ that governed each size. What P6.8 still owes, and what comes after:
     returns language 2's own tree and the binder reads it. All 130 goldens held unchanged; `L-70` then took out 18
     `FS1508` lines and nothing else, and `L-69` closed (the declaration ceiling counts nested declarations; `K` stays
     a difference in a kept expression; the dimension pass types temperature as the evaluator does, pressure left as
-    `L-71`). Left in 6d: `L-66`, and `19`'s prose on the translation. Then package 7 deletes language 1 and the sweep
-    follows (language 1 defects closed, language 1 grammar tests deleted, physics tests converted).
+    `L-71`). `L-66` narrowed: the binder and the contract builder give the wording pass the model's exchangers, so the
+    four codes that named `in[2]` on an exchanger say `secondary`, and `FS1540` says "1 case"; `FS2211`'s made-up node
+    names and `volume[2]` remain. `19`'s section on the translation now describes the reader. **6d is done, and so is
+    package 6.** Next: package 7 deletes language 1 (its parser, the converter, `ScheduleRoleRegistry`, the second
+    templates) and the sweep follows (language 1 defects closed, language 1 grammar tests deleted, physics tests
+    converted).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1931,7 +1935,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2972 total, 0 failed, 4 skipped** (130 of them the frozen language 2 corpus, `D-178`; the live-comparison harness deleted at 6d's switch) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2974 total, 0 failed, 4 skipped** (130 of them the frozen language 2 corpus, `D-178`; the live-comparison harness deleted at 6d's switch) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

@@ -16,9 +16,10 @@ namespace FluidScript.Core.Language.Translation;
 /// </para>
 /// <para>
 /// Some arguments carry language 1 spellings too: an exchanger's second side is <c>in[2]</c> there and
-/// <c>secondary.in</c> here. They are respelled only where the code is about an exchanger — by its own subject, or by
-/// the kind it names — because a tank's <c>in[2]</c> is language 2 as well. Where neither says, the language 1
-/// spelling stands, which language 2 also reads.
+/// <c>secondary.in</c> here. They are respelled only where the diagnostic is about an exchanger — by the code's own
+/// subject, by the kind it names, or, where the caller knows the model, by the component it names (<c>L-66</c>) —
+/// because a tank's <c>in[2]</c> is language 2 as well. Where nothing says, the language 1 spelling stands, which
+/// language 2 also reads.
 /// </para>
 /// </remarks>
 public static class Language2Wording
@@ -30,15 +31,29 @@ public static class Language2Wording
 
     /// <summary>Re-renders every diagnostic in language 2's words.</summary>
     /// <param name="diagnostics">A language 2 file's diagnostics, from any stage.</param>
+    /// <param name="exchangers">
+    /// The components whose second side language 2 calls <c>secondary</c>, where the caller knows the model; a
+    /// diagnostic naming one of them has its <c>in[2]</c> and <c>out[2]</c> respelled. Empty when not known.
+    /// </param>
     /// <returns>The same diagnostics, in order, each message in language 2's wording.</returns>
-    public static ImmutableArray<Diagnostic> Apply(ImmutableArray<Diagnostic> diagnostics) =>
-        diagnostics.IsDefaultOrEmpty ? diagnostics : [.. diagnostics.Select(Apply)];
+    public static ImmutableArray<Diagnostic> Apply(ImmutableArray<Diagnostic> diagnostics, IReadOnlySet<string>? exchangers = null) =>
+        diagnostics.IsDefaultOrEmpty ? diagnostics : [.. diagnostics.Select(diagnostic => Apply(diagnostic, exchangers))];
+
+    /// <summary>The components of a model whose kind has a second side: <c>in[2]</c> and <c>out[2]</c> beside <c>in</c> and <c>out</c>.</summary>
+    /// <param name="components">The model's components.</param>
+    /// <returns>Their names.</returns>
+    public static IReadOnlySet<string> Exchangers(IEnumerable<Binding.ComponentSymbol> components) =>
+        components
+            .Where(static component => component.Kind?.Ports.Any(static port => port.Key == "in2") == true)
+            .Select(static component => component.Name)
+            .ToHashSet(StringComparer.Ordinal);
 
     /// <summary>Re-renders one diagnostic in language 2's words.</summary>
     /// <param name="diagnostic">The diagnostic.</param>
+    /// <param name="exchangers">The components whose second side is <c>secondary</c>, where known.</param>
     /// <returns>It with its message in language 2's wording; itself when one wording serves both languages.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="diagnostic"/> is <see langword="null"/>.</exception>
-    public static Diagnostic Apply(Diagnostic diagnostic)
+    public static Diagnostic Apply(Diagnostic diagnostic, IReadOnlySet<string>? exchangers = null)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
 
@@ -47,7 +62,7 @@ public static class Language2Wording
             return diagnostic;
         }
 
-        var arguments = Respelled(diagnostic.Code, diagnostic.Arguments);
+        var arguments = Respelled(diagnostic.Code, diagnostic.Arguments, exchangers ?? EmptySet);
         if (descriptor.Language2Template is null && arguments.SequenceEqual(diagnostic.Arguments))
         {
             return diagnostic;
@@ -56,8 +71,14 @@ public static class Language2Wording
         return diagnostic with { Message = descriptor.RenderLanguage2([.. arguments]) };
     }
 
-    /// <summary>The arguments with language 1's spellings replaced where the code says what they are.</summary>
-    private static ImmutableArray<DiagnosticArgument> Respelled(string code, ImmutableArray<DiagnosticArgument> arguments)
+    private static readonly IReadOnlySet<string> EmptySet = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary><c>HX1.in[2]</c>, the component's name and its second side, in any argument's text.</summary>
+    private static readonly Regex NamedSecondSide = new(@"\b([A-Za-z_][A-Za-z0-9_]*)\.(in|out)\[2\]", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+
+    /// <summary>The arguments with language 1's spellings replaced where the code, or the model, says what they are.</summary>
+    private static ImmutableArray<DiagnosticArgument> Respelled(
+        string code, ImmutableArray<DiagnosticArgument> arguments, IReadOnlySet<string> exchangers)
     {
         if (arguments.IsDefaultOrEmpty)
         {
@@ -65,8 +86,29 @@ public static class Language2Wording
         }
 
         var kind = arguments.FirstOrDefault(static argument => argument.Name == "kind").Value;
+        var component = arguments.FirstOrDefault(static argument => argument.Name == "component").Value;
+        var aboutAnExchanger = component is not null && exchangers.Contains(component);
 
-        return [.. arguments.Select(argument => argument with { Value = Respell(code, kind, argument) })];
+        return
+        [
+            .. arguments.Select(argument =>
+            {
+                var value = Respell(code, kind, argument);
+
+                // A port the code names beside the component it belongs to: FS2202's open port, FS3013's two ends.
+                if (aboutAnExchanger && argument.Name is "port" or "outlet" or "inlet")
+                {
+                    value = Sides(value);
+                }
+
+                // A component and its port written together, as FS2210 and FS2211 list what to add or remove.
+                value = NamedSecondSide.Replace(value, match => exchangers.Contains(match.Groups[1].Value)
+                    ? $"{match.Groups[1].Value}.{(match.Groups[2].Value == "in" ? "secondary.in" : "secondary.out")}"
+                    : match.Value);
+
+                return argument with { Value = value };
+            }),
+        ];
     }
 
     private static string Respell(string code, string? kind, DiagnosticArgument argument) =>

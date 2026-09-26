@@ -157,7 +157,7 @@ public static partial class ModelContractBuilder
 
         // Every stage's messages meet here, so a language 2 file's are put into its own words here (19 §Diagnostics).
         ImmutableArray<Diagnostic> said = [.. diagnostics, .. raised];
-        var all = Diagnostics(input.Source, major == 2 ? Language2Wording.Apply(said) : said, [.. components]);
+        var all = Diagnostics(input.Source, major == 2 ? Language2Wording.Apply(said, Language2Wording.Exchangers(model.Components)) : said, [.. components]);
 
         return new ModelContract
         {

@@ -132,7 +132,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='. |
 | `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
 | `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
-| `FS1540` | Error | Binder | '{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them. |
+| `FS1540` | Error | Binder | '{written}' states {given} {values} for {count} scenario{plural}: {names}. State one per scenario, or one value for all of them. |
 | `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit. |
 | `FS1542` | Error | Binder | '{name}' is not a scenario of this file. It declares: {names}. |
 | `FS1543` | Error | Binder | This file declares {count} scenarios and does not say which one to show. Add 'design {first}'. |
@@ -266,7 +266,7 @@ also spelled `secondary.in` / `secondary.out` inside any message about an exchan
 | `FS1528` | '{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time. |
 | `FS1533` | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
 | `FS1537` | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
-| `FS1540` | '{written}' states {given} values for {count} cases: {names}. State one per case, or one value for all of them. |
+| `FS1540` | '{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them. |
 | `FS1541` | '{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block. |
 | `FS1542` | '{name}' is not a case of this file. It declares: {names}. |
 | `FS1544` | '{name}' is declared twice. Each case needs its own name. |

@@ -84,7 +84,9 @@ internal sealed partial class BindingRun
                 span,
                 ("written", name),
                 ("given", elements.Length.ToString(CultureInfo.InvariantCulture)),
+                ("values", elements.Length == 1 ? "value" : "values"),
                 ("count", _scenarios.Count.ToString(CultureInfo.InvariantCulture)),
+                ("plural", _scenarios.Count == 1 ? string.Empty : "s"),
                 ("names", string.Join(", ", _scenarios)));
             return elements[Math.Min(design, elements.Length - 1)];
         }

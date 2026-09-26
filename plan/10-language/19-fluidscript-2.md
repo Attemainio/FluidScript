@@ -3,7 +3,7 @@ id: 19-fluidscript-2
 title: FluidScript 2
 tier: 10-language
 status: draft
-owns: [language 2 grammar, language 2 statement set, block structure, port inference by flow direction, cases and drivers, controller declaration, run block, translation from language 2 to the binder]
+owns: [language 2 grammar, language 2 statement set, block structure, port inference by flow direction, cases and drivers, controller declaration, run block, reading of language 2 into the binder]
 depends_on: [01-vision-and-scope, 06-decision-log, 11-language-overview, 12-grammar, 13-type-and-unit-system, 14-expressions-and-references, 15-semantic-model, 16-diagnostics, 17-formatting-and-round-trip, 18-script-compatibility]
 traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-12, R-13, R-46, R-49]
 open_questions: 6
@@ -22,7 +22,7 @@ study settings are scattered through its model. The user asked what the language
 written from scratch, and settled it over one conversation. This document is that language.
 
 Language 2 **replaces** language 1 (`D-174`, superseding `D-164`'s "a second major beside the first"). It was
-built beside language 1 — its own parser, a translation into the statements language 1's binder reads — and
+built beside language 1 — its own parser and, until package 6, a translation into the statements language 1's binder read — and
 language 1 stays the current major until every script the project owns is converted and proven to bind to the
 same model and solve (`P6.11` package 5). Then the binder reads the language 2 tree directly (package 6), and
 language 1 is removed, parser, translation and all (package 7). The two share everything after binding: the
@@ -51,7 +51,7 @@ What it changes, in one line each (the decisions are `D-165`–`D-169`):
 
 **Owns.** The language 2 grammar and statement set; blocks and their indentation; the port-inference
 rule; cases, drivers and how a curve composes with them; the controller declaration's syntax; the run
-block's syntax; the translation from a language 2 syntax tree to the statements the binder reads; the
+block's syntax; the reading of a language 2 syntax tree into the records the binder binds; the
 `FS18xx` codes.
 
 **Does not own.** The unit table and dimensional algebra (`13`, changed only where this document says
@@ -591,28 +591,26 @@ duration and frame as the transient's settings. So:
 - An event replaces what drove its target from its start: the transient writes the clock and then the schedule
   (`33`, fixed here).
 
-### Translation to the binder
+### Reading language 2 into the binder
 
-**Transitional** (`D-174`). This section describes packages 3 and 4; package 6 moves what the translation decides
-into the binder, which then reads the language 2 tree, and package 7 deletes the rest. Until then the translation
-is also the reference the converted corpus is checked against.
-
-Language 2 has its own syntax tree, which the printer prints and the editor reads. **The binder reads
-the statements it already reads**: a translation step turns the language 2 tree into them, and every
-span in them points into the language 2 text, so every diagnostic lands on what the user wrote.
+Language 2 has its own syntax tree, which the printer prints and the editor reads, and the binder reads it
+through a front end of its own, `Language2Reader` (`D-177`, `D-178`; packages 3 and 4 built it as a translation
+into language 1's statements, and package 6 moved it into the binder). It hands the binder records rather than
+statements, and every span in them points into the language 2 text, so every diagnostic lands on what the user
+wrote.
 
 | Language 2 | The binder receives |
 |---|---|
-| `circuit "T":` with `fluid`, `number`, `role` | A circuit header with number and role, and a fluid line |
-| A declaration, either form | A component declaration with its parameters |
-| `primary.*`, `secondary.*` | `in`/`out` and `in[2]`/`out[2]` |
-| A chain with inferred ports | One connection per link, every port explicit |
-| A sensor in a chain | A node in the chain and the sensor placed `at` it |
-| `12 m DN25` at a link's end | `length=12 dn=25` on that link |
-| A controller block | A controller declaration and a control binding |
-| `cases` | The scenario list, with the first case as the operating case `design` names |
-| A run | The run settings, the per-circuit mode, the start, and the events |
-| `show`, `scale`, `spacing`, `style:` | The show directive, the spacing, and a style per circuit with the project's keys under the circuit's |
+| `circuit "T":` with `fluid`, `number`, `role` | A circuit's head, with its number and role, and its fluid |
+| A declaration, either form | The declaration with its settings gathered onto it |
+| `primary.*`, `secondary.*` | The registry's ports: `in`/`out` and `in2`/`out2` (`D-177` rule 2) |
+| A chain with inferred ports | One connection line per link, every port settled |
+| A sensor in a chain | A node in the chain and the sensor placed on it |
+| `12 m DN25` at a link's end | `length` and `dn` on that link's pipe |
+| A controller block | The controller's declaration and its control line |
+| `cases` | The cases, with the first as the one the file operates at |
+| A run | The run block, its values in the form the evaluator reads |
+| `show`, `scale`, `spacing`, `style:` | The show lines, the spacing, and a style per circuit with the project's keys under the circuit's |
 
 **What the binder must newly learn**, because language 1 cannot say it:
 
@@ -624,8 +622,8 @@ span in them points into the language 2 text, so every diagnostic lands on what 
 4. A driver overridden by a curve of time for one run.
 5. A clock-time event.
 
-Port inference is done by the translation, not by the binder: the translation sees every line and hands
-the binder explicit ports, so language 1's order-based assignment is untouched.
+Port inference is the reader's: it sees every line before the binder files any, and hands the binder explicit
+ports, so language 1's order-based assignment is untouched.
 
 ### Binding directly (package 6)
 
@@ -653,12 +651,14 @@ wording; a code whose cause cannot be written in language 2 is never raised ther
 `Language2Template`, whose placeholders are a subset of the first's (the constructor refuses any other).
 A diagnostic keeps the arguments it was created with, and `Language2Wording.Apply` renders the second
 template from them, so applying it twice changes nothing. It runs wherever a stage that knows the language
-hands its diagnostics on: `MajorParser` (the parse and the translation), `Binder.Bind` (when the parse was
-language 2) and `ModelContractBuilder.Build` (major 2, which gathers every later stage's). **A run's
+hands its diagnostics on: `MajorParser` (the parse), `Binder.Bind` (when the parse was language 2, the reader's
+included) and `ModelContractBuilder.Build` (major 2, which gathers every later stage's). **A run's
 diagnostics must go through it too:** `FS3109` is raised by the well-posedness check on the run path, and
 P6.5's worker is where they leave Core. The pass also respells arguments: an exchanger's `in[2]`/`out[2]`
-become `secondary.in`/`secondary.out` in a code about an exchanger (by its own subject, or by the `kind` it
-names), `FS2119`'s side 1/2 become primary/secondary, and `FS1302`'s worked example writes `K` for `dK`. The
+become `secondary.in`/`secondary.out` in a code about an exchanger (by its own subject, by the `kind` it names,
+or by the component it names where the caller holds the model: `Binder.Bind` and the contract builder pass the
+exchangers, so `FS2202`, `FS3013` and the lists of `FS2210`/`FS2211` say `secondary` too, `L-66`), `FS2119`'s side
+1/2 become primary/secondary, and `FS1302`'s worked example writes `K` for `dK`. The
 codes with a second wording are listed on the diagnostics page, generated from the registry.
 
 **The audit** (package 4, 201 codes, measured by running a battery of language 2 mistakes through the
@@ -766,7 +766,7 @@ control actuate=TV1.position measure=TE1.t by=TC1 setpoint=supply_temp
 ```
 
 `stroke` and `band` are not language 1 parameters yet; they are registry additions package 3 makes, and
-the translation emits them into the records the binder reads, not as language 1 text. The listing only
+the language 2 reader puts them into the records the binder reads, not as language 1 text. The listing only
 shows what the records say.
 
 ## Acceptance criteria
@@ -808,7 +808,9 @@ shows what the records say.
       (fixing `S-89` on the way). `sized_at` converts as `sized_at.outdoor = -5 C`, and 78 of the 85 blocks now
       bind to the same model, sizing points and capacities compared; the 7 left are `D-175`'s dropped list, rewritten
       by hand at the switch (`Language1ConversionTests`). Met 2026-09-25.
-- [ ] The direct binder gives the translated path's model on the whole converted corpus (package 6).
+- [x] The direct binder gives the translated path's model on the whole converted corpus (package 6). **Met
+      2026-09-26 (`D-178`):** the 130 frozen items bind to their goldens, the translation's diagnostics included;
+      the goldens then changed only by `L-70`'s 18 lines.
 - [ ] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
       changed by its spans alone (package 7).
 - [ ] The editor highlights and completes language 2 in a file whose version line says 2, and language

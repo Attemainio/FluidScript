@@ -808,8 +808,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ScenarioCountMismatch { get; } = new(
         "FS1540",
         DiagnosticSeverity.Error,
-        "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.",
-        language2Template: "'{written}' states {given} values for {count} cases: {names}. State one per case, or one value for all of them.");
+        "'{written}' states {given} {values} for {count} scenario{plural}: {names}. State one per scenario, or one value for all of them.",
+        language2Template: "'{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them.");
 
     /// <summary>A scenario list in a file that declares no scenarios (<c>D-143</c>).</summary>
     /// <value><c>FS1541</c>, an error saying where the list would have bound.</value>

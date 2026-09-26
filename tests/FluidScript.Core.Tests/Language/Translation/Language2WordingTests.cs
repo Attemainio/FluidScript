@@ -252,4 +252,52 @@ public sealed class Language2WordingTests
 
         Assert.Equal("'corner' accepts sharp or fillet; 'round' is none of them.", diagnostic.Message);
     }
+
+    // ---- a side named beside its component (L-66) ------------------------------------------------
+
+    /// <summary>A port named with its component is respelled when the model says the component is an exchanger, and a tank's is not.</summary>
+    /// <remarks>
+    /// <c>FS2202</c> and <c>FS3013</c> name the component and the port apart; <c>FS2210</c> and <c>FS2211</c> list them
+    /// together. None names the kind, so only the caller that holds the model can say which <c>in[2]</c> is a
+    /// secondary side (<c>L-66</c>).
+    /// </remarks>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APortBesideItsComponentIsRespelledOnlyOnAnExchanger()
+    {
+        IReadOnlySet<string> exchangers = new HashSet<string>(StringComparer.Ordinal) { "HX1" };
+
+        var open = Language2Wording.Apply(
+            Diagnostic.Create(TopologyDiagnostics.OpenPortTerminated, span: null, new DiagnosticArgument("component", "HX1"), new DiagnosticArgument("port", "in[2]")),
+            exchangers);
+        var tank = Language2Wording.Apply(
+            Diagnostic.Create(TopologyDiagnostics.OpenPortTerminated, span: null, new DiagnosticArgument("component", "TK1"), new DiagnosticArgument("port", "in[2]")),
+            exchangers);
+        var under = Language2Wording.Apply(
+            Diagnostic.Create(TopologyDiagnostics.UnderSpecified, span: null, new DiagnosticArgument("n", "2"), new DiagnosticArgument("list", "HX1.out[2].t, TK1.in[2].t")),
+            exchangers);
+
+        Assert.Contains("port 'secondary.in'", open.Message, StringComparison.Ordinal);
+        Assert.Contains("port 'in[2]'", tank.Message, StringComparison.Ordinal);
+        Assert.Contains("HX1.secondary.out.t, TK1.in[2].t", under.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>One case is a case, not "1 cases", and one value a value (<c>L-66</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void OneCaseIsSaidInTheSingular()
+    {
+        var error = Only("""
+            fluidscript 2
+            project "p":
+              cases = [winter]
+            circuit "c":
+              fluid = water
+              RAD radiator  power = [30, 10, 5] kW
+              PU1 pump
+              N1 - PU1 - RAD - N1
+            """, "FS1540");
+
+        Assert.Contains("states 3 values for 1 case: winter", error.Message, StringComparison.Ordinal);
+    }
 }

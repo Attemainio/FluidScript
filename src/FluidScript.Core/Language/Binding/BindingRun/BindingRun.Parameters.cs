@@ -259,7 +259,9 @@ internal sealed partial class BindingRun
                 span,
                 ("written", written),
                 ("given", list.Elements.Length.ToString(CultureInfo.InvariantCulture)),
+                ("values", list.Elements.Length == 1 ? "value" : "values"),
                 ("count", declared.ToString(CultureInfo.InvariantCulture)),
+                ("plural", declared == 1 ? string.Empty : "s"),
                 ("names", string.Join(", ", _scenarios)));
             return null;
         }
