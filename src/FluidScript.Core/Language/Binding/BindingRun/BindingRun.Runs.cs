@@ -96,7 +96,7 @@ internal sealed partial class BindingRun
         foreach (var change in block.Body.OfType<DisturbanceSyntax>())
         {
             var circuit = CircuitOf(change.Target.Component.Token.Text);
-            if (Disturbance(change, circuit, range => EventTimes(range, start, run.Title)) is { } bound)
+            if (Disturbance(ChangeLine.Of(change), circuit, range => EventTimes(range, start, run.Title)) is { } bound)
             {
                 events.Add(bound);
             }
@@ -240,7 +240,7 @@ internal sealed partial class BindingRun
             setting.Value is RangeExpressionSyntax range ? new RangeSyntax(range.From, range.DotDot, range.To) : new PointSyntax(setting.Value));
 
         var zero = Quantity.FromSi(0, Dimension.Time);
-        if (Disturbance(statement, CircuitOf(name.Head.Name.Token.Text), _ => (zero, null)) is { } bound)
+        if (Disturbance(ChangeLine.Of(statement), CircuitOf(name.Head.Name.Token.Text), _ => (zero, null)) is { } bound)
         {
             events.Add(bound);
         }

@@ -262,15 +262,11 @@ internal sealed partial class BindingRun
         {
             foreach (var statement in block.Statements)
             {
-                var names = block.Lines.TryGetValue(statement, out var lines)
-                    ? lines.SelectMany(static line => line.Ends).Select(static end => (end.Component, end.ComponentSpan))
-                    : Endpoints(statement).Select(static endpoint => (endpoint.Component.Token.Text, endpoint.Component.Span));
-
-                foreach (var (name, span) in names)
+                foreach (var end in block.LinesAt(statement).SelectMany(static line => line.Mapped))
                 {
-                    if (_componentsByName.TryGetValue(name, out var slot))
+                    if (_componentsByName.TryGetValue(end.Component, out var slot))
                     {
-                        builder.Add(new SymbolReference.Component(_components[slot.Index]), span);
+                        builder.Add(new SymbolReference.Component(_components[slot.Index]), end.ComponentSpan);
                     }
                 }
             }
@@ -278,11 +274,4 @@ internal sealed partial class BindingRun
 
         return builder.Build();
     }
-
-    private static ImmutableArray<EndpointSyntax> Endpoints(StatementSyntax statement) => statement switch
-    {
-        AttachmentSyntax attachment => [attachment.Endpoint],
-        DisturbanceSyntax disturbance => [disturbance.Target],
-        _ => [],
-    };
 }

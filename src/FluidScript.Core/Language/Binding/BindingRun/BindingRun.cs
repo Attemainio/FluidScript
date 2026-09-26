@@ -181,9 +181,14 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     }
 
                     current.Statements.Add(statement);
-                    if (statement is ConnectionSyntax connection)
+                    if (BlockLine.Of(statement) is { } line)
                     {
-                        current.Lines[statement] = [ConnectionLine.Of(connection)];
+                        current.Lines[statement] = [line];
+                    }
+
+                    if (statement is ScheduleHeaderSyntax schedule)
+                    {
+                        current.Schedule ??= schedule.Span;
                     }
 
                     break;
@@ -318,9 +323,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             // A schedule in a circuit with no time to run in. The parser cannot see this: which mode a
             // circuit ends up in is the circuit's own directive resolved against the project's.
             if (mode == FluidMode.Static
-                && block.Statements.OfType<ScheduleHeaderSyntax>().FirstOrDefault() is { } schedule)
+                && block.Schedule is { } schedule)
             {
-                Report(BinderDiagnostics.ScheduleWithoutTime, schedule.Span, ("circuit", name));
+                Report(BinderDiagnostics.ScheduleWithoutTime, schedule, ("circuit", name));
             }
 
             _circuits.Add(new CircuitSymbol
@@ -535,38 +540,113 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         /// <summary>Gets or sets the circuit's fluid: language 1's line in the block, language 2's setting.</summary>
         public CircuitFluid? Fluid { get; set; }
 
-        /// <summary>Gets the connection lines each statement writes, keyed by the statement so they are read in written order.</summary>
-        public Dictionary<StatementSyntax, List<ConnectionLine>> Lines { get; } = new(ReferenceEqualityComparer.Instance);
+        /// <summary>Gets or sets where the block's schedule section begins, or <see langword="null"/> when it has none.</summary>
+        public TextSpan? Schedule { get; set; }
 
-        /// <summary>Gets every connection line in the block, in the order written.</summary>
-        public IEnumerable<ConnectionLine> AllLines =>
-            Statements.SelectMany(statement => Lines.TryGetValue(statement, out var lines) ? lines : []);
+        /// <summary>Gets the lines each statement writes, keyed by the statement so they are read in written order.</summary>
+        public Dictionary<StatementSyntax, List<BlockLine>> Lines { get; } = new(ReferenceEqualityComparer.Instance);
+
+        /// <summary>Gets the lines a statement writes: none, for a statement the binder still reads as syntax.</summary>
+        public List<BlockLine> LinesAt(StatementSyntax statement) =>
+            Lines.TryGetValue(statement, out var lines) ? lines : [];
+
+        /// <summary>Gets every line of one kind in the block, in the order written.</summary>
+        public IEnumerable<T> LinesOf<T>()
+            where T : BlockLine => Statements.SelectMany(LinesAt).OfType<T>();
     }
 
-    /// <summary>A connection line as the binder reads it (<c>D-177</c>): its ends in order, and the pipe it describes.</summary>
+    /// <summary>A line in a circuit as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
+    /// <param name="Span">The line, which what it binds reports against.</param>
+    private abstract record BlockLine(TextSpan Span)
+    {
+        /// <summary>Gets the ends whose component names the symbol map records, so go-to-definition works from a use.</summary>
+        public virtual IEnumerable<LineEnd> Mapped => [];
+
+        /// <summary>Reads a language 1 statement, or <see langword="null"/> for one that is not read as a line.</summary>
+        public static BlockLine? Of(StatementSyntax statement) => statement switch
+        {
+            ConnectionSyntax connection => new ConnectionLine(
+                [.. connection.Endpoints.Select(LineEnd.Of)], connection.Parameters, connection.Span),
+            ControlBindingSyntax control => new ControlLine(
+                control.Actuator is { } actuator ? LineEnd.Of(actuator) : null,
+                control.Sensor is { } sensor ? LineEnd.Of(sensor) : null,
+                control.Controller is { } controller ? (controller.Text, controller.Span) : null,
+                control.Arguments,
+                control.Span),
+            AttachmentSyntax attachment => new AttachmentLine(attachment.Direction, LineEnd.Of(attachment.Endpoint), attachment.Span),
+            DisturbanceSyntax disturbance => ChangeLine.Of(disturbance),
+            _ => null,
+        };
+    }
+
+    /// <summary>A connection line: its ends in order, and the pipe it describes.</summary>
     /// <param name="Ends">The ends; link <c>i</c> runs from end <c>i</c> to end <c>i + 1</c>.</param>
     /// <param name="Pipe">The pipe's properties the line states, lowered to an implicit pipe per link (<c>D-110</c>).</param>
     /// <param name="Span">The line, which every link on it reports against and which keys its implicit pipes.</param>
     private sealed record ConnectionLine(ImmutableArray<LineEnd> Ends, ImmutableArray<ParameterSyntax> Pipe, TextSpan Span)
+        : BlockLine(Span)
     {
-        public static ConnectionLine Of(ConnectionSyntax connection) => new(
-            [.. connection.Endpoints.Select(static endpoint => new LineEnd(
-                endpoint.Component.Token.Text,
-                endpoint.Component.Span,
-                endpoint.Port?.Text,
-                endpoint.Port?.Span ?? endpoint.Span,
-                endpoint.Span))],
-            connection.Parameters,
-            connection.Span);
+        /// <inheritdoc/>
+        public override IEnumerable<LineEnd> Mapped => Ends;
     }
 
-    /// <summary>One end of a connection line (<c>D-177</c>).</summary>
+    /// <summary>A control line (<c>D-61</c>): the named form, or the short form with what it moves, reads and is run by.</summary>
+    /// <param name="Actuator">What the loop moves, in the short form; <see langword="null"/> in the named form.</param>
+    /// <param name="Sensor">What the loop reads, in the short form.</param>
+    /// <param name="Controller">The controller and where it is written, in the short form.</param>
+    /// <param name="Arguments">The named arguments: all four in the named form, the setpoint and tuning in the short.</param>
+    /// <param name="Span">The line.</param>
+    private sealed record ControlLine(
+        LineEnd? Actuator,
+        LineEnd? Sensor,
+        (string Name, TextSpan Span)? Controller,
+        ImmutableArray<ParameterSyntax> Arguments,
+        TextSpan Span) : BlockLine(Span)
+    {
+        /// <summary>Gets whether the line was written in the short form.</summary>
+        public bool IsShortForm => Actuator is not null;
+    }
+
+    /// <summary>A circuit's inlet or outlet (<c>D-41</c>).</summary>
+    /// <param name="Direction">Which side it declares.</param>
+    /// <param name="End">The component it names.</param>
+    /// <param name="Span">The line.</param>
+    private sealed record AttachmentLine(AttachmentDirection Direction, LineEnd End, TextSpan Span) : BlockLine(Span)
+    {
+        /// <inheritdoc/>
+        public override IEnumerable<LineEnd> Mapped => [End];
+    }
+
+    /// <summary>A step or ramp in a schedule or a run: the parameter it changes, when, and to what.</summary>
+    /// <param name="Target">The component and parameter changed.</param>
+    /// <param name="When">The instant, or the span a ramp takes.</param>
+    /// <param name="Value">The value it ends at, or the range it runs through.</param>
+    /// <param name="Span">The line.</param>
+    private sealed record ChangeLine(LineEnd Target, RangeOrPointSyntax When, RangeOrPointSyntax Value, TextSpan Span)
+        : BlockLine(Span)
+    {
+        /// <inheritdoc/>
+        public override IEnumerable<LineEnd> Mapped => [Target];
+
+        public static ChangeLine Of(DisturbanceSyntax disturbance) =>
+            new(LineEnd.Of(disturbance.Target), disturbance.When, disturbance.Value, disturbance.Span);
+    }
+
+    /// <summary>One end of a line: a component, and the port or property it names (<c>D-177</c>).</summary>
     /// <param name="Component">The component or node named.</param>
     /// <param name="ComponentSpan">Where its name is written.</param>
-    /// <param name="Port">The port as written, or <see langword="null"/> when the end names none.</param>
+    /// <param name="Port">The port or property as written, or <see langword="null"/> when the end names none.</param>
     /// <param name="PortSpan">Where the port is written; the end's span when it names none.</param>
     /// <param name="Span">The whole end.</param>
-    private sealed record LineEnd(string Component, TextSpan ComponentSpan, string? Port, TextSpan PortSpan, TextSpan Span);
+    private sealed record LineEnd(string Component, TextSpan ComponentSpan, string? Port, TextSpan PortSpan, TextSpan Span)
+    {
+        public static LineEnd Of(EndpointSyntax endpoint) => new(
+            endpoint.Component.Token.Text,
+            endpoint.Component.Span,
+            endpoint.Port?.Text,
+            endpoint.Port?.Span ?? endpoint.Span,
+            endpoint.Span);
+    }
 
     /// <summary>A circuit's header as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
     /// <param name="Name">The name, language 1's identifier or language 2's quoted title.</param>

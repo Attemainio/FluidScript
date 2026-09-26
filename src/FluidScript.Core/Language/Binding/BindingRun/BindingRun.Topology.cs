@@ -120,7 +120,7 @@ internal sealed partial class BindingRun
             ports.Add(port);
         }
 
-        foreach (var end in blocks.SelectMany(static block => block.AllLines).SelectMany(static line => line.Ends))
+        foreach (var end in blocks.SelectMany(static block => block.LinesOf<ConnectionLine>()).SelectMany(static line => line.Ends))
         {
             if (end.Port is not { } port)
             {
@@ -212,7 +212,7 @@ internal sealed partial class BindingRun
     {
         foreach (var block in blocks)
         {
-            foreach (var connection in block.AllLines)
+            foreach (var connection in block.LinesOf<ConnectionLine>())
             {
                 var endpoints = connection.Ends;
 

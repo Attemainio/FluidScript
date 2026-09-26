@@ -16,7 +16,7 @@ internal sealed partial class BindingRun
     {
         foreach (var block in blocks)
         {
-            foreach (var statement in block.Statements.OfType<ControlBindingSyntax>())
+            foreach (var statement in block.LinesOf<ControlLine>())
             {
                 BindControl(statement);
             }
@@ -140,7 +140,7 @@ internal sealed partial class BindingRun
         Report(BinderDiagnostics.ComponentInferred, span, ("kind", keyword), ("name", name), ("rule", "I8"));
     }
 
-    private void BindControl(ControlBindingSyntax statement)
+    private void BindControl(ControlLine statement)
     {
         var arguments = new Dictionary<string, ParameterSyntax>(StringComparer.Ordinal);
 
@@ -234,7 +234,7 @@ internal sealed partial class BindingRun
     /// carry: the other three are components, and a setpoint is a quantity.
     /// </remarks>
     private void BindShortControl(
-        ControlBindingSyntax statement, Dictionary<string, ParameterSyntax> arguments)
+        ControlLine statement, Dictionary<string, ParameterSyntax> arguments)
     {
         if (!arguments.TryGetValue("setpoint", out var setpoint))
         {
@@ -252,7 +252,7 @@ internal sealed partial class BindingRun
             return;
         }
 
-        var controllerName = statement.Controller!.Text;
+        var (controllerName, controllerSpan) = statement.Controller!.Value;
         var controller = _componentsByName.TryGetValue(controllerName, out var slot)
             ? _components[slot.Index]
             : null;
@@ -261,7 +261,7 @@ internal sealed partial class BindingRun
         {
             Report(
                 BinderDiagnostics.NotAController,
-                statement.Controller.Span,
+                controllerSpan,
                 ("name", controllerName),
                 ("kind", controller?.Kind?.Keyword ?? controller?.WrittenKind ?? "value"));
             return;
@@ -411,13 +411,13 @@ internal sealed partial class BindingRun
     /// construction</em>. Where it names none, this is <c>FS1531</c> and the qualified form is
     /// required — which stays legal everywhere.
     /// </remarks>
-    private PropertyReference? Endpoint(EndpointSyntax endpoint, bool actuated)
+    private PropertyReference? Endpoint(LineEnd endpoint, bool actuated)
     {
-        var name = endpoint.Component.Text;
+        var name = endpoint.Component;
 
         if (endpoint.Port is { } port)
         {
-            return new PropertyReference(name, port.Text);
+            return new PropertyReference(name, port);
         }
 
         if (!_componentsByName.TryGetValue(name, out var slot))
@@ -484,14 +484,14 @@ internal sealed partial class BindingRun
     {
         foreach (var block in blocks)
         {
-            foreach (var statement in block.Statements.OfType<DisturbanceSyntax>())
+            foreach (var statement in block.LinesOf<ChangeLine>())
             {
                 BindDisturbance(statement, block.Circuit!.Name);
             }
         }
     }
 
-    private void BindDisturbance(DisturbanceSyntax statement, string circuit)
+    private void BindDisturbance(ChangeLine statement, string circuit)
     {
         if (Disturbance(statement, circuit, range => Bounds(range, Dimension.Time)) is { } disturbance)
         {
@@ -505,10 +505,10 @@ internal sealed partial class BindingRun
     /// <param name="times">Reads the line's times; a language 2 run reads a clock time as well as a duration.</param>
     /// <returns>The change, or <see langword="null"/> when its target has been reported.</returns>
     private DisturbanceSymbol? Disturbance(
-        DisturbanceSyntax statement, string circuit, Func<RangeOrPointSyntax, (Quantity? From, Quantity? To)> times)
+        ChangeLine statement, string circuit, Func<RangeOrPointSyntax, (Quantity? From, Quantity? To)> times)
     {
         var target = statement.Target;
-        var component = target.Component.Token.Text;
+        var component = target.Component;
 
         if (target.Port is not { } written)
         {
@@ -518,7 +518,7 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        var parameter = written.Text;
+        var parameter = written;
 
         if (!_componentsByName.TryGetValue(component, out var slot))
         {
@@ -560,7 +560,7 @@ internal sealed partial class BindingRun
 
             if (suggestion is not null)
             {
-                ReportLegacySpelling(written.Span, parameter, suggestion);
+                ReportLegacySpelling(target.PortSpan, parameter, suggestion);
             }
 
             dimension = info.Dimension;

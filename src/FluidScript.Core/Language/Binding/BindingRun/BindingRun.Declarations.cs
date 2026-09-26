@@ -70,7 +70,7 @@ internal sealed partial class BindingRun
                         break;
 
                     default:
-                        foreach (var line in block.Lines.GetValueOrDefault(statement) ?? [])
+                        foreach (var line in block.LinesAt(statement).OfType<ConnectionLine>())
                         {
                             if (!line.Pipe.IsEmpty)
                             {
@@ -90,7 +90,7 @@ internal sealed partial class BindingRun
         // A name a `let` holds is left for the topology pass to refuse (FS1523), not absorbed.
         foreach (var block in blocks)
         {
-            foreach (var endpoint in block.AllLines.SelectMany(static line => line.Ends))
+            foreach (var endpoint in block.LinesOf<ConnectionLine>().SelectMany(static line => line.Ends))
             {
                 var name = endpoint.Component;
 

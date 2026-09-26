@@ -322,16 +322,14 @@ internal sealed partial class BindingRun
 
     private AttachmentSymbol? Attachment(CircuitBlock block, AttachmentDirection direction)
     {
-        var statement = block.Statements
-            .OfType<AttachmentSyntax>()
-            .FirstOrDefault(attachment => attachment.Direction == direction);
+        var statement = block.LinesOf<AttachmentLine>().FirstOrDefault(attachment => attachment.Direction == direction);
 
         if (statement is null)
         {
             return null;
         }
 
-        var name = statement.Endpoint.Component.Token.Text;
+        var name = statement.End.Component;
 
         // An ordinary name lookup rather than a qualified one: identifiers are unique across the model
         // (`D-41`), which is exactly what an attachment relies on.
