@@ -7,9 +7,9 @@ using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class TranslationRun
+internal sealed partial class Language2Reader
 {
     /// <summary>Translates a value into what language 1's evaluator reads.</summary>
     /// <remarks>

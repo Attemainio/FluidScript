@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
@@ -9,33 +10,30 @@ using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
-/// <summary>One translation of one language 2 parse. Not reusable, and not shared between threads.</summary>
+/// <summary>Reads a language 2 tree into the records the binder binds (<c>D-177</c>, <c>D-178</c>). Not reusable, and not shared between threads.</summary>
 /// <remarks>
 /// <para>
-/// The binder reads statements in file order and partitions them by <see cref="CircuitHeaderSyntax"/>, so the
-/// order written here is part of the meaning: the file-wide statements first (the version, the project and its
-/// presentation, the cases, the curves), then each circuit's header, fluid and style ahead of its body. The
-/// <c>let</c>s go after the first circuit's header, because the binder files a statement before any circuit into
-/// an implicit circuit of its own.
+/// The binder's front end for language 2 (<c>19</c> §Binding directly). It settles what language 2 leaves to the
+/// plant -- every unnamed port, by the direction of flow; a sensor written in a chain, on a node of its own; a
+/// controller's line from its <c>moves</c> and <c>reads</c> -- and hands the binder circuits, links, controls, curves,
+/// cases and the project as records, with the declarations, <c>let</c>s and runs as the tree has them and their values
+/// in the form the evaluator reads (a bare <c>K</c> as a difference, a list's unit on each item, an exchanger's
+/// <c>primary</c> and <c>secondary</c> as its ports).
 /// </para>
 /// <para>
-/// A token made here has a span inside the language 2 text it stands for — a zero-length one where it stands for
-/// nothing written, such as the <c>=</c> of <c>length=</c> — and never one that runs backwards: a node's span
-/// runs from its first token to its last, so tokens keep source order within every node built here.
+/// It began as the translation into language 1's statements (package 3), and makes the same decisions, which the
+/// frozen corpus holds it to (<c>D-178</c>). A token made here has a span inside the language 2 text it stands for --
+/// a zero-length one where it stands for nothing written -- so every diagnostic lands on what the user wrote.
 /// </para>
+/// <para><strong>Never throws on user input</strong> (principle P4): what it cannot place is reported and left out.</para>
 /// </remarks>
-internal sealed partial class TranslationRun(ParseResult source, IComponentRegistry registry)
+internal sealed partial class Language2Reader(ParseResult source, IComponentRegistry registry)
 {
-    private readonly ImmutableArray<Diagnostic>.Builder _diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+    private readonly Language2Reading _reading = new();
 
-    /// <summary>The file-wide statements, in the order the binder reads them.</summary>
-    private readonly List<StatementSyntax> _fileWide = [];
-
-    private readonly List<StatementSyntax> _lets = [];
-    private readonly List<StatementSyntax> _circuits = [];
-    private readonly List<StatementSyntax> _runs = [];
+    private readonly List<LetBindingSyntax> _lets = [];
 
     /// <summary>Every declared component's kind, by name, for what a kind decides here: whether it is a sensor.</summary>
     private readonly Dictionary<string, ComponentKindInfo?> _kinds = new(StringComparer.Ordinal);
@@ -48,26 +46,22 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
 
     private int _untitled;
 
-    public ParseResult Execute()
+    /// <summary>Reads the tree.</summary>
+    /// <returns>What the binder binds, and what the reading itself had to say.</returns>
+    public Language2Reading Execute()
     {
-        _diagnostics.AddRange(source.Diagnostics);
-
         var circuits = new List<BlockSyntax>();
 
         foreach (var statement in source.Root.Statements)
         {
             switch (statement)
             {
-                case VersionDirectiveSyntax version:
-                    _fileWide.Add(version);
-                    break;
-
                 case BlockSyntax { Head: ProjectHeadSyntax } project:
-                    TranslateProject(project);
+                    ReadProject(project);
                     break;
 
                 case BlockSyntax { Head: DriverCurveHeadSyntax } curve:
-                    TranslateCurve(curve);
+                    ReadCurve(curve);
                     break;
 
                 case BlockSyntax { Head: CircuitHeadSyntax } circuit:
@@ -79,11 +73,11 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
                     break;
 
                 case BlockSyntax { Head: RunHeadSyntax } run:
-                    _runs.Add(TranslateRun(run));
+                    _reading.Runs.Add(ReadRun(run));
                     break;
 
-                // Anything else at the top level is a statement the parser already reported as out of its
-                // block (FS1802) or could not read.
+                // The version line, and anything else at the top level: a statement the parser already reported as
+                // out of its block (FS1802) or could not read.
                 default:
                     break;
             }
@@ -95,18 +89,16 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
 
         for (var index = 0; index < circuits.Count; index++)
         {
-            TranslateCircuit(circuits[index], withLets: index == 0);
+            _reading.Circuits.Add(ReadCircuit(circuits[index], withLets: index == 0));
         }
 
+        // A file with no circuit keeps its `let`s in the one circuit the binder gives every file.
         if (circuits.Count == 0)
         {
-            _circuits.AddRange(_lets);
+            _reading.Circuits.Add(new BindingRun.CircuitBlock(null, [.. _lets]));
         }
 
-        // Last, so every name a run targets is declared above it; the binder steps over a run in its
-        // circuit partition and binds it once the model is complete.
-        var root = new ScriptSyntax([.. _fileWide, .. _circuits, .. _runs], source.Root.EndOfFile);
-        return new ParseResult(source.Source, root, _diagnostics.ToImmutable()) { Language = 2, Translated = true };
+        return _reading;
     }
 
     // ---- tokens made here ----------------------------------------------------------------------
@@ -114,10 +106,6 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
     /// <summary>A token standing for something language 2 writes differently or not at all.</summary>
     private static Token Made(TokenKind kind, string text, TextSpan span) =>
         new() { Kind = kind, Text = text, Span = span };
-
-    /// <summary>A language 1 keyword that language 2 does not write, placed where its statement begins.</summary>
-    private static Token Keyword(ReservedWord word, string text, int at) =>
-        new() { Kind = TokenKind.Keyword, Keyword = word, Text = text, Span = new TextSpan(at, 0) };
 
     private static Token EqualsAt(int at) => Made(TokenKind.Equals, "=", new TextSpan(at, 0));
 
@@ -136,10 +124,38 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
     // ---- diagnostics ---------------------------------------------------------------------------
 
     private void Report(DiagnosticDescriptor descriptor, TextSpan span, params (string Name, string Value)[] arguments) =>
-        _diagnostics.Add(Diagnostic.Create(
+        _reading.Diagnostics.Add(Diagnostic.Create(
             descriptor,
             span,
             [.. arguments.Select(static argument => new DiagnosticArgument(argument.Name, argument.Value))]));
 
     private string Text(SyntaxNode node) => source.Source.ToString(node.Span);
+}
+
+/// <summary>What <see cref="Language2Reader"/> hands the binder, in the order the binder applies it.</summary>
+internal sealed class Language2Reading
+{
+    /// <summary>Gets what the reading itself reported: ports it could not settle, settings a block does not take.</summary>
+    public List<Diagnostic> Diagnostics { get; } = [];
+
+    /// <summary>Gets each project block's title, or <c>project</c> where it has none.</summary>
+    public List<string> Projects { get; } = [];
+
+    /// <summary>Gets or sets the drawing's spacing, the last stated.</summary>
+    public double? Spacing { get; set; }
+
+    /// <summary>Gets the project's <c>style:</c> blocks, merged per project block into one list of style tokens.</summary>
+    public List<ImmutableArray<StyleTokenSyntax>> ProjectStyles { get; } = [];
+
+    /// <summary>Gets the <c>show</c> settings, in the order written.</summary>
+    public List<VisualizationSymbol> Visualizations { get; } = [];
+
+    /// <summary>Gets the curves, the cases and the design case, in the order written.</summary>
+    public List<BindingRun.FileLine> FileLines { get; } = [];
+
+    /// <summary>Gets the circuits, in the order written; never empty.</summary>
+    public List<BindingRun.CircuitBlock> Circuits { get; } = [];
+
+    /// <summary>Gets the runs, their values in the form the evaluator reads.</summary>
+    public List<BlockSyntax> Runs { get; } = [];
 }

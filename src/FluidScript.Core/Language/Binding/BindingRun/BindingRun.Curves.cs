@@ -50,7 +50,7 @@ internal sealed partial class BindingRun
     {
         var drafts = new List<CurveDraft>();
 
-        foreach (var line in FileLines())
+        foreach (var line in _language2?.FileLines ?? FileLines())
         {
             switch (line)
             {
@@ -468,10 +468,10 @@ internal sealed partial class BindingRun
 
     /// <summary>A file-wide line as the binder reads it (<c>D-177</c>): a curve, the cases, or the design choice.</summary>
     /// <param name="Span">The line, or a curve's header.</param>
-    private abstract record FileLine(TextSpan Span);
+    internal abstract record FileLine(TextSpan Span);
 
     /// <summary>A curve and its rows; the rows are read as text, which both languages write alike.</summary>
-    private sealed record CurveDraft(CurveHead Header, List<CurveRowSyntax> Rows) : FileLine(Header.Span);
+    internal sealed record CurveDraft(CurveHead Header, List<CurveRowSyntax> Rows) : FileLine(Header.Span);
 
     /// <summary>A curve's header.</summary>
     /// <param name="Name">The curve's name.</param>
@@ -479,7 +479,7 @@ internal sealed partial class BindingRun
     /// <param name="Words">Its bare words, <c>extrapolated</c> alone being one it takes.</param>
     /// <param name="Arguments">Its named arguments, <c>format</c> alone being one it takes.</param>
     /// <param name="Span">The header.</param>
-    private sealed record CurveHead(
+    internal sealed record CurveHead(
         string Name,
         string? Driver,
         ImmutableArray<(string Text, TextSpan Span)> Words,
@@ -489,12 +489,12 @@ internal sealed partial class BindingRun
     /// <summary>The cases, in the order written, which is what a list binds to (<c>D-143</c>).</summary>
     /// <param name="Names">Each case's name and where it is written.</param>
     /// <param name="Span">The line, where a missing design case is reported.</param>
-    private sealed record CaseNames(ImmutableArray<(string Name, TextSpan Span)> Names, TextSpan Span) : FileLine(Span);
+    internal sealed record CaseNames(ImmutableArray<(string Name, TextSpan Span)> Names, TextSpan Span) : FileLine(Span);
 
     /// <summary>The design choice: the case the file operates at, or language 1's driver values (<c>D-58</c>).</summary>
     /// <param name="Case">The case named, or <see langword="null"/> in the driver form.</param>
     /// <param name="Arguments">The driver values, in the driver form.</param>
     /// <param name="Span">The line.</param>
-    private sealed record DesignLine((string Name, TextSpan Span)? Case, ImmutableArray<ParameterSyntax> Arguments, TextSpan Span)
+    internal sealed record DesignLine((string Name, TextSpan Span)? Case, ImmutableArray<ParameterSyntax> Arguments, TextSpan Span)
         : FileLine(Span);
 }

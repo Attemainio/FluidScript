@@ -46,14 +46,6 @@ public sealed class Binder
     {
         ArgumentNullException.ThrowIfNull(parse);
 
-        // The direct path (`19` §Binding directly). Package 6a: it delegates to the translation, so the harness that
-        // holds the two paths equal starts equal; each later step reads one more area of the tree itself.
-        if (parse.Language == 2 && !parse.Translated)
-        {
-            var translated = Translation.Language2Translator.Translate(parse, _registry);
-            parse = translated with { Diagnostics = Translation.Language2Wording.Apply(translated.Diagnostics) };
-        }
-
         var bound = new BindingRun(_registry, parse, documentName).Execute();
 
         // The binder's messages are language 1's; a language 2 file reads them in its own words (19 §Diagnostics).

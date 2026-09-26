@@ -7,9 +7,9 @@ using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class TranslationRun
+internal sealed partial class Language2Reader
 {
     /// <summary>The port inferred for one end of one link, by the endpoint's position and the direction of flow at it.</summary>
     private readonly Dictionary<(int Start, bool Inflow), string> _inferred = [];

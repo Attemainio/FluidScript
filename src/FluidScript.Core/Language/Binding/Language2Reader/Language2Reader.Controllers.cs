@@ -8,7 +8,7 @@ using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
 /// <content>A controller written as one declaration (<c>D-168</c>, <c>19</c> §Controllers).</content>
 /// <remarks>
@@ -18,7 +18,7 @@ namespace FluidScript.Core.Language.Translation;
 /// line takes what is read in the units of what it moves or measures (<c>setpoint</c>, <c>band</c>,
 /// <c>differential</c>, <c>output</c>, <c>curve</c>).
 /// </remarks>
-internal sealed partial class TranslationRun
+internal sealed partial class Language2Reader
 {
     /// <summary>Every setting a language 2 controller has, in <c>19</c>'s order.</summary>
     private static readonly ImmutableArray<string> ControllerSettings =
@@ -41,24 +41,25 @@ internal sealed partial class TranslationRun
             ["curve"] = ["curve"],
         }.ToImmutableDictionary(StringComparer.Ordinal);
 
-    /// <summary>A declaration, and for a controller the control line it implies.</summary>
-    private IEnumerable<StatementSyntax> Declare(ComponentDeclarationSyntax declaration, ImmutableArray<ParameterSyntax> body)
+    /// <summary>Files a declaration in its circuit, and for a controller the control line it implies under it.</summary>
+    private void Declare(BindingRun.CircuitBlock circuit, ComponentDeclarationSyntax declaration, ImmutableArray<ParameterSyntax> body)
     {
         if (_kinds.GetValueOrDefault(declaration.Name.Text)?.Keyword != "controller")
         {
-            yield return Declaration(declaration, body);
-            yield break;
+            circuit.Statements.Add(Declaration(declaration, body));
+            return;
         }
 
         var settings = Controller(declaration, [.. declaration.Parameters, .. body]);
-
-        yield return Declaration(
+        var declared = Declaration(
             declaration with { Parameters = [] },
             [.. settings.Where(static setting => DeclaredSettings.Contains(NameResolution.Normalize(setting.Name.Text)))]);
 
-        if (ControlLine(declaration, settings) is { } control)
+        circuit.Statements.Add(declared);
+
+        if (ControlOf(declaration, settings) is { } control)
         {
-            yield return control;
+            circuit.Lines[declared] = [control];
         }
     }
 
@@ -126,13 +127,17 @@ internal sealed partial class TranslationRun
         return kept;
     }
 
-    /// <summary>The control line a controller's <c>moves</c> and <c>reads</c> imply, in language 1's short form (<c>D-61</c>).</summary>
+    /// <summary>The control line a controller's <c>moves</c> and <c>reads</c> imply, in the short form (<c>D-61</c>).</summary>
     /// <returns>
     /// The line, or <see langword="null"/> when <c>moves</c> or <c>reads</c> is missing (<c>FS1521</c>) or unreadable, and
-    /// for a <c>curve</c> controller reading a driver or the clock, which language 1's line cannot name: that
+    /// for a <c>curve</c> controller reading a driver or the clock, which a control line cannot name: that
     /// controller binds as a declaration, and <c>FS1810</c> already says it is not run.
     /// </returns>
-    private ControlBindingSyntax? ControlLine(ComponentDeclarationSyntax declaration, List<ParameterSyntax> settings)
+    /// <remarks>
+    /// The line reports against the declaration, from where it begins to its last setting, or to what it reads; the
+    /// controller is named at the end of what it reads, where the short form would write it.
+    /// </remarks>
+    private BindingRun.ControlLine? ControlOf(ComponentDeclarationSyntax declaration, List<ParameterSyntax> settings)
     {
         var moves = settings.FirstOrDefault(static setting => Key(setting) == "moves");
         var reads = settings.FirstOrDefault(static setting => Key(setting) == "reads");
@@ -159,18 +164,15 @@ internal sealed partial class TranslationRun
             return null;
         }
 
-        var at = declaration.Span.Start;
+        ImmutableArray<ParameterSyntax> arguments =
+            [.. settings.Where(static setting => !DeclaredSettings.Contains(Key(setting)) && Key(setting) is not ("moves" or "reads")).Select(Parameter)];
 
-        return new ControlBindingSyntax(
-            Keyword(ReservedWord.Control, "control", at),
-            [.. settings.Where(static setting => !DeclaredSettings.Contains(Key(setting)) && Key(setting) is not ("moves" or "reads")).Select(Parameter)])
-        {
-            Actuator = actuator,
-            WithKeyword = Made(TokenKind.Identifier, "with", new TextSpan(actuator.Span.End, 0)),
-            Sensor = sensor,
-            ByKeyword = Made(TokenKind.Identifier, "by", new TextSpan(sensor.Span.End, 0)),
-            Controller = Identifier(declaration.Name.Text, new TextSpan(sensor.Span.End, 0)),
-        };
+        return new BindingRun.ControlLine(
+            BindingRun.LineEnd.Of(actuator),
+            BindingRun.LineEnd.Of(sensor),
+            (declaration.Name.Text, new TextSpan(sensor.Span.End, 0)),
+            arguments,
+            TextSpan.FromBounds(declaration.Span.Start, arguments.IsEmpty ? sensor.Span.End : arguments[^1].Span.End));
     }
 
     /// <summary>A <c>moves</c> or <c>reads</c> value as an endpoint: a name, or a name and a property.</summary>

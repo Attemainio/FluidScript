@@ -2,17 +2,16 @@ using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
 /// <content>A run (<c>D-169</c>, <c>19</c> §Runs).</content>
 /// <remarks>
-/// Language 1 has no statement for a run — its schedule, its <c>start=</c> and its dynamic circuits are the
-/// file's, not a run's — so the block reaches the binder as it was written, its values in language 1's
-/// spelling, and the binder binds it to a <see cref="Binding.Symbols.RunSymbol"/> of its own.
+/// The block reaches the binder as it was written, its values in the form the evaluator reads, and the binder binds
+/// it to a <see cref="Symbols.RunSymbol"/>.
 /// </remarks>
-internal sealed partial class TranslationRun
+internal sealed partial class Language2Reader
 {
-    private BlockSyntax TranslateRun(BlockSyntax run) =>
+    private BlockSyntax ReadRun(BlockSyntax run) =>
         run with
         {
             Body =

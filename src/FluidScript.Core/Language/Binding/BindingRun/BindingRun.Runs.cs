@@ -32,7 +32,7 @@ internal sealed partial class BindingRun
 
     private void BindRuns()
     {
-        foreach (var block in parse.Root.Statements.OfType<BlockSyntax>())
+        foreach (var block in _language2?.Runs ?? parse.Root.Statements.OfType<BlockSyntax>())
         {
             if (block.Head is RunHeadSyntax head)
             {

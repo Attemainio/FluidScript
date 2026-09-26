@@ -233,31 +233,46 @@ internal sealed partial class BindingRun
     /// </remarks>
     private void ReviewLegacyReferences()
     {
-        foreach (var statement in parse.Root.Statements)
+        foreach (var expression in ReviewedExpressions())
         {
-            foreach (var expression in Expressions(statement))
+            foreach (var reference in References(expression))
             {
-                foreach (var reference in References(expression))
+                if (reference.Parts.IsEmpty
+                    || !_componentsByName.TryGetValue(reference.Head.Token.Text, out var slot)
+                    || _components[slot.Index].Kind is not { } kind)
                 {
-                    if (reference.Parts.IsEmpty
-                        || !_componentsByName.TryGetValue(reference.Head.Token.Text, out var slot)
-                        || _components[slot.Index].Kind is not { } kind)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    var written = reference.PropertyPath();
-                    kind.ResolveProperty(written, out var suggestion);
+                var written = reference.PropertyPath();
+                kind.ResolveProperty(written, out var suggestion);
 
-                    if (suggestion is not null)
-                    {
-                        var span = TextSpan.FromBounds(reference.Parts[0].Name.Span.Start, reference.Span.End);
-                        ReportLegacySpelling(span, written, suggestion);
-                    }
+                if (suggestion is not null)
+                {
+                    var span = TextSpan.FromBounds(reference.Parts[0].Name.Span.Start, reference.Span.End);
+                    ReportLegacySpelling(span, written, suggestion);
                 }
             }
         }
     }
+
+    /// <summary>Every expression the file writes outside a run: language 1's statements, or what language 2's front end read.</summary>
+    private IEnumerable<ExpressionSyntax> ReviewedExpressions() => _language2 is not { } reading
+        ? parse.Root.Statements.SelectMany(Expressions)
+        : reading.Circuits
+            .SelectMany(static block => block.Statements.SelectMany(statement => Expressions(statement).Concat(block.LinesAt(statement).SelectMany(static line => line switch
+            {
+                ConnectionLine connection => ParameterValues(connection.Pipe),
+                ControlLine control => ParameterValues(control.Arguments),
+                _ => [],
+            }))))
+            .Concat(reading.FileLines.OfType<CurveDraft>().SelectMany(static draft => ParameterValues(draft.Header.Arguments)));
+
+    /// <summary>The values of a list of parameters, a list's elements one by one (<c>D-143</c>).</summary>
+    private static IEnumerable<ExpressionSyntax> ParameterValues(IEnumerable<ParameterSyntax> parameters) =>
+        parameters.SelectMany(static parameter => parameter.Value is ScenarioListSyntax list
+            ? list.Elements.Select(static element => element.Value)
+            : [parameter.Value]);
 
     /// <summary>Every expression a statement carries: its parameters' values and a <c>let</c>'s right-hand side.</summary>
     private static IEnumerable<ExpressionSyntax> Expressions(StatementSyntax statement)

@@ -5,22 +5,22 @@ using FluidScript.Core.Language.Translation;
 
 namespace FluidScript.Core.Language.Compatibility;
 
-/// <summary>Parses a file under the language major its version line selected, into the statements the binder reads.</summary>
+/// <summary>Parses a file under the language major its version line selected.</summary>
 /// <remarks>
 /// <c>18</c>'s invariant 2 puts version selection before parsing; this is the step after it. Language 1 is parsed
-/// by <see cref="FluidScriptParser"/>. Language 2 is parsed by <see cref="FluidScript2Parser"/> and translated
-/// (<see cref="Language2Translator"/>), so the one binder reads both (<c>D-164</c>). A file with no version line is
-/// the current major's, which is language 1 until <c>P6.11</c>'s switch-over.
+/// by <see cref="FluidScriptParser"/> and language 2 by <see cref="FluidScript2Parser"/>, whose tree the binder reads
+/// directly (<c>D-177</c>, <c>D-178</c>). A file with no version line is the current major's, which is language 1
+/// until <c>P6.11</c>'s switch-over.
 /// </remarks>
 public static class MajorParser
 {
     /// <summary>Parses source text for binding.</summary>
     /// <param name="source">The script.</param>
     /// <param name="major">The major <see cref="ScriptCompatibility.Inspect"/> detected; <see langword="null"/> for an unversioned draft.</param>
-    /// <param name="registry">The component kinds, which language 2's translation reads.</param>
+    /// <param name="registry">The component kinds; kept so a caller need not know which major reads them.</param>
     /// <returns>
-    /// The tree the binder reads, with every parser and translation diagnostic — in language 2's words for a language 2
-    /// file (<see cref="Language2Wording"/>).
+    /// The tree the binder reads, with every parser diagnostic -- in language 2's words for a language 2 file
+    /// (<see cref="Language2Wording"/>).
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="registry"/> is <see langword="null"/>.</exception>
     public static ParseResult Parse(SourceText source, LanguageMajor? major, IComponentRegistry registry)
@@ -33,23 +33,7 @@ public static class MajorParser
             return FluidScriptParser.Parse(source);
         }
 
-        var translated = Language2Translator.Translate(FluidScript2Parser.Parse(source), registry);
-        return translated with { Diagnostics = Language2Wording.Apply(translated.Diagnostics) };
-    }
-
-    /// <summary>Parses source text for the binder's direct path: a language 2 file's own tree, untranslated.</summary>
-    /// <param name="source">The script.</param>
-    /// <param name="major">The major <see cref="ScriptCompatibility.Inspect"/> detected; <see langword="null"/> for an unversioned draft.</param>
-    /// <returns>The language 2 parser's tree and diagnostics, or language 1's parse for any other major.</returns>
-    /// <remarks>
-    /// <c>P6.11</c> package 6 (<c>19</c> §Binding directly): the binder reads this tree itself. Until package 7 the
-    /// pipeline keeps <see cref="Parse"/>, and the two paths are held equal on the converted corpus.
-    /// </remarks>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    public static ParseResult ParseDirect(SourceText source, LanguageMajor? major)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-
-        return major is { Value: 2 } ? FluidScript2Parser.Parse(source) : FluidScriptParser.Parse(source);
+        var parse = FluidScript2Parser.Parse(source);
+        return parse with { Diagnostics = Language2Wording.Apply(parse.Diagnostics) };
     }
 }

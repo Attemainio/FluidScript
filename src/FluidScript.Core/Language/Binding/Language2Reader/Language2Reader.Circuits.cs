@@ -9,9 +9,9 @@ using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 
-namespace FluidScript.Core.Language.Translation;
+namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class TranslationRun
+internal sealed partial class Language2Reader
 {
     private const string CircuitSettings = "fluid, number, role, style";
 
@@ -90,15 +90,17 @@ internal sealed partial class TranslationRun
         _ => null,
     };
 
-    /// <summary>Translates one circuit block: its header, settings, style and body, in the order the binder reads them.</summary>
-    private void TranslateCircuit(BlockSyntax block, bool withLets)
+    /// <summary>Reads one circuit block: its header, settings, style and body.</summary>
+    /// <param name="block">The block.</param>
+    /// <param name="withLets">Whether the file's <c>let</c>s go in this circuit: the first, as language 2 declares them for the file.</param>
+    private BindingRun.CircuitBlock ReadCircuit(BlockSyntax block, bool withLets)
     {
         var head = (CircuitHeadSyntax)block.Head;
 
         NumberLiteralSyntax? number = null;
         IdentifierSyntax? role = null;
-        FluidDirectiveSyntax? fluid = null;
-        var styles = new List<StyleDirectiveSyntax>();
+        BindingRun.CircuitFluid? fluid = null;
+        var styles = new List<ImmutableArray<StyleTokenSyntax>>();
 
         foreach (var line in block.Body)
         {
@@ -139,45 +141,43 @@ internal sealed partial class TranslationRun
             }
         }
 
-        _circuits.Add(new CircuitHeaderSyntax(head.Keyword, Title(head.Title, head.Keyword, "circuit"), number) { Role = role });
-
-        if (fluid is not null)
+        // The header's span runs from the keyword to the title, or to the number where one is stated.
+        var title = Title(head.Title, head.Keyword, "circuit");
+        var circuit = new BindingRun.CircuitBlock(
+            new BindingRun.CircuitHead(
+                title.Text,
+                TextSpan.FromBounds(head.Keyword.Span.Start, number?.Span.End ?? title.Span.End),
+                number?.Value is { } stated ? (int)stated : null,
+                role is null ? null : (role.Text, role.Span)),
+            withLets ? [.. _lets] : [])
         {
-            _circuits.Add(fluid);
-        }
-
-        if (withLets)
-        {
-            _circuits.AddRange(_lets);
-        }
-
-        if (Merged(styles) is { } merged)
-        {
-            _circuits.Add(merged);
-        }
+            Fluid = fluid,
+            Style = Merged(styles) ?? [],
+        };
 
         foreach (var line in block.Body)
         {
             switch (line)
             {
                 case ComponentDeclarationSyntax declaration:
-                    _circuits.AddRange(Declare(declaration, []));
+                    Declare(circuit, declaration, []);
                     break;
 
                 case BlockSyntax { Head: ComponentDeclarationSyntax declaration } component:
-                    _circuits.AddRange(Declare(
+                    Declare(
+                        circuit,
                         declaration,
-                        [.. component.Body.OfType<SettingLineSyntax>().SelectMany(static settings => settings.Assignments)]));
+                        [.. component.Body.OfType<SettingLineSyntax>().SelectMany(static settings => settings.Assignments)]);
                     break;
 
                 case ConnectionSyntax chain:
-                    _circuits.AddRange(TranslateChain(chain, []));
+                    Link(circuit, chain, ReadChain(chain, []));
                     break;
 
                 case PipedConnectionSyntax piped:
                     // More than one link is FS1803 from the parser, and the chain binds without the pipe rather
-                    // than giving every link the same one, which is what language 1 would do (`D-166`).
-                    _circuits.AddRange(TranslateChain(
+                    // than giving every link the same one (`D-166`).
+                    Link(circuit, piped, ReadChain(
                         piped.Connection,
                         piped.Connection.Links.Length == 1 ? Pipe(piped.Properties) : []));
                     break;
@@ -186,19 +186,33 @@ internal sealed partial class TranslationRun
                     break;
             }
         }
+
+        return circuit;
     }
 
-    private FluidDirectiveSyntax? Fluid(ParameterSyntax setting)
+    /// <summary>Files a chain's links under the statement that wrote them, so they are read where it stands.</summary>
+    private static void Link(BindingRun.CircuitBlock circuit, StatementSyntax chain, IEnumerable<BindingRun.ConnectionLine> links)
     {
-        var keyword = Keyword(ReservedWord.Fluid, "fluid", setting.Span.Start);
+        circuit.Statements.Add(chain);
+        circuit.Lines[chain] = [.. links];
+    }
+
+    /// <summary>A circuit's fluid, <c>water</c> or <c>glycol(30%)</c>, reported against where it is written.</summary>
+    /// <remarks>The span runs from where the setting begins to the fluid's name, or to its last argument.</remarks>
+    private BindingRun.CircuitFluid? Fluid(ParameterSyntax setting)
+    {
+        var start = setting.Span.Start;
 
         return setting.Value switch
         {
             ReferenceSyntax { Parts.IsDefaultOrEmpty: true } named =>
-                new FluidDirectiveSyntax(keyword, null, named.Head, []),
+                new BindingRun.CircuitFluid(named.Head.Token.Text, null, TextSpan.FromBounds(start, named.Head.Span.End)),
             CallSyntax call =>
-                new FluidDirectiveSyntax(keyword, null, call.Name, [.. call.Arguments.Select(argument => Value(argument.Value))]),
-            _ => Rejected<FluidDirectiveSyntax>(setting, "a fluid, such as water"),
+                new BindingRun.CircuitFluid(
+                    call.Name.Token.Text,
+                    null,
+                    TextSpan.FromBounds(start, call.Arguments.IsEmpty ? call.Name.Span.End : Value(call.Arguments[^1].Value).Span.End)),
+            _ => Rejected<BindingRun.CircuitFluid>(setting, "a fluid, such as water"),
         };
     }
 
@@ -267,23 +281,25 @@ internal sealed partial class TranslationRun
     private ParameterSyntax Parameter(ParameterSyntax parameter) =>
         parameter with { Name = PortName(parameter.Name), Value = Value(parameter.Value) };
 
-    /// <summary>Translates a chain into one connection per link, each end with its port written out.</summary>
+    /// <summary>Reads a chain as one connection per link, each end with its port written out.</summary>
     /// <remarks>
     /// Language 1 reads <c>A - B - C</c> as two connections (rule I6) and gives an unnamed end a port by preference
     /// order. Language 2's ports come from the flow direction (<see cref="InferPorts"/>), and a component in the middle
     /// of a chain takes a different port on each side of it, which one language 1 endpoint cannot say — so the chain
     /// is written link by link. The pipe of a one-link line stays on that line.
     /// </remarks>
-    private IEnumerable<ConnectionSyntax> TranslateChain(ConnectionSyntax chain, ImmutableArray<ParameterSyntax> pipe)
+    private IEnumerable<BindingRun.ConnectionLine> ReadChain(ConnectionSyntax chain, ImmutableArray<ParameterSyntax> pipe)
     {
         var endpoints = chain.Endpoints;
 
         for (var i = 0; i < chain.Links.Length; i++)
         {
-            yield return new ConnectionSyntax(
+            var link = new ConnectionSyntax(
                 Endpoint(endpoints[i], inflow: false),
                 [chain.Links[i] with { Endpoint = Endpoint(endpoints[i + 1], inflow: true) }],
                 pipe);
+
+            yield return new BindingRun.ConnectionLine([.. link.Endpoints.Select(BindingRun.LineEnd.Of)], pipe, link.Span);
         }
     }
 

@@ -6,6 +6,7 @@ using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
+using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Binding;
 
@@ -324,24 +325,27 @@ internal sealed partial class BindingRun
         return style;
     }
 
-    private void ReadStyle(StyleDirectiveSyntax style)
+    /// <summary>Reads a style: a definition when it is named, else what it applies from here on.</summary>
+    /// <param name="named">The name a definition gives it, or <see langword="null"/>.</param>
+    /// <param name="parts">Its tokens.</param>
+    private void ReadStyle(Token? named, ImmutableArray<StyleTokenSyntax> parts)
     {
         var reported = (DiagnosticDescriptor descriptor, TextSpan span, (string Name, string Value)[] arguments) => Report(descriptor, span, arguments);
 
-        if (style.Name is { } name)
+        if (named is { } name)
         {
             if (_styleDefinitions.ContainsKey(name.Text))
             {
                 Report(StyleDiagnostics.RedefinedStyle, name.Span, ("name", name.Text));
             }
 
-            _styleDefinitions[name.Text] = StyleTokens.Classify(style.Parts, reported);
+            _styleDefinitions[name.Text] = StyleTokens.Classify(parts, reported);
             return;
         }
 
         // A single bare word that names a defined style applies it; any other token list is an
         // anonymous style read for what its tokens are.
-        if (style.Parts is [{ Kind: StyleTokenKind.Word } word] && !NamedColours.TryGet(word.Text, out _)
+        if (parts is [{ Kind: StyleTokenKind.Word } word] && !NamedColours.TryGet(word.Text, out _)
             && word.Text is not ("fillet" or "round" or "sharp"))
         {
             if (_styleDefinitions.TryGetValue(word.Text, out var defined))
@@ -356,6 +360,6 @@ internal sealed partial class BindingRun
             return;
         }
 
-        _currentStyle = _currentStyle.Merge(StyleTokens.Classify(style.Parts, reported));
+        _currentStyle = _currentStyle.Merge(StyleTokens.Classify(parts, reported));
     }
 }

@@ -52,7 +52,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     public BindResult Execute()
     {
-        var circuits = Partition();
+        var circuits = parse.Language == 2 ? ReadLanguage2() : Partition();
 
         CollectCurves();
         CollectDeclarations(circuits);
@@ -104,6 +104,56 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     // ---- step 0: circuits, and the file-wide settings -------------------------------------------
 
+    /// <summary>What language 2's front end read, or <see langword="null"/> for a language 1 file.</summary>
+    private Language2Reading? _language2;
+
+    /// <summary>Step 0 for a language 2 file: its own tree, read into the binder's records (<c>D-177</c>, <c>D-178</c>).</summary>
+    /// <remarks>
+    /// The project and its presentation first, then each circuit from the project's style with its own merged over it,
+    /// which is what a declaration written in it carries (<c>D-171</c>).
+    /// </remarks>
+    private List<CircuitBlock> ReadLanguage2()
+    {
+        var reading = new Language2Reader(parse, registry).Execute();
+        _language2 = reading;
+        _diagnostics.AddRange(reading.Diagnostics);
+
+        foreach (var project in reading.Projects)
+        {
+            BindProject(project, null, []);
+        }
+
+        _spacing = reading.Spacing;
+
+        foreach (var style in reading.ProjectStyles)
+        {
+            _styleTokens.AddRange(style);
+            ReadStyle(null, style);
+            _projectStyle = _currentStyle;
+        }
+
+        _visualizations.AddRange(reading.Visualizations);
+
+        foreach (var block in reading.Circuits)
+        {
+            _currentStyle = _projectStyle;
+
+            if (!block.Style.IsEmpty)
+            {
+                _styleTokens.AddRange(block.Style);
+                ReadStyle(null, block.Style);
+            }
+
+            foreach (var statement in block.Statements.Where(_ => !_currentStyle.IsEmpty))
+            {
+                _styleAt[statement] = _currentStyle;
+            }
+        }
+
+        AssignCircuits(reading.Circuits);
+        return reading.Circuits;
+    }
+
     private List<CircuitBlock> Partition()
     {
         var blocks = new List<CircuitBlock>();
@@ -113,7 +163,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         // before its line (D-104).
         foreach (var definition in parse.Root.Statements.OfType<StyleDirectiveSyntax>().Where(static s => s.IsDefinition))
         {
-            ReadStyle(definition);
+            ReadStyle(definition.Name, definition.Parts);
         }
 
         foreach (var statement in parse.Root.Statements)
@@ -148,7 +198,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
                 case StyleDirectiveSyntax style:
                     _styleTokens.AddRange(style.Parts);
-                    ReadStyle(style);
+                    ReadStyle(style.Name, style.Parts);
 
                     if (current is null)
                     {
@@ -547,7 +597,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <summary>One circuit's statements, and the circuit as the binder reads it from either language (<c>D-177</c>).</summary>
     /// <param name="Head">The header, or <see langword="null"/> for the implicit circuit a file with none gets.</param>
     /// <param name="Statements">The statements inside it.</param>
-    private sealed record CircuitBlock(CircuitHead? Head, List<StatementSyntax> Statements)
+    internal sealed record CircuitBlock(CircuitHead? Head, List<StatementSyntax> Statements)
     {
         public CircuitSymbol? Circuit { get; set; }
 
@@ -556,6 +606,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         /// <summary>Gets or sets where the block's schedule section begins, or <see langword="null"/> when it has none.</summary>
         public TextSpan? Schedule { get; set; }
+
+        /// <summary>Gets or sets the style tokens a language 2 circuit's <c>style:</c> block states; language 1 writes its style as a line.</summary>
+        public ImmutableArray<StyleTokenSyntax> Style { get; set; } = [];
 
         /// <summary>Gets the lines each statement writes, keyed by the statement so they are read in written order.</summary>
         public Dictionary<StatementSyntax, List<BlockLine>> Lines { get; } = new(ReferenceEqualityComparer.Instance);
@@ -571,7 +624,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     /// <summary>A line in a circuit as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
     /// <param name="Span">The line, which what it binds reports against.</param>
-    private abstract record BlockLine(TextSpan Span)
+    internal abstract record BlockLine(TextSpan Span)
     {
         /// <summary>Gets the ends whose component names the symbol map records, so go-to-definition works from a use.</summary>
         public virtual IEnumerable<LineEnd> Mapped => [];
@@ -597,7 +650,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Ends">The ends; link <c>i</c> runs from end <c>i</c> to end <c>i + 1</c>.</param>
     /// <param name="Pipe">The pipe's properties the line states, lowered to an implicit pipe per link (<c>D-110</c>).</param>
     /// <param name="Span">The line, which every link on it reports against and which keys its implicit pipes.</param>
-    private sealed record ConnectionLine(ImmutableArray<LineEnd> Ends, ImmutableArray<ParameterSyntax> Pipe, TextSpan Span)
+    internal sealed record ConnectionLine(ImmutableArray<LineEnd> Ends, ImmutableArray<ParameterSyntax> Pipe, TextSpan Span)
         : BlockLine(Span)
     {
         /// <inheritdoc/>
@@ -610,7 +663,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Controller">The controller and where it is written, in the short form.</param>
     /// <param name="Arguments">The named arguments: all four in the named form, the setpoint and tuning in the short.</param>
     /// <param name="Span">The line.</param>
-    private sealed record ControlLine(
+    internal sealed record ControlLine(
         LineEnd? Actuator,
         LineEnd? Sensor,
         (string Name, TextSpan Span)? Controller,
@@ -625,7 +678,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Direction">Which side it declares.</param>
     /// <param name="End">The component it names.</param>
     /// <param name="Span">The line.</param>
-    private sealed record AttachmentLine(AttachmentDirection Direction, LineEnd End, TextSpan Span) : BlockLine(Span)
+    internal sealed record AttachmentLine(AttachmentDirection Direction, LineEnd End, TextSpan Span) : BlockLine(Span)
     {
         /// <inheritdoc/>
         public override IEnumerable<LineEnd> Mapped => [End];
@@ -636,7 +689,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="When">The instant, or the span a ramp takes.</param>
     /// <param name="Value">The value it ends at, or the range it runs through.</param>
     /// <param name="Span">The line.</param>
-    private sealed record ChangeLine(LineEnd Target, RangeOrPointSyntax When, RangeOrPointSyntax Value, TextSpan Span)
+    internal sealed record ChangeLine(LineEnd Target, RangeOrPointSyntax When, RangeOrPointSyntax Value, TextSpan Span)
         : BlockLine(Span)
     {
         /// <inheritdoc/>
@@ -652,7 +705,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Port">The port or property as written, or <see langword="null"/> when the end names none.</param>
     /// <param name="PortSpan">Where the port is written; the end's span when it names none.</param>
     /// <param name="Span">The whole end.</param>
-    private sealed record LineEnd(string Component, TextSpan ComponentSpan, string? Port, TextSpan PortSpan, TextSpan Span)
+    internal sealed record LineEnd(string Component, TextSpan ComponentSpan, string? Port, TextSpan PortSpan, TextSpan Span)
     {
         public static LineEnd Of(EndpointSyntax endpoint) => new(
             endpoint.Component.Token.Text,
@@ -667,7 +720,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Span">Where the header is written.</param>
     /// <param name="Number">The number written, if any.</param>
     /// <param name="Role">The role written, with where, if any.</param>
-    private sealed record CircuitHead(string Name, TextSpan Span, int? Number, (string Text, TextSpan Span)? Role)
+    internal sealed record CircuitHead(string Name, TextSpan Span, int? Number, (string Text, TextSpan Span)? Role)
     {
         public static CircuitHead Of(CircuitHeaderSyntax header) => new(
             header.Name.Text,
@@ -680,7 +733,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Substance">The substance as written.</param>
     /// <param name="Mode">The solve mode stated with it, or <see langword="null"/> for the project's.</param>
     /// <param name="Span">Where it is written, which a contradicted mode is reported against.</param>
-    private sealed record CircuitFluid(string Substance, FluidMode? Mode, TextSpan Span);
+    internal sealed record CircuitFluid(string Substance, FluidMode? Mode, TextSpan Span);
 
     private sealed record BindingSlot(LetBindingSyntax Declaration, ValueId Id);
 
