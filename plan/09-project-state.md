@@ -1427,15 +1427,16 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **52** | |
+| | **56** | |
 
-Recounted 2026-09-26 after 6d closed `L-69` and `L-70` and opened `L-71`: 52. After `L-69` (package 6b) and `L-70`
+Recounted 2026-09-26 after the package 6 audit filed `L-72`–`L-75` (found during the package, not logged at the
+time): 56. After 6d closed `L-69` and `L-70` and opened `L-71`: 52. After `L-69` (package 6b) and `L-70`
 (6c) opened: 53. Recounted 2026-09-25 after `S-89` and `L-68`
 (P6.11 package 5) closed: 51.
 
@@ -1863,7 +1864,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     `L-71`). `L-66` narrowed: the binder and the contract builder give the wording pass the model's exchangers, so the
     four codes that named `in[2]` on an exchanger say `secondary`, and `FS1540` says "1 case"; `FS2211`'s made-up node
     names and `volume[2]` remain. `19`'s section on the translation now describes the reader. **6d is done, and so is
-    package 6.** Next: package 7 deletes language 1 (its parser, the converter, `ScheduleRoleRegistry`, the second
+    package 6.** An audit of what the package found filed four rows noted in passing and not logged at the time:
+    `L-72` (a scale with a unit is dropped), `L-73` (a fluid's argument is dropped), `L-74` (`sized_at` not seen
+    through a second `let`, with a misleading `FS1549`), `L-75` (the reader keeps language 1's value spellings,
+    against `D-177` rule 1 -- package 7's to settle). Next: package 7 deletes language 1 (its parser, the converter, `ScheduleRoleRegistry`, the second
     templates) and the sweep follows (language 1 defects closed, language 1 grammar tests deleted, physics tests
     converted).
 
