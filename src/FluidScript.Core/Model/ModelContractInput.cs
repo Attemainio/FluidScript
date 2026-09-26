@@ -21,7 +21,7 @@ public sealed record ModelContractInput
     /// <summary>The script text, for the hash and for line positions.</summary>
     public required SourceText Source { get; init; }
 
-    /// <summary>The parsed script, for the version line and the <c>show</c> directive.</summary>
+    /// <summary>The parsed script, for the version line.</summary>
     public required ScriptSyntax Root { get; init; }
 
     /// <summary>The bound model.</summary>

@@ -49,6 +49,9 @@ public sealed record SemanticModel
     /// </value>
     public required ImmutableArray<DeferredExpression> Deferred { get; init; }
 
+    /// <summary>Gets every <c>show</c> line, in the order written; the first is the one the canvas follows (<c>57</c>).</summary>
+    public ImmutableArray<VisualizationSymbol> Visualizations { get; init; } = [];
+
     /// <summary>Gets every <c>curve</c> declared in the file, in declaration order (<c>D-57</c>).</summary>
     /// <value>
     /// File-wide rather than per circuit, which is the one place <c>D-52</c> does not apply: a curve is

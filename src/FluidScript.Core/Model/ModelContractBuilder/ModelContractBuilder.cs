@@ -151,7 +151,7 @@ public static partial class ModelContractBuilder
                 new DiagnosticArgument("detail", breach.Detail)));
         }
         var styles = new Styles(model, graph);
-        var scales = ColourScales.Resolve(input.Root, graph, ports, raised);
+        var scales = ColourScales.Resolve(model.Visualizations, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
         var major = input.Root.Version is { } version && !double.IsNaN(version.Major.Value) ? (int)version.Major.Value : 1;
 

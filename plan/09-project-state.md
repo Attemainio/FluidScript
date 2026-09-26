@@ -1427,15 +1427,16 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **51** | |
+| | **52** | |
 
-Recounted 2026-09-25 after `S-89` and `L-68` (P6.11 package 5) closed: 51.
+Recounted 2026-09-26 after `L-69` (P6.11 package 6b) opened: 52. Recounted 2026-09-25 after `S-89` and `L-68`
+(P6.11 package 5) closed: 51.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
 the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
@@ -1845,7 +1846,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     legacy-reference review still walks connection and control syntax, language 1's alone. The file-wide lines are
     `FileLine` records in written order -- `CurveDraft` (a `CurveHead` and its rows, whose text both languages write
     alike), `CaseNames` and `DesignLine`. A `let` stays syntax: both parsers build the same `LetBindingSyntax`, and
-    only its value's reading differs (6c). Left in 6b: style and project.
+    only its value's reading differs (6c). The project line binds from its values, and each `show` line is carried on
+    `SemanticModel.Visualizations`, which `ColourScales.Resolve` now reads instead of the tree (`L-50` narrowed). A style
+    stays token syntax: language 2's `style:` block is read into the same tokens. **6b is done.** It found `L-69`: `InputLimits`
+    and deferred evaluation still read the tree after binding, where the harness does not look -- 6c's to close.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

@@ -47,6 +47,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private TextSpan? _startSpan;
     private double? _spacing;
 
+    /// <summary>The <c>show</c> lines, carried to the contract builder as written (<c>L-50</c>).</summary>
+    private readonly List<VisualizationSymbol> _visualizations = [];
+
     public BindResult Execute()
     {
         var circuits = Partition();
@@ -80,6 +83,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             SymbolMap = _symbolMap,
             Deferred = [.. _deferred],
             Curves = [.. _curves],
+            Visualizations = [.. _visualizations],
             Heights = _heights,
             Runs = [.. _runs],
         };
@@ -125,11 +129,18 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     break;
 
                 case ProjectDirectiveSyntax project:
-                    BindProject(project);
+                    BindProject(project.Name.Text, project.Mode, project.Arguments);
                     break;
 
                 case SpacingDirectiveSyntax spacing:
                     _spacing = spacing.Value.Value;
+                    break;
+
+                case ShowDirectiveSyntax show:
+                    _visualizations.Add(new VisualizationSymbol(
+                        [.. show.Properties.Select(static property => (property.Text, property.Span))],
+                        show.Scale is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to } ? (from.Value, to.Value) : null,
+                        show.Keyword.Span));
                     break;
 
                 case StyleDirectiveSyntax { IsDefinition: true }:
@@ -150,7 +161,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 // open an implicit circuit for them, which is what `fluidscript 1` did on its own.
                 case VersionDirectiveSyntax:
                 case CatalogDirectiveSyntax:
-                case ShowDirectiveSyntax:
 
                 // Step 0b reads these instead, and it walks the whole file rather than one circuit's
                 // block: a curve, a design point and a scenario list belong to no circuit (`D-57`,
@@ -213,11 +223,15 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return blocks;
     }
 
-    private void BindProject(ProjectDirectiveSyntax project)
+    /// <summary>Binds the <c>project</c> line: its name, its default mode, and <c>start=</c> (<c>D-149</c>).</summary>
+    /// <param name="name">The project's name, language 1's identifier or language 2's quoted title.</param>
+    /// <param name="mode">The mode every circuit takes unless it states its own, or <see langword="null"/>.</param>
+    /// <param name="arguments">Its named arguments, <c>start</c> alone being one it takes.</param>
+    private void BindProject(string? name, FluidMode? mode, ImmutableArray<ParameterSyntax> arguments)
     {
         double? start = null;
 
-        foreach (var argument in project.Arguments)
+        foreach (var argument in arguments)
         {
             if (!string.Equals(argument.Name.Text, "start", StringComparison.Ordinal))
             {
@@ -251,7 +265,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             }
         }
 
-        _project = new ProjectSettings(project.Name.Text, project.Mode) { Start = start };
+        _project = new ProjectSettings(name, mode) { Start = start };
     }
 
     private void AssignCircuits(List<CircuitBlock> blocks)

@@ -3,9 +3,8 @@ using System.Collections.Immutable;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
-using FluidScript.Core.Language.Syntax.Ast.Expressions;
-using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Model.Contract;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers;
@@ -82,38 +81,37 @@ public static partial class ModelContractBuilder
                 StringComparer.Ordinal);
 
         /// <summary>
-        /// Reads the first <c>show</c> directive off the syntax (the binder does not bind it, <c>L-50</c>),
-        /// raises <c>57</c>'s diagnostics for what it says, and maps every solved port onto every available
-        /// scale. Before a solve every domain is <see langword="null"/> and every position with it.
+        /// Reads the first <c>show</c> line the binder carried (<c>L-50</c>), raises <c>57</c>'s diagnostics for
+        /// what it says, and maps every solved port onto every available scale. Before a solve every domain is
+        /// <see langword="null"/> and every position with it.
         /// </summary>
         public static ColourScales Resolve(
-            ScriptSyntax root, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>>? ports, ImmutableArray<Diagnostic>.Builder raised)
+            ImmutableArray<VisualizationSymbol> shows, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>>? ports, ImmutableArray<Diagnostic>.Builder raised)
         {
-            var directives = root.Statements.OfType<ShowDirectiveSyntax>().ToList();
-            var directive = directives.FirstOrDefault();
+            var directive = shows.FirstOrDefault();
 
-            foreach (var second in directives.Skip(1))
+            foreach (var second in shows.Skip(1))
             {
-                raised.Add(Diagnostic.Create(StyleDiagnostics.SecondShowDirective, second.Keyword.Span));
+                raised.Add(Diagnostic.Create(StyleDiagnostics.SecondShowDirective, second.Span));
             }
 
             var named = ImmutableArray.CreateBuilder<string>();
 
             foreach (var property in directive?.Properties ?? [])
             {
-                if (PropertyTable.Find(property.Text) is not { } known)
+                if (PropertyTable.Find(property.Name) is not { } known)
                 {
                     raised.Add(Diagnostic.Create(
                         StyleDiagnostics.UnknownShowProperty,
                         property.Span,
-                        new DiagnosticArgument("name", property.Text),
+                        new DiagnosticArgument("name", property.Name),
                         new DiagnosticArgument("list", string.Join(", ", PropertyTable.All.Select(static p => p.Name).Order(StringComparer.Ordinal)))));
                     continue;
                 }
 
                 if (named.Contains(known.Name))
                 {
-                    raised.Add(Diagnostic.Create(StyleDiagnostics.DuplicateShowProperty, property.Span, new DiagnosticArgument("name", property.Text)));
+                    raised.Add(Diagnostic.Create(StyleDiagnostics.DuplicateShowProperty, property.Span, new DiagnosticArgument("name", property.Name)));
                     continue;
                 }
 
@@ -122,9 +120,8 @@ public static partial class ModelContractBuilder
 
             var active = named.Count > 0 ? named[0] : "temperature";
             var available = named.Concat(Always).Distinct(StringComparer.Ordinal).ToImmutableArray();
-            (double Min, double Max)? stated = directive?.Scale is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to }
-                && double.IsFinite(from.Value) && double.IsFinite(to.Value)
-                ? (Math.Min(from.Value, to.Value), Math.Max(from.Value, to.Value))
+            (double Min, double Max)? stated = directive?.Scale is var (from, to) && double.IsFinite(from) && double.IsFinite(to)
+                ? (Math.Min(from, to), Math.Max(from, to))
                 : null;
             var scales = ImmutableDictionary.CreateBuilder<string, ScaleWire>(StringComparer.Ordinal);
             var positions = ImmutableDictionary.CreateBuilder<string, ImmutableDictionary<string, ScalePositionWire>>(StringComparer.Ordinal);
