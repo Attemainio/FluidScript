@@ -1842,8 +1842,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     identical). A circuit's lines are `BlockLine` records kept per statement in written order -- `ConnectionLine`
     (port evidence, links, implicit pipes, I1 nodes), `ControlLine`, `AttachmentLine` and `ChangeLine` (a schedule's
     or a run's step), each end a `LineEnd` -- and the symbol map reads their ends; again no behaviour change. Only the
-    legacy-reference review still walks connection and control syntax, language 1's alone. Left in 6b:
-    cases/design/curves, style and project.
+    legacy-reference review still walks connection and control syntax, language 1's alone. The file-wide lines are
+    `FileLine` records in written order -- `CurveDraft` (a `CurveHead` and its rows, whose text both languages write
+    alike), `CaseNames` and `DesignLine`. A `let` stays syntax: both parsers build the same `LetBindingSyntax`, and
+    only its value's reading differs (6c). Left in 6b: style and project.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

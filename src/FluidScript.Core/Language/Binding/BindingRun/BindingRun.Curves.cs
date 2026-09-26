@@ -49,35 +49,21 @@ internal sealed partial class BindingRun
     private void CollectCurves()
     {
         var drafts = new List<CurveDraft>();
-        CurveDraft? current = null;
 
-        foreach (var statement in parse.Root.Statements)
+        foreach (var line in FileLines())
         {
-            switch (statement)
+            switch (line)
             {
-                case CurveHeaderSyntax header:
-                    current = new CurveDraft(header, []);
-                    drafts.Add(current);
+                case CurveDraft draft:
+                    drafts.Add(draft);
                     break;
 
-                case CurveRowSyntax row:
-                    // A row with no header above it is FS1115 from the parser, and there is nothing
-                    // here to put it in.
-                    current?.Rows.Add(row);
-                    break;
-
-                case DesignDirectiveSyntax design:
+                case DesignLine design:
                     DeclareDesign(design);
                     break;
 
-                case ScenariosDirectiveSyntax scenarios:
+                case CaseNames scenarios:
                     DeclareScenarios(scenarios);
-                    break;
-
-                // Nothing else closes a curve section: it is file-wide, so the first circuit is the
-                // end of the region curves may be declared in.
-                case CircuitHeaderSyntax:
-                    current = null;
                     break;
 
                 default:
@@ -101,7 +87,7 @@ internal sealed partial class BindingRun
     private void DeclareCurve(CurveDraft draft)
     {
         var header = draft.Header;
-        var name = header.Name.Text;
+        var name = header.Name;
 
         if (_curvesByName.TryGetValue(name, out var duplicate))
         {
@@ -115,7 +101,7 @@ internal sealed partial class BindingRun
 
         var extrapolated = false;
 
-        foreach (var modifier in header.Modifiers)
+        foreach (var modifier in header.Words)
         {
             if (string.Equals(modifier.Text, "extrapolated", StringComparison.Ordinal))
             {
@@ -155,7 +141,7 @@ internal sealed partial class BindingRun
             }
         }
 
-        var driver = header.Driver?.Text;
+        var driver = header.Driver;
         var isTime = string.Equals(driver, "time", StringComparison.Ordinal);
 
         var symbol = new CurveSymbol
@@ -428,5 +414,87 @@ internal sealed partial class BindingRun
         return null;
     }
 
-    private sealed record CurveDraft(CurveHeaderSyntax Header, List<CurveRowSyntax> Rows);
+    /// <summary>Reads language 1's file-wide statements as the binder's records, in the order written (<c>D-177</c>).</summary>
+    /// <remarks>
+    /// A curve's rows follow its header, and nothing else closes a curve section: it is file-wide, so the first
+    /// circuit is the end of the region curves may be declared in. A row with no header above it is <c>FS1115</c>
+    /// from the parser, and there is nothing here to put it in.
+    /// </remarks>
+    private List<FileLine> FileLines()
+    {
+        var lines = new List<FileLine>();
+        CurveDraft? current = null;
+
+        foreach (var statement in parse.Root.Statements)
+        {
+            switch (statement)
+            {
+                case CurveHeaderSyntax header:
+                    current = new CurveDraft(
+                        new CurveHead(
+                            header.Name.Text,
+                            header.Driver?.Text,
+                            [.. header.Modifiers.Select(static word => (word.Text, word.Span))],
+                            header.Arguments,
+                            header.Span),
+                        []);
+                    lines.Add(current);
+                    break;
+
+                case CurveRowSyntax row:
+                    current?.Rows.Add(row);
+                    break;
+
+                case DesignDirectiveSyntax design:
+                    lines.Add(new DesignLine(
+                        design.Scenario is { } named ? (named.Token.Text, named.Span) : null, design.Arguments, design.Span));
+                    break;
+
+                case ScenariosDirectiveSyntax scenarios:
+                    lines.Add(new CaseNames([.. scenarios.Names.Select(static name => (name.Token.Text, name.Span))], scenarios.Span));
+                    break;
+
+                case CircuitHeaderSyntax:
+                    current = null;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>A file-wide line as the binder reads it (<c>D-177</c>): a curve, the cases, or the design choice.</summary>
+    /// <param name="Span">The line, or a curve's header.</param>
+    private abstract record FileLine(TextSpan Span);
+
+    /// <summary>A curve and its rows; the rows are read as text, which both languages write alike.</summary>
+    private sealed record CurveDraft(CurveHead Header, List<CurveRowSyntax> Rows) : FileLine(Header.Span);
+
+    /// <summary>A curve's header.</summary>
+    /// <param name="Name">The curve's name.</param>
+    /// <param name="Driver">What drives it as written -- a <c>let</c>, a curve, <c>time</c> -- or <see langword="null"/>.</param>
+    /// <param name="Words">Its bare words, <c>extrapolated</c> alone being one it takes.</param>
+    /// <param name="Arguments">Its named arguments, <c>format</c> alone being one it takes.</param>
+    /// <param name="Span">The header.</param>
+    private sealed record CurveHead(
+        string Name,
+        string? Driver,
+        ImmutableArray<(string Text, TextSpan Span)> Words,
+        ImmutableArray<ParameterSyntax> Arguments,
+        TextSpan Span);
+
+    /// <summary>The cases, in the order written, which is what a list binds to (<c>D-143</c>).</summary>
+    /// <param name="Names">Each case's name and where it is written.</param>
+    /// <param name="Span">The line, where a missing design case is reported.</param>
+    private sealed record CaseNames(ImmutableArray<(string Name, TextSpan Span)> Names, TextSpan Span) : FileLine(Span);
+
+    /// <summary>The design choice: the case the file operates at, or language 1's driver values (<c>D-58</c>).</summary>
+    /// <param name="Case">The case named, or <see langword="null"/> in the driver form.</param>
+    /// <param name="Arguments">The driver values, in the driver form.</param>
+    /// <param name="Span">The line.</param>
+    private sealed record DesignLine((string Name, TextSpan Span)? Case, ImmutableArray<ParameterSyntax> Arguments, TextSpan Span)
+        : FileLine(Span);
 }

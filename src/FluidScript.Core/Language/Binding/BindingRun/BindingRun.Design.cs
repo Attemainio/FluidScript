@@ -11,36 +11,36 @@ namespace FluidScript.Core.Language.Binding;
 internal sealed partial class BindingRun
 {
     /// <summary>Records the declared cases, refusing a repeated name (<c>D-143</c>).</summary>
-    /// <param name="scenarios">The directive.</param>
+    /// <param name="scenarios">The line.</param>
     /// <remarks>
     /// Order is kept exactly as written, because that order is the whole binding: element <c>i</c> of
     /// every list belongs to the name at position <c>i</c>. A duplicate is refused rather than
     /// collapsed -- two cases called <c>summer</c> would give a size a basis naming a case that
     /// cannot be looked up -- and the repeat is skipped so the positions of the rest do not shift.
     /// </remarks>
-    private void DeclareScenarios(ScenariosDirectiveSyntax scenarios)
+    private void DeclareScenarios(CaseNames scenarios)
     {
         _scenarioSpan ??= scenarios.Span;
 
-        foreach (var name in scenarios.Names)
+        foreach (var (name, span) in scenarios.Names)
         {
-            if (_scenarios.Contains(name.Token.Text, StringComparer.Ordinal))
+            if (_scenarios.Contains(name, StringComparer.Ordinal))
             {
-                Report(BinderDiagnostics.DuplicateScenario, name.Span, ("name", name.Token.Text));
+                Report(BinderDiagnostics.DuplicateScenario, span, ("name", name));
                 continue;
             }
 
-            _scenarios.Add(name.Token.Text);
+            _scenarios.Add(name);
         }
     }
 
-    private void DeclareDesign(DesignDirectiveSyntax design)
+    private void DeclareDesign(DesignLine design)
     {
         // `design winter` names the operating case and gives no driver a value (`D-143`). Recorded
         // here and checked after the whole file is read, because the `scenarios` line may follow it.
-        if (design.Scenario is { } named)
+        if (design.Case is { } named)
         {
-            _designScenario = (named.Token.Text, named.Span);
+            _designScenario = named;
             return;
         }
 
