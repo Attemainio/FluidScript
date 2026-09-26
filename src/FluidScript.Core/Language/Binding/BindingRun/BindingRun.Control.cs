@@ -280,7 +280,7 @@ internal sealed partial class BindingRun
             Span = statement.Span,
         };
 
-        _controlBindings.Add(parse.Language == 2 ? WithTuning(binding, arguments) : binding);
+        _controlBindings.Add(WithTuning(binding, arguments));
     }
 
     /// <summary>Binds what language 2 writes on a controller beyond its setpoint (<c>D-168</c>, <c>19</c> §Controllers).</summary>
@@ -548,8 +548,7 @@ internal sealed partial class BindingRun
 
         // A language 2 run may move a controller's setpoint (`19` §Runs), which is its line's and read in what
         // it measures, not a parameter of the controller.
-        if (parse.Language == 2
-            && string.Equals(NameResolution.Normalize(parameter), "setpoint", StringComparison.Ordinal)
+        if (string.Equals(NameResolution.Normalize(parameter), "setpoint", StringComparison.Ordinal)
             && _controlBindings.FirstOrDefault(binding => string.Equals(binding.Controller.Name, component, StringComparison.Ordinal)) is { } loop)
         {
             parameter = "setpoint";

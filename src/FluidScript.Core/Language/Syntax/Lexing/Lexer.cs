@@ -37,22 +37,11 @@ public static class Lexer
     /// text produced.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    public static LexResult Lex(SourceText source) => Lex(source, LexerOptions.Language1);
-
-    /// <summary>Lexes a script under one language major's options.</summary>
-    /// <param name="source">The text to lex. Any characters at all; may be empty.</param>
-    /// <param name="options">What differs for the major being lexed.</param>
-    /// <returns>
-    /// The tokens, always ending in <see cref="TokenKind.EndOfFile"/>, and whatever diagnostics the
-    /// text produced.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Either argument is <see langword="null"/>.</exception>
-    public static LexResult Lex(SourceText source, LexerOptions options)
+    public static LexResult Lex(SourceText source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ArgumentNullException.ThrowIfNull(options);
 
-        var scanner = new Scanner(source, options);
+        var scanner = new Scanner(source);
         var tokens = ImmutableArray.CreateBuilder<Token>();
 
         while (true)
@@ -83,7 +72,10 @@ public static class Lexer
 
     private static bool IsWordChar(char c) => IsWordStart(c) || IsDigit(c);
 
-    private sealed class Scanner(SourceText source, LexerOptions options)
+    /// <summary>Gets the unit symbols not recognised after a number: <c>in</c> (inch) and <c>t</c> (tonne), which are port and property names.</summary>
+    internal static ImmutableArray<string> ExcludedUnitSymbols { get; } = ["in", "t"];
+
+    private sealed class Scanner(SourceText source)
     {
         private readonly ImmutableArray<Diagnostic>.Builder _diagnostics =
             ImmutableArray.CreateBuilder<Diagnostic>();
@@ -104,7 +96,14 @@ public static class Lexer
                 var start = _position;
                 var c = source[_position];
 
-                if (c is ' ' or '\t')
+                // A byte-order mark opens a file saved by some Windows editors; it is whitespace, not a character
+                // the script wrote (`18`: a BOM may precede the version line).
+                if (c == '\uFEFF' && _position == 0)
+                {
+                    _position++;
+                    _trivia.Add(new Trivia(TriviaKind.Whitespace, TextSpan.FromBounds(start, _position)));
+                }
+                else if (c is ' ' or '\t')
                 {
                     while (_position < Length && source[_position] is ' ' or '\t')
                     {
@@ -224,15 +223,7 @@ public static class Lexer
 
             var text = source.ToString(TextSpan.FromBounds(start, _position));
 
-            return options.ReservesWords && ReservedWords.TryMatch(text, out var word)
-                ? new Token
-                {
-                    Kind = TokenKind.Keyword,
-                    Span = TextSpan.FromBounds(start, _position),
-                    Text = text,
-                    Keyword = word,
-                }
-                : new Token
+            return new Token
                 {
                     Kind = TokenKind.Identifier,
                     Span = TextSpan.FromBounds(start, _position),
@@ -281,7 +272,7 @@ public static class Lexer
         {
             var start = _position;
 
-            if (options.LexesDates && ScanDate() is > 0 and var dateEnd)
+            if (ScanDate() is > 0 and var dateEnd)
             {
                 _position = dateEnd;
                 return Make(TokenKind.DateLiteral, start);
@@ -479,7 +470,7 @@ public static class Lexer
                 if (rejectBeforeEquals && end < Length
                     && (source[end] is '=' or '['
                         || (source[end] == '.' && end + 1 < Length && IsWordStart(source[end + 1]))
-                        || (options.UnitStopsBeforeSpacedEquals && EqualsAfterSpaces(end))))
+                        || EqualsAfterSpaces(end)))
                 {
                     continue;
                 }
@@ -504,9 +495,9 @@ public static class Lexer
             return position < Length && source[position] == '=';
         }
 
-        private bool IsExcluded(ReadOnlySpan<char> symbol)
+        private static bool IsExcluded(ReadOnlySpan<char> symbol)
         {
-            foreach (var excluded in options.ExcludedUnitSymbols)
+            foreach (var excluded in ExcludedUnitSymbols)
             {
                 if (symbol.SequenceEqual(excluded))
                 {

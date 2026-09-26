@@ -12,16 +12,14 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 /// <summary>Turns language 2 script text into a syntax tree, keeping every line.</summary>
 /// <remarks>
 /// <para>
-/// <c>plan/10-language/19-fluidscript-2.md</c>. Language 1's parser (<see cref="FluidScriptParser"/>) is
-/// untouched and still parses every file that does not declare <c>fluidscript 2</c>; the two share the lexer,
-/// the line splitting, the reading of names and expressions, and the tree's statement and expression nodes.
+/// <c>plan/10-language/19-fluidscript-2.md</c>. The only parser since language 1 was removed (<c>D-174</c>,
+/// P6.11 package 7 step 4).
 /// </para>
 /// <para>
-/// <strong>Never throws, for any input</strong> (principle P4), and recovers per line as language 1 does.
-/// What language 2 adds is the block: a head line and the lines indented deeper than it
-/// (<see cref="BlockSyntax"/>). A block is a statement, so the root is language 1's
-/// <see cref="ScriptSyntax"/> and every token appears once, in source order — the printer prints either
-/// language without knowing which it is.
+/// <strong>Never throws, for any input</strong> (principle P4), and recovers per line: a line that cannot be
+/// read is a <see cref="MalformedStatementSyntax"/> and every other line is unaffected. A block is a head line
+/// and the lines indented deeper than it (<see cref="BlockSyntax"/>); a block is a statement, so every token
+/// appears once in the <see cref="ScriptSyntax"/>, in source order, which is what the printer relies on.
 /// </para>
 /// </remarks>
 public static class FluidScript2Parser
@@ -37,14 +35,14 @@ public static class FluidScript2Parser
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var lex = Lexer.Lex(source, LexerOptions.Language2);
+        var lex = Lexer.Lex(source);
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         diagnostics.AddRange(lex.Diagnostics);
 
         var open = new Stack<OpenBlock>();
         open.Push(new OpenBlock(Language2Block.TopLevel, null, null, HeadWidth: -1));
 
-        foreach (var line in FluidScriptParser.SplitLines(lex.Tokens))
+        foreach (var line in SplitLines(lex.Tokens))
         {
             var indent = Indentation(source, line[0]);
 
@@ -67,7 +65,7 @@ public static class FluidScript2Parser
                 block = Misindented(open, block, indent, line, diagnostics);
             }
 
-            var parser = new LineParser(source, line, diagnostics, language2: true);
+            var parser = new LineParser(source, line, diagnostics);
             var statement = parser.ParseLanguage2(block.Kind);
 
             if (parser.Opens is { } kind)
@@ -142,6 +140,13 @@ public static class FluidScript2Parser
     private static string Indentation(SourceText source, Token first)
     {
         var lineStart = source.GetLineStart(source.GetLinePosition(first.Span.Start).Line);
+
+        // A byte-order mark is not indentation: the first line is at the top level with or without one.
+        if (lineStart == 0 && source.Length > 0 && source[0] == '\uFEFF')
+        {
+            lineStart = 1;
+        }
+
         return source.ToString(TextSpan.FromBounds(lineStart, first.Span.Start));
     }
 
@@ -163,5 +168,41 @@ public static class FluidScript2Parser
 
         /// <summary>Gets the body read so far.</summary>
         public ImmutableArray<StatementSyntax>.Builder Body { get; } = ImmutableArray.CreateBuilder<StatementSyntax>();
+    }
+
+    /// <summary>Groups tokens into lines.</summary>
+    /// <remarks>
+    /// A line break is a trivium, and no token spans one, so a line begins wherever a token's leading
+    /// trivia holds an end-of-line. Blank lines produce no tokens at all — their newlines ride along in
+    /// the next token's leading trivia — which is exactly the attachment rule the printer relies on.
+    /// </remarks>
+    private static ImmutableArray<ImmutableArray<Token>> SplitLines(ImmutableArray<Token> tokens)
+    {
+        var lines = ImmutableArray.CreateBuilder<ImmutableArray<Token>>();
+        var current = ImmutableArray.CreateBuilder<Token>();
+
+        foreach (var token in tokens)
+        {
+            if (token.Kind == TokenKind.EndOfFile)
+            {
+                break;
+            }
+
+            if (current.Count > 0
+                && token.LeadingTrivia.Any(static trivia => trivia.Kind == TriviaKind.EndOfLine))
+            {
+                lines.Add(current.ToImmutable());
+                current.Clear();
+            }
+
+            current.Add(token);
+        }
+
+        if (current.Count > 0)
+        {
+            lines.Add(current.ToImmutable());
+        }
+
+        return lines.ToImmutable();
     }
 }

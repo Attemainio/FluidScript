@@ -104,6 +104,34 @@ public sealed class FluidScript2ParserTests
     private static string Describe(ParseResult result) =>
         string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}"));
 
+    private static LetBindingSyntax Let(string text) =>
+        Assert.IsType<LetBindingSyntax>(Assert.Single(Clean(text).Root.Statements));
+
+    private static string Shape(ParseResult result)
+    {
+        var shape = new System.Text.StringBuilder();
+
+        void Walk(StatementSyntax statement, int depth)
+        {
+            shape.Append(depth).Append(' ').Append(statement.GetType().Name).Append(' ')
+                .AppendJoin("|", statement.Tokens.Select(static t => t.Text)).Append('\n');
+            if (statement is BlockSyntax block)
+            {
+                foreach (var child in block.Body)
+                {
+                    Walk(child, depth + 1);
+                }
+            }
+        }
+
+        foreach (var statement in result.Root.Statements)
+        {
+            Walk(statement, 0);
+        }
+
+        return shape.ToString();
+    }
+
     private static ParseResult Clean(string text)
     {
         var result = Parse(text);
@@ -532,6 +560,122 @@ public sealed class FluidScript2ParserTests
     [InlineData("let = 5")]
     [Trait("Category", "Unit")]
     public void AStatementWordAsANameIsFS1004(string text) => Only(text, "FS1004");
+
+    [Theory]
+    [InlineData("circuit \"c\":\n  3K pump\n")]
+    [InlineData("circuit \"c\":\n  3K  pump  power = 5 kW\n")]
+    [Trait("Category", "Unit")]
+    public void ANameThatReadsAsAQuantityIsFS1003NotACurveRow(string text)
+    {
+        // A row is numbers; a quantity followed by a word is a declaration whose name the lexer read as
+        // three kelvin, and the message that helps is the one that says so and offers `K3`.
+        Assert.Contains("'K3'", Only(text, "FS1003").Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Parse(text).Diagnostics, static d => d.Code == "FS1115");
+    }
+
+    [Theory]
+    [InlineData("let x = 5 6", "'6'")]
+    [InlineData("circuit \"c\":\n  N1 - N2 )\n", "')'")]
+    [Trait("Category", "Unit")]
+    public void TextALineHasNoPlaceForIsFS1114(string text, string extra) =>
+        Assert.Contains(extra, Only(text, "FS1114").Message, StringComparison.Ordinal);
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APairOutsideACurveIsFS1115() => Only("circuit \"c\":\n  -26 50\n", "FS1115");
+
+    [Theory]
+    [InlineData("circuit \"c\":\n  N1 - HX1.in[x]\n")]
+    [InlineData("circuit \"c\":\n  HX1  exchanger  in[x].t = 5\n")]
+    [Trait("Category", "Unit")]
+    public void AnIndexThatIsNotAWholeNumberIsFS1119(string text) => Only(text, "FS1119");
+
+    [Theory]
+    [InlineData("let a = [30 10]")]
+    [InlineData("let a = [30, ]")]
+    [Trait("Category", "Unit")]
+    public void AListWithoutItsCommasIsFS1121(string text) => Only(text, "FS1121");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ParenthesesAreKeptRatherThanRederived()
+    {
+        // D-54. `(a + b) * c` and `a + b * c` differ, and a redundant grouping in an engineering
+        // formula is usually deliberate.
+        var product = Assert.IsType<BinaryExpressionSyntax>(Let("let x = (a + b) * c").Value);
+
+        Assert.Equal(BinaryOperator.Multiply, product.Operator);
+        Assert.IsType<ParenthesizedExpressionSyntax>(product.Left);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void PrecedenceIsMultiplicativeThenAdditive()
+    {
+        var sum = Assert.IsType<BinaryExpressionSyntax>(Let("let x = a + b * c").Value);
+
+        Assert.Equal(BinaryOperator.Add, sum.Operator);
+        Assert.Equal(BinaryOperator.Multiply, Assert.IsType<BinaryExpressionSyntax>(sum.Right).Operator);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ACallTakesItsArgumentsInOrder()
+    {
+        var call = Assert.IsType<CallSyntax>(Let("let peak = max(30 kW, 24 kW)").Value);
+
+        Assert.Equal("max", call.Name.Text);
+        Assert.Equal(2, call.Arguments.Length);
+        Assert.Null(call.Arguments[0].LeadingComma);
+        Assert.NotNull(call.Arguments[1].LeadingComma);
+    }
+
+    [Theory]
+    [InlineData("(", ")")]
+    [InlineData("-", "")]
+    [InlineData("f(", ")")]
+    [Trait("Category", "Unit")]
+    public void TenThousandNestedLevelsAreMalformedNotAStackOverflow(string open, string close)
+    {
+        // Recursive descent costs a few frames per level, and a stack overflow cannot be caught. The
+        // parser runs on the host per keystroke, so one such line would take every session down.
+        const int Depth = 10_000;
+        var expression = string.Concat(Enumerable.Repeat(open, Depth)) + "1" + string.Concat(Enumerable.Repeat(close, Depth));
+
+        var result = Parse($"let x = {expression}");
+
+        Assert.NotEmpty(result.Diagnostics);
+        Assert.Equal($"let x = {expression}", SyntaxPrinter.Print(result));
+    }
+
+    [Theory]
+    [InlineData("\r\n")]
+    [InlineData("\r")]
+    [Trait("Category", "Unit")]
+    public void AnotherLineEndingReadsTheSameBlocks(string newline)
+    {
+        // Indentation is measured from the line's start, so the characters that end the previous line must
+        // not count towards it. A file saved on Windows is the same plant.
+        var lf = "fluidscript 2\ncircuit \"c\":\n  fluid = water\n  HX1  exchanger:\n    primary.in.t = 70 C\n  N1 - HX1\n";
+        var other = lf.Replace("\n", newline, StringComparison.Ordinal);
+
+        var result = Clean(other);
+
+        Assert.Equal(Shape(Clean(lf)), Shape(result));
+        Assert.Equal(other, SyntaxPrinter.Print(result));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AByteOrderMarkIsNotIndentation()
+    {
+        const string Text = "\uFEFFfluidscript 2\ncircuit \"c\":\n  fluid = water\n";
+
+        var result = Clean(Text);
+
+        Assert.Equal(2, result.Root.Statements.Length);
+        Assert.Equal(Text, SyntaxPrinter.Print(result));
+    }
 
     [Fact]
     [Trait("Category", "Unit")]

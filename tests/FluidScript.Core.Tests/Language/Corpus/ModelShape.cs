@@ -5,15 +5,15 @@ using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Language.Conversion;
+namespace FluidScript.Core.Tests.Language.Corpus;
 
-/// <summary>A model as text, blind to spans and to what the two languages spell differently by design.</summary>
+/// <summary>A model as text, blind to spans: the frozen corpus's goldens (<c>D-178</c>).</summary>
 /// <remarks>
-/// Left out: every span; a curve's driver, whose kind and name change by design (<c>curve heating outdoor</c> reads
-/// <c>design tout=-26</c> through the role both name, and in language 2 names the <c>let tout</c> it became) and
-/// whose effect is compared in every parameter that reads the curve; the
-/// lets and design values themselves, whose effect is in every parameter that reads them; a component's origin. A
-/// circuit's mode and the schedule are compared only when the conversion wrote a run, against the run's projection.
+/// Written to compare a language 1 file with its language 2 conversion, which is why it leaves out what the two
+/// spelled differently by design: every span; a curve's driver, whose effect is in every parameter that reads the
+/// curve; the lets and design values themselves, whose effect is in every parameter that reads them; a component's
+/// origin. A circuit's mode and the schedule are included only when the file has a run, against the run's
+/// projection. The goldens were taken through it, so it is kept as it was when language 1 was removed.
 /// </remarks>
 public static class ModelShape
 {

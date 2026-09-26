@@ -291,6 +291,15 @@ public sealed class BinderTests
     public void FS1514_ASymbolParameterGivenSomethingElse() =>
         OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  V1  valve  characteristic = banana\n", "FS1514");
 
+    [Theory]
+    [InlineData("colour = \"zz\"")]
+    [InlineData("width = 0")]
+    [Trait("Category", "Unit")]
+    public void FS1201_AStyleValueOfTheRightFormThatMeansNothing(string setting) =>
+        // The reader accepts the value's form (a quoted string for a colour, a number for a width) and the
+        // style's own reading refuses it; the wording is language 1's generic one (`L-77`).
+        OnlyDiagnostic($"fluidscript 2\n\ncircuit \"script\":\n  style:\n    {setting}\n  N1 - N2\n", "FS1201");
+
     // ---- steps 4-5: evaluation --------------------------------------------------------------------
 
     [Fact]

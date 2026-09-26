@@ -1,4 +1,5 @@
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Printing;
@@ -81,8 +82,8 @@ public sealed class PrinterTests
         // is stable on its second pass and wrong on its first.
         foreach (var sample in ScriptCorpus.All())
         {
-            var once = SyntaxPrinter.Print(FluidScriptParser.Parse(new SourceText(sample.Text)));
-            var twice = SyntaxPrinter.Print(FluidScriptParser.Parse(new SourceText(once)));
+            var once = SyntaxPrinter.Print(FluidScript2Parser.Parse(new SourceText(sample.Text)));
+            var twice = SyntaxPrinter.Print(FluidScript2Parser.Parse(new SourceText(once)));
 
             Assert.Equal(once, twice);
         }
@@ -94,14 +95,15 @@ public sealed class PrinterTests
     {
         // Every shape a formatter would be tempted to fix, in one script: run-on spacing, a comment
         // column, a blank line, a unit written both ways, trailing whitespace, and no final newline.
-        const string Ugly = "fluidscript 1\n"
+        const string Ugly = "fluidscript 2\n"
             + "let   x   =   1     # three spaces, on purpose\n"
             + "\n"
-            + "PU1 pump power=30kW    # against the number\n"
-            + "PU2 pump power=30 kW   # and spaced from it   \n"
-            + "circuit demo";
+            + "circuit \"demo\":\n"
+            + "  PU1 pump power=30kW    # against the number\n"
+            + "  PU2   pump  power =  30 kW   # and spaced from it   \n"
+            + "  PU3 pump";
 
-        var result = FluidScriptParser.Parse(new SourceText(Ugly));
+        var result = FluidScript2Parser.Parse(new SourceText(Ugly));
 
         Assert.Empty(result.Diagnostics);
         Assert.Equal(Ugly, SyntaxPrinter.Print(result));
@@ -111,17 +113,17 @@ public sealed class PrinterTests
     [Trait("Category", "Unit")]
     public void AResolvedCircuitNumberIsNotPrintedBack()
     {
-        // 17's invariant 9, asserted now so it is a standing test rather than a discovery in P2.7.
-        // The binder gives every circuit a number; a printer that read the bound model would rewrite
-        // `circuit coolingLoop` as `circuit coolingLoop 100` the first time anything touched the file.
-        // Printing from the syntax tree is what makes that impossible, and this is that test with the
-        // tree in the state the binder will find it.
-        const string Text = "fluidscript 1\ncircuit coolingLoop\n";
+        // 17's invariant 9. The binder gives every circuit a number; a printer that read the bound model
+        // would add `number = 100` to the circuit the first time anything touched the file. Printing from
+        // the syntax tree is what makes that impossible, and this is that test with the tree in the state
+        // the binder will find it.
+        const string Text = "fluidscript 2\ncircuit \"cooling loop\":\n  fluid = water\n";
 
-        var result = FluidScriptParser.Parse(new SourceText(Text));
-        var header = Assert.IsType<CircuitHeaderSyntax>(result.Root.Statements[1]);
+        var result = FluidScript2Parser.Parse(new SourceText(Text));
+        var circuit = Assert.IsType<BlockSyntax>(result.Root.Statements[1]);
 
-        Assert.Null(header.Number);
+        Assert.IsType<CircuitHeadSyntax>(circuit.Head);
+        Assert.Single(circuit.Body);
         Assert.Equal(Text, SyntaxPrinter.Print(result));
     }
 
@@ -129,17 +131,18 @@ public sealed class PrinterTests
     [Trait("Category", "Unit")]
     public void ANodePrintsItsOwnFullSpanAndNothingElse()
     {
-        const string Text = "fluidscript 1\n"
-            + "    HE1 heat_exchanger power=30   # the exchanger\n"
-            + "PU1 pump\n";
+        const string Text = "fluidscript 2\n"
+            + "circuit \"c\":\n"
+            + "    HE1  load  power = 30   # the load\n"
+            + "    PU1  pump\n";
 
-        var result = FluidScriptParser.Parse(new SourceText(Text));
-        var declaration = result.Root.Statements[1];
+        var result = FluidScript2Parser.Parse(new SourceText(Text));
+        var declaration = Assert.IsType<BlockSyntax>(result.Root.Statements[1]).Body[0];
 
         // Leading indentation and the trailing comment belong to the statement; the line break that
         // ends the line does not, because it opens the next statement's leading trivia.
         Assert.Equal(
-            "\n    HE1 heat_exchanger power=30   # the exchanger",
+            "\n    HE1  load  power = 30   # the load",
             SyntaxPrinter.Print(result.Source, declaration));
 
         Assert.Equal(
@@ -156,7 +159,7 @@ public sealed class PrinterTests
         // print correctly with two statements claiming the same characters.
         foreach (var sample in ScriptCorpus.Samples())
         {
-            var result = FluidScriptParser.Parse(new SourceText(sample.Text));
+            var result = FluidScript2Parser.Parse(new SourceText(sample.Text));
             var position = 0;
 
             foreach (var statement in result.Root.Statements)
@@ -183,7 +186,7 @@ public sealed class PrinterTests
 
     private static void AssertRoundTrips(string name, string text)
     {
-        var result = FluidScriptParser.Parse(new SourceText(text));
+        var result = FluidScript2Parser.Parse(new SourceText(text));
         var printed = SyntaxPrinter.Print(result);
 
         Assert.True(

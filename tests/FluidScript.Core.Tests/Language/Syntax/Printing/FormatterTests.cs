@@ -39,8 +39,8 @@ public sealed class FormatterTests
         foreach (var (name, text, _) in ScriptCorpus.All())
         {
             var formatted = Formatter.FormatText(text);
-            var before = Lexer.Lex(new SourceText(text), LexerOptions.Language2);
-            var after = Lexer.Lex(new SourceText(formatted), LexerOptions.Language2);
+            var before = Lexer.Lex(new SourceText(text));
+            var after = Lexer.Lex(new SourceText(formatted));
 
             Assert.True(
                 before.Tokens.Select(static t => (t.Kind, t.Text)).SequenceEqual(after.Tokens.Select(static t => (t.Kind, t.Text))),
@@ -182,6 +182,14 @@ public sealed class FormatterTests
         Assert.Equal(Text.IndexOf("  PU2", StringComparison.Ordinal), edit.Span.Start);
         Assert.Equal("  PU2   pump".Length, edit.Span.Length);
         Assert.Equal("  PU2  pump", edit.NewText);
+    }
+
+    [Fact]
+    public void ItKeepsAByteOrderMark()
+    {
+        Assert.Equal(
+            "\uFEFF" + V2 + "circuit \"c\":\n  P1  pump\n",
+            Formatter.FormatText("\uFEFF" + V2 + "circuit \"c\":\n    P1 pump\n"));
     }
 
     [Fact]

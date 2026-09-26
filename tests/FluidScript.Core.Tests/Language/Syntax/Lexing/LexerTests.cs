@@ -209,17 +209,15 @@ public sealed class LexerTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void EveryReservedWordLexesAsAKeyword()
+    public void NoWordLexesAsAKeyword()
     {
+        // Language 2 reserves its statement words by position, in the parser (`19`): the lexer reads every
+        // word as a name, language 1's reserved words included.
         foreach (var word in ReservedWords.All)
         {
-            var token = Only(word);
-            Assert.Equal(TokenKind.Keyword, token.Kind);
-            Assert.Equal(word, ReservedWords.TextOf(token.Keyword));
+            Assert.Equal(TokenKind.Identifier, Only(word).Kind);
         }
 
-        // Kinds are not reserved: reserving 'node' and 'pipe' once made both reference circuits
-        // unparseable, because neither could reach kind-name position.
         Assert.Equal(TokenKind.Identifier, Only("node").Kind);
         Assert.Equal(TokenKind.Identifier, Only("pipe").Kind);
         Assert.Equal(TokenKind.Identifier, Only("water").Kind);
@@ -240,14 +238,13 @@ public sealed class LexerTests
     public void AHashInsideAStringIsNotAComment()
     {
         // D-13's whole point: '#' begins a comment, so a hex colour is written quoted. If the string
-        // scan did not win, 'style "#2f6f9f" 2px' would be a style directive with no tokens at all --
-        // legal, silent, and rendered in the default colour.
-        var tokens = Significant("""style "#2f6f9f" 2px""");
+        // scan did not win, 'colour = "#2f6f9f"' would be a setting with no value -- and the colour lost.
+        var tokens = Significant("""colour = "#2f6f9f" """);
 
         Assert.Equal(
-            [TokenKind.Keyword, TokenKind.StringLiteral, TokenKind.QuantityLiteral],
+            [TokenKind.Identifier, TokenKind.Equals, TokenKind.StringLiteral],
             tokens.Select(static token => token.Kind));
-        Assert.Equal("#2f6f9f", tokens[1].StringValue);
+        Assert.Equal("#2f6f9f", tokens[2].StringValue);
     }
 
     [Fact]
@@ -261,7 +258,7 @@ public sealed class LexerTests
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
 
         // The rest of the file still lexes, which is the point of stopping at the line break.
-        Assert.Contains(result.Tokens, static token => token.Keyword == ReservedWord.Let);
+        Assert.Contains(result.Tokens, static token => token.Text == "let" && token.Span.Start > 0);
     }
 
     [Theory]
@@ -303,12 +300,12 @@ public sealed class LexerTests
         // Not '2026', '.', '1'. The lexer has no context to do otherwise, and the parser splits the
         // major and minor out of the source text -- which is also the only way '@2026.10' stays
         // distinguishable from '@2026.1'.
-        var tokens = Significant("catalog steel_en10255@2026.10");
+        var tokens = Significant("catalog = steel_en10255@2026.10");
 
         Assert.Equal(
-            [TokenKind.Keyword, TokenKind.Identifier, TokenKind.At, TokenKind.NumberLiteral],
+            [TokenKind.Identifier, TokenKind.Equals, TokenKind.Identifier, TokenKind.At, TokenKind.NumberLiteral],
             tokens.Select(static token => token.Kind));
-        Assert.Equal("2026.10", tokens[3].NumberText);
+        Assert.Equal("2026.10", tokens[4].NumberText);
     }
 
     [Fact]
@@ -342,9 +339,9 @@ public sealed class LexerTests
         // The tour exists to exercise every production; this is the assertion that notices when it
         // stops doing so, which is otherwise invisible until something downstream is untested.
         var tour = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
-        var kinds = Lexer.Lex(new SourceText(tour.Text), LexerOptions.Language2).Tokens.Select(static token => token.Kind).ToHashSet();
+        var kinds = Lexer.Lex(new SourceText(tour.Text)).Tokens.Select(static token => token.Kind).ToHashSet();
 
-        // Language 2 reserves no word in the lexer (`LexerOptions.ReservesWords`), so it never produces a keyword.
+        // The lexer reserves no word, so it never produces a keyword (package 8 retires the kind with the lexicon).
         var missing = Enum.GetValues<TokenKind>()
             .Where(kind => kind is not (TokenKind.Unknown or TokenKind.Keyword) && !kinds.Contains(kind))
             .ToArray();

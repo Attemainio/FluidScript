@@ -75,12 +75,9 @@ internal sealed partial class BindingRun
 
         foreach (var argument in declaration.SizingPoint)
         {
-            // Language 2's driver is the `let` the point names, by its exact spelling (`D-170`, `D-175`); language 1's
-            // is a schedule role, `tout` and `outdoor` one driver. Resolving a language 2 name through the roles turned
-            // `sized_at.demnad` into the role `demand`, which the file's `let demand` happened to share.
+            // The driver is the `let` the point names, by its exact spelling (`D-170`, `D-175`).
             var written = argument.Name.Text;
-            var role = parse.Language == 2 ? null : ScheduleRoleRegistry.Resolve(written);
-            var key = role?.CanonicalName ?? written;
+            var key = written;
 
             if (point.TryGetValue(key, out var existing))
             {
@@ -94,13 +91,9 @@ internal sealed partial class BindingRun
 
             var id = new ValueId.SizingPoint(componentName, key);
             _graph.Add(id);
-            _pending[id] = new PendingValue(argument.Value, id, argument.Span, null)
-            {
-                DesignRole = role,
-                IsDesign = true,
-            };
+            _pending[id] = new PendingValue(argument.Value, id, argument.Span, null) { IsDesign = true };
 
-            point[key] = new DesignValue(written, role, null, null, argument.Span);
+            point[key] = new DesignValue(written, null, null, null, argument.Span);
 
             // Every parameter of the component may read a curve this value positions, so each is
             // ordered after it. The edges cost nothing when a parameter reads no curve.
@@ -216,7 +209,7 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        var key = point.ContainsKey(name) ? name : parse.Language == 2 ? null : ScheduleRoleRegistry.Resolve(name)?.CanonicalName;
+        var key = point.ContainsKey(name) ? name : null;
         if (key is null
             || !point.ContainsKey(key)
             || !_pending.TryGetValue(new ValueId.SizingPoint(parameter.Component, key), out var given)
@@ -267,8 +260,7 @@ internal sealed partial class BindingRun
             var mismatched = false;
             foreach (var (key, entry) in point)
             {
-                if (parse.Language == 2
-                    && _bindingsByName.TryGetValue(key, out var slot)
+                if (_bindingsByName.TryGetValue(key, out var slot)
                     && _pending.TryGetValue(slot.Id, out var let) && let.Value is { } current
                     && _pending.TryGetValue(new ValueId.SizingPoint(component, key), out var given) && given.Value is { } value
                     && value.Dimension != Dimension.Dimensionless && value.Dimension != current.Dimension)

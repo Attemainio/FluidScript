@@ -8,8 +8,8 @@ using FluidScript.Fixtures;
 namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
-/// The parser's structural invariants: it keeps every token, it never throws, and one token of
-/// lookahead classifies every line.
+/// The parser's structural invariants over the whole corpus: it keeps every token and it never throws. Line
+/// recovery is <c>FluidScript2ParserTests.AnUnreadableLineCostsOnlyItself</c>.
 /// </summary>
 /// <remarks>
 /// The losslessness assertion is the lexer's, re-run over the parsed tree (<c>D-55</c>). It is what
@@ -67,37 +67,13 @@ public sealed class ParserPropertyTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void RecoveryIsLineGranular()
-    {
-        // The line in the middle cannot be read; the two around it are unaffected. That is what makes
-        // R-05 real -- a script under editing is broken somewhere almost always, and one broken line
-        // must not cost the reader the other forty.
-        const string Text = """
-            fluidscript 1
-            circuit demo
-            ! ? !
-            HE1 heat_exchanger power=30
-            """;
-
-        var result = FluidScriptParser.Parse(new SourceText(Text));
-
-        Assert.Collection(
-            result.Root.Statements,
-            statement => Assert.IsType<VersionDirectiveSyntax>(statement),
-            statement => Assert.IsType<CircuitHeaderSyntax>(statement),
-            statement => Assert.IsType<MalformedStatementSyntax>(statement),
-            statement => Assert.IsType<ComponentDeclarationSyntax>(statement));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void AParentSpanContainsEveryChildSpan()
     {
         // Invariant 3, which holds by construction now that a span is derived from a node's tokens
         // rather than computed at each of forty sites (D-55). The test is what keeps that true.
         foreach (var sample in ScriptCorpus.Samples())
         {
-            var result = FluidScriptParser.Parse(new SourceText(sample.Text));
+            var result = FluidScript2Parser.Parse(new SourceText(sample.Text));
             foreach (var statement in result.Root.Statements)
             {
                 var span = statement.Span;
@@ -114,7 +90,7 @@ public sealed class ParserPropertyTests
     private static void AssertLossless(string name, string text)
     {
         var source = new SourceText(text);
-        var result = FluidScriptParser.Parse(source);
+        var result = FluidScript2Parser.Parse(source);
 
         var rebuilt = new StringBuilder(text.Length);
         var position = 0;

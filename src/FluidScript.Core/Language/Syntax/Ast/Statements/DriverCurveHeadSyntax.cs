@@ -16,8 +16,7 @@ namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 /// </param>
 /// <remarks>
 /// The curve's rows are the body of the <see cref="BlockSyntax"/> this heads, each a
-/// <see cref="CurveRowSyntax"/>. Language 1's header, <see cref="CurveHeaderSyntax"/>, has no colon and ends
-/// its rows by a blank line; this one's rows end where their indentation does.
+/// <see cref="CurveRowSyntax"/>; the rows end where their indentation does.
 /// </remarks>
 public sealed record DriverCurveHeadSyntax(
     Token Keyword,

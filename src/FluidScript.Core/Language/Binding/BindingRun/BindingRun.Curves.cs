@@ -50,7 +50,7 @@ internal sealed partial class BindingRun
     {
         var drafts = new List<CurveDraft>();
 
-        foreach (var line in _language2?.FileLines ?? FileLines())
+        foreach (var line in _language2.FileLines)
         {
             switch (line)
             {
@@ -176,13 +176,7 @@ internal sealed partial class BindingRun
     /// <summary>How many unreadable rows of one curve are marked where they are before the rest are counted (<c>FS1535</c>).</summary>
     private const int UnreadableRowsShown = 5;
 
-    /// <summary>Settles what a curve's second position names, and wires the graph edge it implies.</summary>
-    /// <remarks>
-    /// The role is resolved whatever the driver turns out to be, because it is the design point's key
-    /// rather than the driver's kind: <c>curve heating outdoor</c> is driven by the curve
-    /// <c>outdoor</c>, and <c>design tout=-26</c> still short-circuits it, which is exactly
-    /// <c>D-58</c>'s worked example.
-    /// </remarks>
+    /// <summary>Settles what a curve's driver names, and wires the graph edge it implies.</summary>
     private CurveSymbol ResolveDriver(CurveSymbol curve)
     {
         if (curve.DriverName is not { } driver)
@@ -196,50 +190,8 @@ internal sealed partial class BindingRun
             return curve with { DriverKind = CurveDriverKind.Time };
         }
 
-        // Language 2 has no roles and no `design`: a driver is a `let` or the clock (`D-167`).
-        if (parse.Language == 2)
-        {
-            return DriverLet(curve, driver);
-        }
-
-        var role = ScheduleRoleRegistry.Resolve(driver);
-        var key = role?.CanonicalName ?? driver;
-
-        var kind = _curvesByName.ContainsKey(driver) && !string.Equals(driver, curve.Name, StringComparison.Ordinal)
-            ? CurveDriverKind.Curve
-            : role is not null
-                ? CurveDriverKind.Role
-                : _design.ContainsKey(key)
-                    ? CurveDriverKind.DesignOnly
-                    : CurveDriverKind.Unresolved;
-
-        if (kind == CurveDriverKind.Unresolved)
-        {
-            // `D-59` says an unregistered name is not an error, and `FS1527` says a driver naming
-            // nothing is. Both hold, because a driver has to supply a number: an unregistered name
-            // with a `design` value behind it works, and this is the name with nothing behind it.
-            Report(
-                BinderDiagnostics.UnknownCurveDriver,
-                curve.DeclarationSpan,
-                ("driver", driver),
-                ("curve", curve.Name));
-
-            return curve;
-        }
-
-        var id = new ValueId.Curve(curve.Name);
-
-        if (kind == CurveDriverKind.Curve)
-        {
-            _graph.AddDependency(id, new ValueId.Curve(driver));
-        }
-
-        if (_design.ContainsKey(key))
-        {
-            _graph.AddDependency(id, new ValueId.Design(key));
-        }
-
-        return curve with { DriverKind = kind, DriverRole = role };
+        // A driver is a `let` or the clock (`D-167`).
+        return DriverLet(curve, driver);
     }
 
     // ---- step 5, for a curve: read it at the design point ------------------------------------------
@@ -336,11 +288,10 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            // Language 2 has no dynamic circuit outside a run (`D-169`), and any run may hand a driver to a curve
-            // of time; so every reader of a curve that has its value is held for the clock too, as a dynamic
-            // circuit's is in language 1. One with no value is FS1528 below, as in a static circuit.
-            var followable = parse.Language == 2
-                && curves.All(curve => CurveValueSeenBy(pending.Id, curve.Name) is not null);
+            // There is no dynamic circuit outside a run (`D-169`), and any run may hand a driver to a curve of
+            // time; so every reader of a curve that has its value is held for the clock too. One with no value
+            // is FS1528 below.
+            var followable = curves.All(curve => CurveValueSeenBy(pending.Id, curve.Name) is not null);
 
             if (ModeOf(pending.Id) == FluidMode.Dynamic || followable)
             {
@@ -348,15 +299,6 @@ internal sealed partial class BindingRun
                 {
                     _deferred.Add(new DeferredExpression(
                         pending.Expression, pending.Id, pending.Value, pending.Dependencies) { Source = parse.Source });
-                }
-
-                // `D-149`: a curve that runs on the clock is read at start + t, so a run needs the start.
-                // A warning and not an error, because the design solve does not read the clock.
-                if (parse.Language != 2
-                    && _project.Start is null
-                    && curves.Select(curve => Clocked(curve.Name)).FirstOrDefault(static clocked => clocked is not null) is { } clockedCurve)
-                {
-                    Report(BinderDiagnostics.ClockWithoutStart, pending.Span, ("curve", clockedCurve));
                 }
 
                 continue;
@@ -412,58 +354,6 @@ internal sealed partial class BindingRun
         }
 
         return null;
-    }
-
-    /// <summary>Reads language 1's file-wide statements as the binder's records, in the order written (<c>D-177</c>).</summary>
-    /// <remarks>
-    /// A curve's rows follow its header, and nothing else closes a curve section: it is file-wide, so the first
-    /// circuit is the end of the region curves may be declared in. A row with no header above it is <c>FS1115</c>
-    /// from the parser, and there is nothing here to put it in.
-    /// </remarks>
-    private List<FileLine> FileLines()
-    {
-        var lines = new List<FileLine>();
-        CurveDraft? current = null;
-
-        foreach (var statement in parse.Root.Statements)
-        {
-            switch (statement)
-            {
-                case CurveHeaderSyntax header:
-                    current = new CurveDraft(
-                        new CurveHead(
-                            header.Name.Text,
-                            header.Driver?.Text,
-                            [.. header.Modifiers.Select(static word => (word.Text, word.Span))],
-                            header.Arguments,
-                            header.Span),
-                        []);
-                    lines.Add(current);
-                    break;
-
-                case CurveRowSyntax row:
-                    current?.Rows.Add(row);
-                    break;
-
-                case DesignDirectiveSyntax design:
-                    lines.Add(new DesignLine(
-                        design.Scenario is { } named ? (named.Token.Text, named.Span) : null, design.Arguments, design.Span));
-                    break;
-
-                case ScenariosDirectiveSyntax scenarios:
-                    lines.Add(new CaseNames([.. scenarios.Names.Select(static name => (name.Token.Text, name.Span))], scenarios.Span));
-                    break;
-
-                case CircuitHeaderSyntax:
-                    current = null;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        return lines;
     }
 
     /// <summary>A file-wide line as the binder reads it (<c>D-177</c>): a curve, the cases, or the design choice.</summary>

@@ -7,7 +7,6 @@ using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Physics.Units;
-using FluidScript.Core.Tests.Language.Conversion;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Language.Corpus;

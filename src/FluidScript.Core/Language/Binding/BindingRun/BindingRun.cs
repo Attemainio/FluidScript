@@ -52,7 +52,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     public BindResult Execute()
     {
-        var circuits = parse.Language == 2 ? ReadLanguage2() : Partition();
+        var circuits = ReadLanguage2();
 
         CollectCurves();
         CollectDeclarations(circuits);
@@ -104,10 +104,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     // ---- step 0: circuits, and the file-wide settings -------------------------------------------
 
-    /// <summary>What language 2's front end read, or <see langword="null"/> for a language 1 file.</summary>
-    private Language2Reading? _language2;
+    /// <summary>What the front end read from the tree (<c>D-177</c>); set by step 0, before anything reads it.</summary>
+    private Language2Reading _language2 = null!;
 
-    /// <summary>Step 0 for a language 2 file: its own tree, read into the binder's records (<c>D-177</c>, <c>D-178</c>).</summary>
+    /// <summary>Step 0: the tree, read into the binder's records (<c>D-177</c>, <c>D-178</c>).</summary>
     /// <remarks>
     /// The project and its presentation first, then each circuit from the project's style with its own merged over it,
     /// which is what a declaration written in it carries (<c>D-171</c>).
@@ -152,125 +152,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         AssignCircuits(reading.Circuits);
         return reading.Circuits;
-    }
-
-    private List<CircuitBlock> Partition()
-    {
-        var blocks = new List<CircuitBlock>();
-        CircuitBlock? current = null;
-
-        // Definitions first, so `style hot` may precede `style hot = ...` the way a `let` may be used
-        // before its line (D-104).
-        foreach (var definition in parse.Root.Statements.OfType<StyleDirectiveSyntax>().Where(static s => s.IsDefinition))
-        {
-            ReadStyle(definition.Name, definition.Parts);
-        }
-
-        foreach (var statement in parse.Root.Statements)
-        {
-            switch (statement)
-            {
-                case CircuitHeaderSyntax header:
-                    current = new CircuitBlock(CircuitHead.Of(header), []);
-                    blocks.Add(current);
-
-                    // A circuit starts from the project's style, not from the previous circuit's.
-                    _currentStyle = _projectStyle;
-                    break;
-
-                case ProjectDirectiveSyntax project:
-                    BindProject(project.Name.Text, project.Mode, project.Arguments);
-                    break;
-
-                case SpacingDirectiveSyntax spacing:
-                    _spacing = spacing.Value.Value;
-                    break;
-
-                case ShowDirectiveSyntax show:
-                    _visualizations.Add(new VisualizationSymbol(
-                        [.. show.Properties.Select(static property => (property.Text, property.Span))],
-                        show.Scale is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to } ? (from.Value, to.Value) : null,
-                        show.Keyword.Span));
-                    break;
-
-                case StyleDirectiveSyntax { IsDefinition: true }:
-                    break;
-
-                case StyleDirectiveSyntax style:
-                    _styleTokens.AddRange(style.Parts);
-                    ReadStyle(style.Name, style.Parts);
-
-                    if (current is null)
-                    {
-                        _projectStyle = _currentStyle;
-                    }
-
-                    break;
-
-                // File-wide, and therefore not a circuit's contents. Reaching the default arm would
-                // open an implicit circuit for them, which is what `fluidscript 1` did on its own.
-                case VersionDirectiveSyntax:
-                case CatalogDirectiveSyntax:
-
-                // Step 0b reads these instead, and it walks the whole file rather than one circuit's
-                // block: a curve, a design point and a scenario list belong to no circuit (`D-57`,
-                // `D-58`, `D-143`). Left out of this list, a file-wide line before the first `circuit`
-                // header makes an implicit circuit of its own -- which is what `FS1508` was reporting.
-                case CurveHeaderSyntax:
-                case CurveRowSyntax:
-                case DesignDirectiveSyntax:
-                case ScenariosDirectiveSyntax:
-                case MalformedStatementSyntax:
-
-                // A language 2 run, which `BindRuns` binds once the model is complete (`D-169`).
-                case BlockSyntax { Head: RunHeadSyntax }:
-                    break;
-
-                default:
-                    // A statement before the first `circuit` header belongs to the implicit circuit
-                    // the script gets anyway, so it is collected rather than dropped.
-                    if (current is null)
-                    {
-                        current = new CircuitBlock(null, []);
-                        blocks.Insert(0, current);
-                    }
-
-                    if (!_currentStyle.IsEmpty)
-                    {
-                        _styleAt[statement] = _currentStyle;
-                    }
-
-                    current.Statements.Add(statement);
-                    if (BlockLine.Of(statement) is { } line)
-                    {
-                        current.Lines[statement] = [line];
-                    }
-
-                    if (statement is ScheduleHeaderSyntax schedule)
-                    {
-                        current.Schedule ??= schedule.Span;
-                    }
-
-                    break;
-            }
-        }
-
-        if (blocks.Count == 0)
-        {
-            blocks.Add(new CircuitBlock(null, []));
-        }
-
-        // Language 1 writes a circuit's fluid as a statement inside its block; the binder reads it off the block.
-        foreach (var block in blocks)
-        {
-            block.Fluid ??= block.Statements.OfType<FluidDirectiveSyntax>().FirstOrDefault() is { } fluid
-                ? new CircuitFluid(fluid.Substance.Token.Text, fluid.Mode, fluid.Span)
-                : null;
-        }
-
-        AssignCircuits(blocks);
-
-        return blocks;
     }
 
     /// <summary>Binds the <c>project</c> line: its name, its default mode, and <c>start=</c> (<c>D-149</c>).</summary>
@@ -338,13 +219,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             var head = block.Head;
             var name = head?.Name ?? documentName;
             var span = head?.Span ?? new TextSpan(0, 0);
-
-            // Language 2 declares a component only inside a circuit (FS1802), so a file with none holds `let`s and
-            // curves alone and has no circuit whose name was left out (`L-70`).
-            if (head is null && parse.Language != 2)
-            {
-                Report(BinderDiagnostics.NoCircuitHeader, span, ("name", name));
-            }
 
             int number;
             var explicitNumber = head?.Number is not null;
@@ -444,9 +318,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private CircuitRole RoleOfCircuit(CircuitHead? head, string name, TextSpan span) =>
         head?.Role is { } stated
             ? RoleOf(stated.Text, stated.Span)
-            : parse.Language == 2
-                ? CircuitRoleRegistry.Neutral
-                : RoleOf(name, span);
+            : CircuitRoleRegistry.Neutral;
 
     private CircuitRole RoleOf(string name, TextSpan span)
     {
@@ -454,7 +326,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         // `D-170`: language 2 binds a name only by its spelling, so a near miss is placed neutrally and the
         // role it was near is the one-click fix.
-        if (resolution.BySimilarity && parse.Language == 2)
+        if (resolution.BySimilarity)
         {
             Report(
                 BinderDiagnostics.UnknownCircuitRole,
@@ -631,18 +503,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         /// <summary>Gets the ends whose component names the symbol map records, so go-to-definition works from a use.</summary>
         public virtual IEnumerable<LineEnd> Mapped => [];
 
-        /// <summary>Reads a language 1 statement, or <see langword="null"/> for one that is not read as a line.</summary>
+        /// <summary>Reads a statement that is one line, or <see langword="null"/> for one that is not read as a line.</summary>
         public static BlockLine? Of(StatementSyntax statement) => statement switch
         {
             ConnectionSyntax connection => new ConnectionLine(
                 [.. connection.Endpoints.Select(LineEnd.Of)], connection.Parameters, connection.Span),
-            ControlBindingSyntax control => new ControlLine(
-                control.Actuator is { } actuator ? LineEnd.Of(actuator) : null,
-                control.Sensor is { } sensor ? LineEnd.Of(sensor) : null,
-                control.Controller is { } controller ? (controller.Text, controller.Span) : null,
-                control.Arguments,
-                control.Span),
-            AttachmentSyntax attachment => new AttachmentLine(attachment.Direction, LineEnd.Of(attachment.Endpoint), attachment.Span),
             DisturbanceSyntax disturbance => ChangeLine.Of(disturbance),
             _ => null,
         };
@@ -723,13 +588,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <param name="Number">The number written, if any.</param>
     /// <param name="Role">The role written, with where, if any.</param>
     internal sealed record CircuitHead(string Name, TextSpan Span, int? Number, (string Text, TextSpan Span)? Role)
-    {
-        public static CircuitHead Of(CircuitHeaderSyntax header) => new(
-            header.Name.Text,
-            header.Span,
-            header.Number?.Value is { } number ? (int)number : null,
-            header.Role is { } role ? (role.Text, role.Span) : null);
-    }
+;
 
     /// <summary>A circuit's fluid as the binder reads it (<c>D-177</c>).</summary>
     /// <param name="Substance">The substance as written.</param>

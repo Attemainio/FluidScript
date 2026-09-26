@@ -98,7 +98,7 @@ internal sealed partial class BindingRun
         // A diagnostic about a name underlines the name (44), so a quick fix that replaces the range
         // replaces the name and keeps the value (L-53).
         if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
-            && match.IsClear && parse.Language == 2)
+            && match.IsClear)
         {
             // `D-170`: in language 2 a near miss binds nothing -- `haed = 15` would otherwise be a stated head.
             // The spelling it was near is the one-click fix, on the name alone (L-53).

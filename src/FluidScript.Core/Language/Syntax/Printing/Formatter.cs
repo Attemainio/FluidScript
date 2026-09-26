@@ -104,6 +104,13 @@ public static class Formatter
         {
             var start = source.GetLineStart(index);
             var end = index + 1 < source.LineCount ? source.GetLineStart(index + 1) : source.Length;
+
+            // A byte-order mark is outside the layout: no edit may include it, so none can drop it.
+            if (start == 0 && end > 0 && source[0] == '\uFEFF')
+            {
+                start = 1;
+            }
+
             var content = source.Text.AsSpan(start, end - start).TrimEnd("\r\n").ToString();
             lines.Add(new Line(start, content));
         }
@@ -138,7 +145,7 @@ public static class Formatter
                 var head = block.Colon is { } colon ? [.. block.Head.Tokens, colon] : block.Head.Tokens;
                 Register(block.Head, head, depth, source, lines);
 
-                var rows = block.Head is DriverCurveHeadSyntax or CurveHeaderSyntax;
+                var rows = block.Head is DriverCurveHeadSyntax;
                 foreach (var child in block.Body)
                 {
                     if (rows && child is CurveRowSyntax)

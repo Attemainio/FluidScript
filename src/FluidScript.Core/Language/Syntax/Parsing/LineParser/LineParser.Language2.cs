@@ -69,8 +69,15 @@ internal sealed partial class LineParser
         var first = tokens[0];
         var second = tokens.ElementAtOrDefault(1);
 
-        // Only a curve row begins with a number, a minus or a date; outside a curve's body it is language
-        // 1's FS1115, which says what the line is.
+        // `3K pump` is a declaration whose name reads as three kelvin, not a row: a row is numbers. Read as a
+        // declaration, the name says so (FS1003) and the fix is to swap the parts.
+        if (first.Kind == TokenKind.QuantityLiteral && second is { Kind: TokenKind.Identifier })
+        {
+            return ParseLanguage2Declaration(context);
+        }
+
+        // Only a curve row begins with a number, a minus or a date; outside a curve's body it is FS1115, which
+        // says what the line is.
         if (first.Kind is TokenKind.NumberLiteral or TokenKind.QuantityLiteral or TokenKind.Minus
             or TokenKind.DateLiteral)
         {
@@ -279,7 +286,7 @@ internal sealed partial class LineParser
     /// <returns>The unit's tokens, or an empty array when the next word is not a unit or starts the next parameter.</returns>
     /// <remarks>
     /// The lexer's unit rule, applied after a bracket: a spelling of <c>13</c>'s table, not one of the symbols
-    /// language 2 drops (<see cref="LexerOptions.ExcludedUnitSymbols"/>), and not followed by <c>=</c>, <c>[</c>,
+    /// the lexer drops (<see cref="Lexer.ExcludedUnitSymbols"/>), and not followed by <c>=</c>, <c>[</c>,
     /// or a <c>.</c> before a word.
     /// </remarks>
     private ImmutableArray<Token> TakeUnitSuffix()
@@ -303,7 +310,7 @@ internal sealed partial class LineParser
     }
 
     private static bool IsLanguage2Unit(string symbol) =>
-        UnitTable.IsSymbol(symbol) && !LexerOptions.Language2.ExcludedUnitSymbols.Contains(symbol);
+        UnitTable.IsSymbol(symbol) && !Lexer.ExcludedUnitSymbols.Contains(symbol);
 
     /// <summary>Reads what follows a name in a language 2 value: a reference, or a catalogue pinned to a version.</summary>
     /// <param name="name">The name, already consumed.</param>

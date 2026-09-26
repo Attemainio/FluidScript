@@ -95,8 +95,7 @@ public enum TokenKind
 
     /// <summary>A date, a date and a clock time, or a clock time alone: <c>2026-01-15 06:00</c>, <c>06:30</c>.</summary>
     /// <remarks>
-    /// Language 2 only (<see cref="LexerOptions.LexesDates"/>). Language 1 quotes a date, because there
-    /// <c>2026-01-15</c> lexes as three numbers and two minus signs; its lexer never produces this kind.
+    /// Lexed whole, so <c>2026-01-15</c> is a date and not three numbers and two minus signs.
     /// </remarks>
     DateLiteral,
 }

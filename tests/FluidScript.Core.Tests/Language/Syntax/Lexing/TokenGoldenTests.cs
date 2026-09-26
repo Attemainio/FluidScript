@@ -57,12 +57,7 @@ public sealed class TokenGoldenTests
         var text = new SourceText(source);
         var builder = new StringBuilder();
 
-        // Each sample in the lexing its major selects: language 2's `K`, `..` and blocks are its own (D-174).
-        var options = FluidScript.Core.Language.Compatibility.ScriptCompatibility.Inspect(text).DetectedMajor is { Value: 2 }
-            ? LexerOptions.Language2
-            : LexerOptions.Language1;
-
-        foreach (var token in Lexer.Lex(text, options).Tokens)
+        foreach (var token in Lexer.Lex(text).Tokens)
         {
             AppendComments(builder, token.LeadingTrivia);
 

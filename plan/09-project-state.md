@@ -1955,6 +1955,29 @@ that governed each size. What P6.8 still owes, and what comes after:
     looking at in the product: the samples' declaration tables are collapsed to two-space fields (the same choice
     language 1 made), and a curve head's comment takes its own column while its rows keep theirs. `the-editor.md`
     states the new rules. Core 2759/0/2, Api 79/0.
+  - **Step 4b, language 1's grammar deleted (2026-09-26).** `FluidScriptParser`, its statement parsers, the fourteen
+    syntax nodes only it produced, `StatementKind`/`ScriptSection`, `LexerOptions` (the lexer lexes language 2 alone),
+    `MajorParser`'s major 1 branch, and the binder's syntax layer for it (`Partition`, `FileLines`, `CircuitHead.Of`, the
+    `parse.Language` branches, language 1's similarity binding of kinds) are gone; the converter and the language 1
+    grammar tests (`Parser`, `CurveParsing`, `StyleDirective`, `SizingPointParsing`) with them. The corpus-wide parser
+    and printer properties (losslessness, one-character deletions, mutations, tiling) now run the language 2 parser,
+    which they had never done -- every sample was going through language 1's -- and the language-agnostic cases the
+    deleted files held are ported: the 10,000-level nesting guard, precedence, parentheses, call arguments, CRLF and CR
+    files, and six codes whose only tests were language 1's (`FS1003`, `FS1114`, `FS1115`, `FS1119`, `FS1121`,
+    `FS1201`). `ModelShape`, the frozen corpus's golden renderer, moved to `Corpus`. Porting them found three things:
+    - **A byte-order mark broke the first line (fixed).** `18` lets a BOM precede the version line and the
+      compatibility gate honours it, but the shared lexer reported `FS1002` on it and the line was unreadable -- in
+      language 1 too. It is leading whitespace trivia now, not indentation, and the formatter never edits it.
+    - **`3K pump` was told to go under a curve (fixed).** A line starting with a quantity was read as a curve row
+      (`FS1115`); a quantity followed by a word is a declaration whose name reads as three kelvin, which is `FS1003`'s
+      "Try 'K3'", as language 1 said.
+    - **Filed `L-77`:** `colour = "zz"` and `width = 0` get `FS1201`'s generic language 1 message.
+    Left for step 4c, because language 2 never reaches them but they are semantics, not syntax: the schedule roles
+    (`ScheduleRoleRegistry`, `ScheduleRole`, `CurveDriverKind.Role`/`DesignOnly`) and the driver form of `design`
+    (`_design`, `ValueId.Design`, `DesignLine.Arguments`), the attachment line (`D-41`), and the codes only they
+    raise. `TokenKind.Keyword` and `ReservedWords` stay for the editor's lexicon until package 8 (`U-11`). The
+    untracked `ScenarioProbe.cs` uses language 1 and no longer compiles; it was set aside for the build and put back.
+    Core 2596/0/2, Api 79/0; the frontend was not touched.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

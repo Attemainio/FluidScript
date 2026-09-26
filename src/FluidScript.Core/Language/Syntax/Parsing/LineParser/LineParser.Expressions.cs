@@ -9,25 +9,6 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 
 internal sealed partial class LineParser
 {
-    private PointSyntax? ParsePoint()
-    {
-        var value = ParseExpression();
-        return value is null ? null : new PointSyntax(value);
-    }
-
-    private RangeSyntax? ParseRange()
-    {
-        var from = ParseExpression();
-        if (from is null || Current is not { Kind: TokenKind.DotDot })
-        {
-            return null;
-        }
-
-        var dots = Advance();
-        var to = ParseExpression();
-        return to is null ? null : new RangeSyntax(from, dots, to);
-    }
-
     private RangeOrPointSyntax? ParsePointOrRange()
     {
         var from = ParseExpression();
@@ -132,7 +113,6 @@ internal sealed partial class LineParser
             case TokenKind.StringLiteral:
                 return new StringLiteralSyntax(Advance());
 
-            // Only language 2's lexer makes one (`LexerOptions.LexesDates`).
             case TokenKind.DateLiteral:
                 return new DateLiteralSyntax(Advance());
 
@@ -156,12 +136,7 @@ internal sealed partial class LineParser
                     return ParseCall(name);
                 }
 
-                if (language2)
-                {
-                    return ParseLanguage2Name(name);
-                }
-
-                return ParseReference(name) is { } reference ? WithUnit(reference) : null;
+                return ParseLanguage2Name(name);
             }
 
             default:
@@ -182,7 +157,7 @@ internal sealed partial class LineParser
     {
         if (Current is not { Kind: TokenKind.Identifier } first
             || StartsNextParameter(_index + 1)
-            || (language2 && LexerOptions.Language2.ExcludedUnitSymbols.Contains(first.Text)))
+            || Lexer.ExcludedUnitSymbols.Contains(first.Text))
         {
             return reference;
         }

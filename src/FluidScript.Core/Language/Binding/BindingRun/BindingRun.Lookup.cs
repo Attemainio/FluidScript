@@ -292,17 +292,15 @@ internal sealed partial class BindingRun
         }
     }
 
-    /// <summary>Every expression the file writes outside a run: language 1's statements, or what language 2's front end read.</summary>
-    private IEnumerable<ExpressionSyntax> ReviewedExpressions() => _language2 is not { } reading
-        ? parse.Root.Statements.SelectMany(Expressions)
-        : reading.Circuits
+    /// <summary>Every expression the file writes outside a run, as the front end read it.</summary>
+    private IEnumerable<ExpressionSyntax> ReviewedExpressions() => _language2.Circuits
             .SelectMany(static block => block.Statements.SelectMany(statement => Expressions(statement).Concat(block.LinesAt(statement).SelectMany(static line => line switch
             {
                 ConnectionLine connection => ParameterValues(connection.Pipe),
                 ControlLine control => ParameterValues(control.Arguments),
                 _ => [],
             }))))
-            .Concat(reading.FileLines.OfType<CurveDraft>().SelectMany(static draft => ParameterValues(draft.Header.Arguments)));
+            .Concat(_language2.FileLines.OfType<CurveDraft>().SelectMany(static draft => ParameterValues(draft.Header.Arguments)));
 
     /// <summary>The values of a list of parameters, a list's elements one by one (<c>D-143</c>).</summary>
     private static IEnumerable<ExpressionSyntax> ParameterValues(IEnumerable<ParameterSyntax> parameters) =>
@@ -317,9 +315,6 @@ internal sealed partial class BindingRun
         {
             ComponentDeclarationSyntax declaration => declaration.Parameters.Concat(declaration.SizingPoint),
             ConnectionSyntax connection => connection.Parameters,
-            ControlBindingSyntax control => control.Arguments,
-            DesignDirectiveSyntax design => design.Arguments,
-            CurveHeaderSyntax curve => curve.Arguments,
             _ => [],
         };
 
