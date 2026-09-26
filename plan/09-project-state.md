@@ -1945,6 +1945,16 @@ that governed each size. What P6.8 still owes, and what comes after:
     `diagnostics/scratch` scripts now parse as language 2; the corpus sweeps only require that nothing throws, and
     they hold. Core 2754/0/2, Api 79/0 (the metadata golden moved by the language versions alone), frontend 221 and
     9 expected failures.
+  - **Step 4a, the language 2 formatter (2026-09-26, `L-76` closed).** The user chose to write one rather than
+    drop Format. `Formatter` now works over `FluidScript2Parser`'s tree (`17` §The formatter's layout, rules 1-6):
+    indentation is the parse's depth, a line's fields are two spaces apart and a pipe three past its link, `=`, `:`
+    and a connection's `-` are spaced, trailing comments and the `=` of consecutive `let`s and one-setting lines align
+    within a run, and curve rows, unreadable lines and files of another major are left as written. Over the corpus's
+    134 scripts 74 change (235 lines); every one is idempotent, keeps its tokens and comments and parses to the same
+    tree, which `FormatterTests` now asserts, with one example per rule. The corpus itself is not reformatted. Worth
+    looking at in the product: the samples' declaration tables are collapsed to two-space fields (the same choice
+    language 1 made), and a curve head's comment takes its own column while its rows keep theirs. `the-editor.md`
+    states the new rules. Core 2759/0/2, Api 79/0.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

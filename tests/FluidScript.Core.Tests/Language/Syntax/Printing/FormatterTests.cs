@@ -1,4 +1,9 @@
+using System.Text;
+
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Printing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
@@ -6,14 +11,13 @@ using FluidScript.Fixtures;
 namespace FluidScript.Core.Tests.Language.Syntax.Printing;
 
 /// <summary>
-/// The formatter's layout (<c>17</c>): what it aligns, what it never touches, and that formatting
+/// The formatter's layout (<c>17</c>): what it indents, spaces and aligns, what it never touches, and that formatting
 /// twice is formatting once.
 /// </summary>
 [Trait("Category", "Unit")]
 public sealed class FormatterTests
 {
-    /// <summary>The version line these examples need: the layout is language 1's, and a file without one is language 2 (<c>L-76</c>).</summary>
-    private const string V1 = "fluidscript 1\n";
+    private const string V2 = "fluidscript 2\n";
 
     [Fact]
     public void ItIsIdempotentOverTheCorpus()
@@ -34,13 +38,14 @@ public sealed class FormatterTests
     {
         foreach (var (name, text, _) in ScriptCorpus.All())
         {
-            var before = Lexer.Lex(new SourceText(text));
-            var after = Lexer.Lex(new SourceText(Formatter.FormatText(text)));
+            var formatted = Formatter.FormatText(text);
+            var before = Lexer.Lex(new SourceText(text), LexerOptions.Language2);
+            var after = Lexer.Lex(new SourceText(formatted), LexerOptions.Language2);
 
-            Assert.Equal(
-                before.Tokens.Select(static t => (t.Kind, t.Text)),
-                after.Tokens.Select(static t => (t.Kind, t.Text)));
-            Assert.Equal(Comments(before, text), Comments(after, Formatter.FormatText(text)));
+            Assert.True(
+                before.Tokens.Select(static t => (t.Kind, t.Text)).SequenceEqual(after.Tokens.Select(static t => (t.Kind, t.Text))),
+                $"{name}: formatting changed a token");
+            Assert.Equal(Comments(before, text), Comments(after, formatted));
         }
 
         static IEnumerable<string> Comments(LexResult lexed, string text) =>
@@ -50,67 +55,148 @@ public sealed class FormatterTests
     }
 
     [Fact]
+    public void ItLeavesTheTreeAsItWasOverTheCorpus()
+    {
+        // Indentation is language 2's block structure: the depth written must be the depth the parse read.
+        foreach (var (name, text, _) in ScriptCorpus.All())
+        {
+            Assert.True(
+                string.Equals(Shape(text), Shape(Formatter.FormatText(text)), StringComparison.Ordinal),
+                $"{name}: the formatted file parses to another tree");
+        }
+
+        static string Shape(string text)
+        {
+            var parse = FluidScript2Parser.Parse(new SourceText(text));
+            var shape = new StringBuilder();
+
+            void Walk(StatementSyntax statement, int depth)
+            {
+                shape.Append(depth).Append(' ').Append(statement.GetType().Name).Append(' ')
+                    .AppendJoin("|", statement.Tokens.Select(static t => t.Text)).Append('\n');
+                if (statement is BlockSyntax block)
+                {
+                    foreach (var child in block.Body)
+                    {
+                        Walk(child, depth + 1);
+                    }
+                }
+            }
+
+            foreach (var statement in parse.Root.Statements)
+            {
+                Walk(statement, 0);
+            }
+
+            return shape.AppendJoin(",", parse.Diagnostics.Select(static d => d.Code)).ToString();
+        }
+    }
+
+    [Fact]
+    public void ItIndentsTwoSpacesForEachBlockALineSitsIn()
+    {
+        const string Text = V2 + "circuit \"c\":\n     fluid = water\n     HX1  exchanger:\n         primary.in.t = 70 C\n";
+
+        Assert.Equal(
+            V2 + "circuit \"c\":\n  fluid = water\n  HX1  exchanger:\n    primary.in.t = 70 C\n",
+            Formatter.FormatText(Text));
+    }
+
+    [Fact]
+    public void ItSetsADeclarationsFieldsTwoSpacesApartAndOneSpaceAroundEachEquals()
+    {
+        // A value runs to the next `name =`, so one space would run the pairs together to the eye.
+        const string Text = V2 + "circuit \"c\":\n  HE1 load power=30 kW   in.t  =  20 C\n  PE1 pressure_sensor at   N1\n";
+
+        Assert.Equal(
+            V2 + "circuit \"c\":\n  HE1  load  power = 30 kW  in.t = 20 C\n  PE1  pressure_sensor  at N1\n",
+            Formatter.FormatText(Text));
+    }
+
+    [Fact]
+    public void ItSetsAPipesFirstPropertyThreeSpacesPastItsLink()
+    {
+        const string Text = V2 + "circuit \"c\":\n  P1  -  HE1 12 m DN25\n  HE1 - P1\n";
+
+        Assert.Equal(
+            V2 + "circuit \"c\":\n  P1 - HE1   12 m  DN25\n  HE1 - P1\n",
+            Formatter.FormatText(Text));
+    }
+
+    [Fact]
     public void ItAlignsTrailingCommentsWithinARunAndNotAcrossABlankLine()
     {
-        const string Text = V1 + "HE1 heat_exchanger power=30   # coil\n3WV three_way_valve # valve\n\nPU1 pump # pump\n";
+        const string Text = V2 + "circuit \"c\":\n  HE1  load  power = 30 kW   # coil\n  TV1  valve3 # valve\n\n  PU1  pump # pump\n";
 
-        var formatted = Formatter.FormatText(Text);
-
-        Assert.Equal(V1 + "HE1 heat_exchanger power=30  # coil\n3WV three_way_valve          # valve\n\nPU1 pump  # pump\n", formatted);
+        Assert.Equal(
+            V2 + "circuit \"c\":\n  HE1  load  power = 30 kW  # coil\n  TV1  valve3               # valve\n\n  PU1  pump  # pump\n",
+            Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItPadsConsecutiveLetsSoTheEqualsSignsLineUp()
     {
-        const string Text = V1 + "let dT = 30 dK\nlet margin=2 kW\nlet Q   =   30 kW\n";
+        const string Text = V2 + "let dT = 30 K\nlet margin=2 kW\nlet Q   =   30 kW\n";
 
-        Assert.Equal(V1 + "let dT     = 30 dK\nlet margin = 2 kW\nlet Q      = 30 kW\n", Formatter.FormatText(Text));
+        Assert.Equal(V2 + "let dT     = 30 K\nlet margin = 2 kW\nlet Q      = 30 kW\n", Formatter.FormatText(Text));
     }
 
     [Fact]
-    public void ItRemovesSpacesAroundAParametersEqualsAndKeepsAQuantitysInnerSpace()
+    public void ItPadsConsecutiveSettingsOfOneBlockSoTheEqualsSignsLineUp()
     {
-        const string Text = V1 + "   HE1   heat_exchanger  power = 30 kW   in.t=20\n";
+        // A declaration between them ends the group; a nested block's settings are a group of their own.
+        const string Text = V2 + "circuit \"c\":\n  fluid = water\n  number=100\n  P1  pump\n  role = district\n  style:\n    colour = crimson\n    width=2\n";
 
-        Assert.Equal(V1 + "HE1 heat_exchanger power=30 kW in.t=20\n", Formatter.FormatText(Text));
+        Assert.Equal(
+            V2 + "circuit \"c\":\n  fluid  = water\n  number = 100\n  P1  pump\n  role = district\n  style:\n    colour = crimson\n    width  = 2\n",
+            Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItKeepsTheWritersSpacingInsideAnExpressionCollapsedToOne()
     {
-        const string Text = V1 + "let a = Q/(cp*dT)\nlet b = Q  /  ( cp * dT )\nlet c = max( Q ,24 kW )\n";
+        const string Text = V2 + "let a = Q/(cp*dT)\nlet b = Q  /  ( cp * dT )\nlet c = max( Q ,24 kW )\nlet d = [ 60 ,50 ] C\n";
 
-        Assert.Equal(V1 + "let a = Q/(cp*dT)\nlet b = Q / (cp * dT)\nlet c = max(Q, 24 kW)\n", Formatter.FormatText(Text));
+        Assert.Equal(
+            V2 + "let a = Q/(cp*dT)\nlet b = Q / (cp * dT)\nlet c = max(Q, 24 kW)\nlet d = [60, 50] C\n",
+            Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItLeavesBlankLinesFullLineCommentsAndCurveRowsExactlyAsWritten()
     {
-        const string Text = V1 + "# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x=1\n";
+        const string Text = V2 + "# a comment   with   spacing\n\n\ncurve heating:   outdoor   extrapolated\n  -26   50\n    0   30\n\nlet x=1\n";
 
-        Assert.Equal(V1 + "# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x = 1\n", Formatter.FormatText(Text));
+        Assert.Equal(
+            V2 + "# a comment   with   spacing\n\n\ncurve heating: outdoor extrapolated\n  -26   50\n    0   30\n\nlet x = 1\n",
+            Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItReturnsOneEditPerChangedLineAtThatLinesSpan()
     {
-        const string Text = V1 + "HE1 heat_exchanger power=30\nPU1   pump\n";
+        const string Text = V2 + "circuit \"c\":\n  P1  pump\n  PU2   pump\n";
 
         var edit = Assert.Single(Formatter.Format(new SourceText(Text)));
 
-        Assert.Equal(V1.Length + 28, edit.Span.Start);
-        Assert.Equal("PU1   pump".Length, edit.Span.Length);
-        Assert.Equal("PU1 pump", edit.NewText);
+        Assert.Equal(Text.IndexOf("  PU2", StringComparison.Ordinal), edit.Span.Start);
+        Assert.Equal("  PU2   pump".Length, edit.Span.Length);
+        Assert.Equal("  PU2  pump", edit.NewText);
+    }
+
+    [Fact]
+    public void ItFormatsADraftWithNoVersionLineAsLanguageTwo()
+    {
+        Assert.Equal("circuit \"c\":\n  P1  pump\n", Formatter.FormatText("circuit \"c\":\n    P1 pump\n"));
     }
 
     [Theory]
-    [InlineData("fluidscript 2\ncircuit \"c\":\n  P1   pump\n  P1 - P2\n")]
-    [InlineData("fluidscript 1\nfluidscript 2\n  P1   pump\n")]
-    [InlineData("circuit \"c\":\n  P1   pump\n")]
-    [Trait("Category", "Unit")]
+    [InlineData("fluidscript 1\nHE1 heat_exchanger  power=30\n")]
+    [InlineData("fluidscript 1\nfluidscript 2\ncircuit \"c\":\n    P1   pump\n")]
+    [InlineData("fluidscript 3\ncircuit \"c\":\n    P1   pump\n")]
     public void ItLeavesAFileOfAnotherMajorAsWritten(string text)
     {
-        // Language 1's first rule removes leading indentation, which is language 2's block structure.
+        // Its layout would say something else in another language: in language 1 indentation meant nothing.
         Assert.Empty(Formatter.Format(new SourceText(text)));
     }
 }

@@ -86,21 +86,29 @@ the dimension and the unit a bare number would mean there.
 
 **Shift+Alt+F** lays the whole script out in the canonical form and nothing else:
 
-- leading indentation is removed;
-- a parameter's `=` has no spaces around it, a `let`'s has one on each side;
+- a line is indented two spaces for each block it sits in -- the depth FluidScript already reads, so
+  formatting never moves a line into or out of a block;
+- a declaration's name, its kind, `at` and each `name = value` are two spaces apart, and so are the
+  settings on a shared line and the properties of a pipe; a pipe's first property sits three spaces
+  after its link, which sets it apart from the connection;
+- `=` has one space on each side, `:` none before it and one after, a connection's `-` one on each
+  side;
 - brackets hug their contents and a comma is followed by one space;
 - between an operator and its operand your spacing stands, collapsed to one space at most, so
   `Q/(cp*dT)` and `Q / (cp * dT)` are both left as they are;
-- within a run of lines the trailing comments share one column, two spaces past the longest line,
-  and consecutive `let`s pad their names so the `=` signs line up;
-- blank lines, full-line comments and the rows of a `curve` are left exactly as written.
+- within a run of lines the trailing comments share one column, two spaces past the longest line;
+  consecutive `let`s, and consecutive one-setting lines of one block (`fluid = water` over
+  `number = 100`), pad their names so the `=` signs line up;
+- blank lines, full-line comments, the rows of a `curve` and a line FluidScript could not read are
+  left exactly as written.
 
 A blank line or a full-line comment ends a run, so one long line aligns the comments of its own
-paragraph and no further. Formatting twice changes nothing, it changes no token and no comment, and
-the whole thing is one edit: one Undo restores your layout.
+paragraph and no further. Columns of declarations are not lined up with each other: that reads well
+over a header of identical components and badly everywhere else. Formatting twice changes nothing, it
+changes no token and no comment, and the whole thing is one edit: one Undo restores your layout.
 
-These are the rules of `fluidscript 1`. A file whose version line names another major, such as
-`fluidscript 2`, where indentation is what puts a line inside its block, is left exactly as written.
+A file whose version line names another major, such as a `fluidscript 1` file, is left exactly as
+written. A draft with no version line is formatted as the current version.
 
 ## Shortcuts
 

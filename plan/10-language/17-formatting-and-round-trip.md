@@ -51,29 +51,47 @@ users will want alignment; it is a command, never a side effect.
 
 Built by P5.5 (2026-09-18) as `Formatter.Format(SourceText) → ImmutableArray<TextEdit>` in Core,
 served by `POST /api/v1/format` ([`42`](../40-api/42-rest-contract.md)) and bound to `Shift+Alt+F`
-in the editor ([`52`](../50-frontend/52-editor.md)). Nothing outside the project fixes a layout for a
-language of this shape, so the rules below are **this project's reasoning**, chosen to read well on
-the sample corpus, and the part of this document most worth arguing with once the product is looked
-at:
+in the editor ([`52`](../50-frontend/52-editor.md)); **rewritten for language 2 by P6.11 package 7
+step 4** (2026-09-26, `L-76`), because language 1's first rule -- remove leading indentation -- is a
+change of meaning in a language whose blocks are their indentation. Nothing outside the project fixes a
+layout for a language of this shape, so the rules below are **this project's reasoning**, chosen to
+read well on the sample corpus as it was written, and the part of this document most worth arguing
+with once the product is looked at:
 
-1. Leading indentation is removed; every statement starts in column one.
-2. Two words or literals in a row keep their one space. Between an operator and its operand the
-   writer's choice stands, collapsed to one space at most, so `Q/(cp*dT)` and `Q / (cp * dT)` are
-   both formatted forms. A parameter's `=` has no spaces around it; a `let`'s has one on each side.
-   Nothing follows `(` or precedes `)` or `,`; one space follows `,`.
-3. Within a **run** of consecutive non-blank statement lines, the trailing comments share one column,
-   two spaces past the run's longest content, and consecutive `let`s pad their names so the `=`
-   signs line up. A blank line, a full-line comment or a `curve`'s data row ends a run, which is the
-   open-questions rule: one long line cannot reflow a section.
-4. Blank lines, full-line comments, comment text and a `curve`'s data rows are left exactly as
-   written; token text is never changed.
+1. **Indentation is the parse's depth.** A line is indented two spaces for each block it sits in, as
+   `FluidScript2Parser` read it ([`19`](19-fluidscript-2.md) §Lines, blocks and names), so a formatted
+   file parses to the tree the original did, block for block.
+2. **Fields are two spaces apart.** A declaration's name, its kind, `at`, each `name = value` and
+   `sized_at`; each setting after the first on a shared line; each property of a pipe; an event's
+   target. In language 2 a value runs to the next `name =`, so one space would run the pairs together
+   to the eye. A pipe's first property is three spaces past its link, which sets the pipe apart from
+   the connection it sits on.
+3. **Punctuation.** `=` has one space on each side, `:` none before and one after, a connection's `-`
+   one on each side, `.` none. Nothing follows `(` or `[` or precedes `)`, `]` or `,`; one space
+   follows `,`. Between two words one space. Between an operator and its operand the writer's choice
+   stands, collapsed to one space at most, so `Q/(cp*dT)` and `Q / (cp * dT)` are both formatted.
+4. **Runs.** Within a run of consecutive non-blank statement lines the trailing comments share one
+   column, two spaces past the run's longest content. Consecutive `let`s, and consecutive
+   one-setting lines at one depth (`fluid = water` over `number = 100`, a controller's or an
+   exchanger's block), pad what precedes the `=` so the signs line up. A blank line, a full-line
+   comment or a curve's rows end a run: one long line cannot reflow a section.
+5. **Left as written:** blank lines, full-line comments, comment text, a curve's rows (a table the
+   user aligns, which the grammar allows to be ragged), a line holding more than one statement or one
+   statement over several lines, and a line the parser could not read. Token text is never changed.
+6. **Another major is left alone.** A file whose version line names a major other than 2, or two
+   majors, gets no edits; an unversioned draft is formatted as language 2.
 
 One `TextEdit` per line that changes, at that line's span. Idempotent by construction: every rule
-reads tokens, not spacing, except rule 2's collapse, which a formatted line already satisfies.
-`FormatterTests` asserts idempotence, token and comment preservation over the whole corpus, and each
-rule on a small example. What is deliberately absent: reordering of any kind, blank-line insertion,
-and column alignment of parameters across lines, which reads well on a header of identical
-declarations and badly everywhere else.
+reads tokens and the tree, not spacing, except rule 3's collapse, which a formatted line already
+satisfies. `FormatterTests` asserts idempotence, token and comment preservation and an unchanged tree
+over the whole corpus, and each rule on a small example. Measured at the rewrite: 74 of the corpus's
+134 scripts change, 235 lines, all idempotent and all parsing to the same tree; most of the churn is
+rule 4's comment column (the samples were written to one document-wide column) and rule 2 collapsing
+declaration tables (`SP   pump` over `TV1  valve3      stroke = 90 s`). What is deliberately absent:
+reordering of any kind, blank-line insertion, and column alignment of declarations' fields across
+lines, which reads well on a header of identical declarations and badly everywhere else -- the same
+choice language 1's formatter made. The corpus is left as written; formatting it is the user's
+command, not a side effect of this change.
 
 ## Trivia
 
@@ -370,7 +388,7 @@ worth a dedicated test.
 - [ ] `Rename` across a script containing the name in a declaration, a connection, and an expression
       updates all three.
 - [x] Formatter idempotence over the corpus (P5.5, `FormatterTests`; and no token or comment changes,
-      which is the stronger half).
+      which is the stronger half; for language 2 also an unchanged tree, P6.11 package 7 step 4).
 - [ ] On `T1 container v=300 layers=5`, setting canonical `volume` changes only `300`, removing `v`
       removes that assignment, and setting it again inserts exactly one canonical `volume=` while
       preserving `container`.

@@ -164,8 +164,8 @@ indented alike; a body mixing tabs and spaces, or a line indented between two le
 reported on that line, and the line is read as belonging to the nearer level. **A curve's rows are the
 exception**: they are a table whose columns the user aligns (`  -26   85` over `   18   65`, as in the
 reference script), so a row needs only to be deeper than its header. Nothing else about
-whitespace means anything. The formatter indents a body two spaces; the printer keeps what was typed
-(`17`).
+whitespace means anything. The formatter indents a body two spaces and leaves a curve's rows as
+written; the printer keeps what was typed (`17` §The formatter's layout).
 
 **`name = value`, spaces free, no commas.** A value runs to the next `name =` on the same line or to
 the end of the line, so a value may contain spaces and operators: `power = Q * 1.1   dt = 20 K`. Several
