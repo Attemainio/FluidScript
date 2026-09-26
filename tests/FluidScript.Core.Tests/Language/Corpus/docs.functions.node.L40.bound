@@ -12,6 +12,6 @@ component N4 node in script at  tag  style
   elevation = 32 Length  
 connection HE_AHU.in -> HE_AHU__in.
 connection HE_AHU.out -> HE_AHU__out.
+FS1507 [35..98] 'HE_AHU' is not connected to anything.
 FS1510 [35..98] Added node 'HE_AHU__in' (I3).
 FS1510 [35..98] Added node 'HE_AHU__out' (I3).
-FS1507 [35..98] 'HE_AHU' is not connected to anything.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
@@ -16,8 +17,8 @@ namespace FluidScript.Core.Tests.Language.Corpus;
 /// converted corpus item that binds without a gap, committed as its language 2 text, and a golden of what it binds to.
 /// </summary>
 /// <remarks>
-/// The goldens were written from the translated path, which the binder's entry still delegates to; the direct front
-/// end replaces that path and must bind every item to the same golden. A golden changes only with its reason stated
+/// The goldens were written from the translated path: the translation at the parse, then the binder. The direct front
+/// end replaces it in the binder and must bind every item to the same golden, the translation's diagnostics included. A golden changes only with its reason stated
 /// in the commit, item by item: a span the translation made up, a message <c>L-66</c> names, or a defect fixed.
 /// </remarks>
 [Trait("Category", "Golden")]
@@ -59,12 +60,18 @@ public sealed class Language2CorpusTests
         Assert.Equal(File.ReadAllText(path).ReplaceLineEndings("\n"), actual);
     }
 
-    /// <summary>Binds language 2 text the way the pipeline's binder receives it: the parser's own tree (<c>D-177</c>).</summary>
-    private static BindResult Bind(string text)
+    /// <summary>Parses and binds language 2 text as the pipeline does, whichever path that is.</summary>
+    /// <returns>The model, and the parse's diagnostics with the binder's: the translation raises its own at the parse, and the direct path in the binder.</returns>
+    private static (SemanticModel Model, IEnumerable<Diagnostic> Diagnostics) Bind(string text)
     {
         var source = new SourceText(text);
-        return new Binder(ComponentRegistry.Default).Bind(
-            MajorParser.ParseDirect(source, ScriptCompatibility.Inspect(source).DetectedMajor));
+        var parse = MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default);
+        var bound = new Binder(ComponentRegistry.Default).Bind(parse);
+
+        return (bound.Model, parse.Diagnostics.Concat(bound.Diagnostics)
+            .OrderBy(static d => d.Span?.Start ?? 0)
+            .ThenBy(static d => d.Code, StringComparer.Ordinal)
+            .ThenBy(static d => d.Message, StringComparer.Ordinal));
     }
 
     /// <summary>
@@ -72,7 +79,7 @@ public sealed class Language2CorpusTests
     /// and this compares one -- every <c>let</c>, every deferred expression, every <c>show</c> line -- then every
     /// diagnostic as a user meets it.
     /// </summary>
-    private static string Render(BindResult result)
+    private static string Render((SemanticModel Model, IEnumerable<Diagnostic> Diagnostics) result)
     {
         var model = result.Model;
         var text = new StringBuilder(ModelShape.Of(model, withRun: !model.Runs.IsEmpty));

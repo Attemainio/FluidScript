@@ -16,9 +16,9 @@ connection HL.in -> HL__in.
 connection HL.out -> HL__out.
 connection HPC.in -> HPC__in.
 connection HPC.out -> HPC__out.
+FS1507 [35..67] 'HPC' is not connected to anything.
 FS1510 [35..67] Added node 'HPC__in' (I3).
 FS1510 [35..67] Added node 'HPC__out' (I3).
-FS1507 [35..67] 'HPC' is not connected to anything.
+FS1507 [70..112] 'HL' is not connected to anything.
 FS1510 [70..112] Added node 'HL__in' (I3).
 FS1510 [70..112] Added node 'HL__out' (I3).
-FS1507 [70..112] 'HL' is not connected to anything.

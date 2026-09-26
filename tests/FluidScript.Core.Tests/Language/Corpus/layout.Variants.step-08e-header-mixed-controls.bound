@@ -157,27 +157,31 @@ FS1510 [474..476] Added node 'N9' (I1).
 FS1510 [479..481] Added node 'N8' (I1).
 FS1510 [489..491] Added node 'N7' (I1).
 FS1510 [499..501] Added node 'NR' (I1).
-FS1510 [776..800] Added pipe 'N3__TV_AHU' (I7).
 FS1510 [776..800] Added node 'N3__TV_AHU__out' (I2).
+FS1510 [776..800] Added pipe 'N3__TV_AHU' (I7).
+FS1815 [781..787] 'TV_AHU' is wired as a mixing valve: a from N3, b from NM_AHU, ab to PU_AHU.
 FS1510 [803..809] Added node 'NM_AHU' (I1).
 FS1510 [821..836] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [839..845] Added node 'NT_AHU' (I1).
 FS1510 [866..890] Added pipe 'NM_AHU__N7' (I7).
-FS1510 [1150..1174] Added pipe 'N4__TV_RAD' (I7).
 FS1510 [1150..1174] Added node 'N4__TV_RAD__out' (I2).
+FS1510 [1150..1174] Added pipe 'N4__TV_RAD' (I7).
+FS1815 [1155..1161] 'TV_RAD' is wired as a mixing valve: a from N4, b from NM_RAD, ab to PU_RAD.
 FS1510 [1177..1183] Added node 'NM_RAD' (I1).
 FS1510 [1195..1210] Added node 'TV_RAD__PU_RAD' (I2).
 FS1510 [1213..1219] Added node 'NT_RAD' (I1).
 FS1510 [1240..1265] Added pipe 'NM_RAD__N11' (I7).
 FS1510 [1249..1252] Added node 'N11' (I1).
-FS1510 [1488..1513] Added pipe 'N11__TV_FLR' (I7).
 FS1510 [1488..1513] Added node 'N11__TV_FLR__out' (I2).
+FS1510 [1488..1513] Added pipe 'N11__TV_FLR' (I7).
+FS1815 [1494..1500] 'TV_FLR' is wired as a mixing valve: a from N11, b from NM_FLR, ab to PU_FLR.
 FS1510 [1516..1522] Added node 'NM_FLR' (I1).
 FS1510 [1534..1549] Added node 'TV_FLR__PU_FLR' (I2).
 FS1510 [1552..1558] Added node 'NT_FLR' (I1).
 FS1510 [1579..1603] Added pipe 'NM_FLR__N8' (I7).
-FS1510 [1858..1882] Added pipe 'N5__TV_DHW' (I7).
 FS1510 [1858..1882] Added node 'N5__TV_DHW__out' (I2).
+FS1510 [1858..1882] Added pipe 'N5__TV_DHW' (I7).
+FS1815 [1863..1869] 'TV_DHW' is wired as a mixing valve: a from N5, b from NM_DHW, ab to PU_DHW.
 FS1510 [1885..1891] Added node 'NM_DHW' (I1).
 FS1510 [1903..1918] Added node 'TV_DHW__PU_DHW' (I2).
 FS1510 [1921..1927] Added node 'NT_DHW' (I1).

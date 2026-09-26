@@ -9,6 +9,6 @@ component HE1__in node in script at  tag  style
 component HE1__out node in script at  tag  style 
 connection HE1.in -> HE1__in.
 connection HE1.out -> HE1__out.
+FS1507 [35..89] 'HE1' is not connected to anything.
 FS1510 [35..89] Added node 'HE1__in' (I3).
 FS1510 [35..89] Added node 'HE1__out' (I3).
-FS1507 [35..89] 'HE1' is not connected to anything.

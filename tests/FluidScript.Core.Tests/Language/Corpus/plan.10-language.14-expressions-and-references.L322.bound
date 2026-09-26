@@ -20,9 +20,9 @@ let Q = 30000 Power dimension Power
 let cp = 4180 SpecificHeat dimension SpecificHeat
 let mdot = 0.23923444976076555 MassFlow dimension MassFlow
 deferred PU1.head = 1.2*HE1.dp/(998 kg/m3*g) clock False
+FS1507 [113..170] 'HE1' is not connected to anything.
 FS1510 [113..170] Added node 'HE1__in' (I3).
 FS1510 [113..170] Added node 'HE1__out' (I3).
-FS1507 [113..170] 'HE1' is not connected to anything.
+FS1507 [173..215] 'PU1' is not connected to anything.
 FS1510 [173..215] Added node 'PU1__in' (I3).
 FS1510 [173..215] Added node 'PU1__out' (I3).
-FS1507 [173..215] 'PU1' is not connected to anything.

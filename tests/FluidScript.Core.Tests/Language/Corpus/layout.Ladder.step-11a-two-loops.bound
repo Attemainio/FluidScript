@@ -58,5 +58,6 @@ FS1510 [546..557] Added node 'CV_H__PU_H' (I2).
 FS1510 [730..732] Added node 'N2' (I1).
 FS1510 [747..758] Added node 'PU_C__HE_C' (I2).
 FS1510 [761..772] Added node 'HE_C__TV_C' (I2).
-FS1510 [787..809] Added pipe 'TV_C__N3' (I7).
+FS1815 [768..772] 'TV_C' is wired as a diverting valve: ab from HE_C, a to N3, b to N2.
 FS1510 [787..809] Added node 'TV_C__N3__in' (I2).
+FS1510 [787..809] Added pipe 'TV_C__N3' (I7).

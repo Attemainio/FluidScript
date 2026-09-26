@@ -145,29 +145,33 @@ FS1510 [550..552] Added node 'NS' (I1).
 FS1510 [555..557] Added node 'N3' (I1).
 FS1510 [560..562] Added node 'N7' (I1).
 FS1510 [565..567] Added node 'NR' (I1).
-FS1510 [853..877] Added pipe 'N3__TV_RAD' (I7).
 FS1510 [853..877] Added node 'N3__TV_RAD__out' (I2).
+FS1510 [853..877] Added pipe 'N3__TV_RAD' (I7).
+FS1815 [858..864] 'TV_RAD' is wired as a mixing valve: a from N3, b from NM_RAD, ab to PU_RAD.
 FS1510 [880..886] Added node 'NM_RAD' (I1).
 FS1510 [898..913] Added node 'TV_RAD__PU_RAD' (I2).
 FS1510 [916..922] Added node 'NT_RAD' (I1).
 FS1510 [943..967] Added pipe 'NM_RAD__N4' (I7).
 FS1510 [952..954] Added node 'N4' (I1).
-FS1510 [1201..1225] Added pipe 'N4__TV_AHU' (I7).
 FS1510 [1201..1225] Added node 'N4__TV_AHU__out' (I2).
+FS1510 [1201..1225] Added pipe 'N4__TV_AHU' (I7).
+FS1815 [1206..1212] 'TV_AHU' is wired as a mixing valve: a from N4, b from NM_AHU, ab to PU_AHU.
 FS1510 [1228..1234] Added node 'NM_AHU' (I1).
 FS1510 [1246..1261] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [1264..1270] Added node 'NT_AHU' (I1).
 FS1510 [1291..1315] Added pipe 'NM_AHU__N5' (I7).
 FS1510 [1300..1302] Added node 'N5' (I1).
-FS1510 [1540..1564] Added pipe 'N5__TV_FLR' (I7).
 FS1510 [1540..1564] Added node 'N5__TV_FLR__out' (I2).
+FS1510 [1540..1564] Added pipe 'N5__TV_FLR' (I7).
+FS1815 [1545..1551] 'TV_FLR' is wired as a mixing valve: a from N5, b from NM_FLR, ab to PU_FLR.
 FS1510 [1567..1573] Added node 'NM_FLR' (I1).
 FS1510 [1585..1600] Added node 'TV_FLR__PU_FLR' (I2).
 FS1510 [1603..1609] Added node 'NT_FLR' (I1).
 FS1510 [1630..1654] Added pipe 'NM_FLR__N6' (I7).
 FS1510 [1639..1641] Added node 'N6' (I1).
-FS1510 [1896..1920] Added pipe 'N6__TV_DHW' (I7).
 FS1510 [1896..1920] Added node 'N6__TV_DHW__out' (I2).
+FS1510 [1896..1920] Added pipe 'N6__TV_DHW' (I7).
+FS1815 [1901..1907] 'TV_DHW' is wired as a mixing valve: a from N6, b from NM_DHW, ab to PU_DHW.
 FS1510 [1923..1929] Added node 'NM_DHW' (I1).
 FS1510 [1941..1956] Added node 'TV_DHW__PU_DHW' (I2).
 FS1510 [1959..1965] Added node 'NT_DHW' (I1).

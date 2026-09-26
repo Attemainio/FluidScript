@@ -6,6 +6,6 @@ component PU1__in node in ladder at  tag  style
 component PU1__out node in ladder at  tag  style 
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
+FS1507 [246..255] 'PU1' is not connected to anything.
 FS1510 [246..255] Added node 'PU1__in' (I3).
 FS1510 [246..255] Added node 'PU1__out' (I3).
-FS1507 [246..255] 'PU1' is not connected to anything.

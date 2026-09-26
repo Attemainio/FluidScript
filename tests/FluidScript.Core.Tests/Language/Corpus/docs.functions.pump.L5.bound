@@ -12,9 +12,9 @@ connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
 connection PU2.in -> PU2__in.
 connection PU2.out -> PU2__out.
+FS1507 [35..44] 'PU1' is not connected to anything.
 FS1510 [35..44] Added node 'PU1__in' (I3).
 FS1510 [35..44] Added node 'PU1__out' (I3).
-FS1507 [35..44] 'PU1' is not connected to anything.
+FS1507 [47..67] 'PU2' is not connected to anything.
 FS1510 [47..67] Added node 'PU2__in' (I3).
 FS1510 [47..67] Added node 'PU2__out' (I3).
-FS1507 [47..67] 'PU2' is not connected to anything.

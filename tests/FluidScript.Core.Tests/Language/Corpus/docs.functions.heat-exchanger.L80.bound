@@ -12,6 +12,6 @@ component HX1__in node in script at  tag  style
 component HX1__out node in script at  tag  style 
 connection HX1.in -> HX1__in.
 connection HX1.out -> HX1__out.
+FS1507 [35..159] 'HX1' is not connected to anything.
 FS1510 [35..159] Added node 'HX1__in' (I3).
 FS1510 [35..159] Added node 'HX1__out' (I3).
-FS1507 [35..159] 'HX1' is not connected to anything.

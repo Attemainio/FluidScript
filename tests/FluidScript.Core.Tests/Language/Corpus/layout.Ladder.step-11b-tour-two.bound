@@ -63,9 +63,9 @@ let share = 0.5 Dimensionless dimension Dimensionless
 let scale = 1200 Dimensionless dimension Dimensionless
 let bore = 0.0273 Length dimension Length
 show [temperature, pressure] scale (0, 40)
+FS1507 [1867..1876] 'PU1' is not connected to anything.
 FS1510 [1867..1876] Added node 'PU1__in' (I3).
 FS1510 [1867..1876] Added node 'PU1__out' (I3).
-FS1507 [1867..1876] 'PU1' is not connected to anything.
 FS1510 [1934..1936] Added node 'N1' (I1).
 FS2107 [1934..1941] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [1939..1941] Added node 'N2' (I1).
@@ -73,6 +73,7 @@ FS1510 [2012..2024] Added node 'HE1__3WV' (I2).
 FS2107 [2040..2050] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [2048..2050] Added node 'N3' (I1).
 FS1510 [3159..3162] Added node 'NJ1' (I1).
-FS1510 [3238..3254] Added pipe 'HE2__NJ2' (I7).
 FS1510 [3238..3254] Added node 'HE2__NJ2__in' (I2).
+FS1510 [3238..3254] Added pipe 'HE2__NJ2' (I7).
 FS1510 [3244..3247] Added node 'NJ2' (I1).
+FS1815 [3371..3374] 'TV2' is wired as a mixing valve: a from SB1, b from NJ1, ab to RB1.

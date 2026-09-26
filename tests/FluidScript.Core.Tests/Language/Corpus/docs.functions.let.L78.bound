@@ -16,9 +16,9 @@ connection HE1.out -> HE1__out.
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
 deferred PU1.head = 1.2*HE1.dp/(998 kg/m3*g) clock False
+FS1507 [35..89] 'HE1' is not connected to anything.
 FS1510 [35..89] Added node 'HE1__in' (I3).
 FS1510 [35..89] Added node 'HE1__out' (I3).
-FS1507 [35..89] 'HE1' is not connected to anything.
+FS1507 [92..134] 'PU1' is not connected to anything.
 FS1510 [92..134] Added node 'PU1__in' (I3).
 FS1510 [92..134] Added node 'PU1__out' (I3).
-FS1507 [92..134] 'PU1' is not connected to anything.

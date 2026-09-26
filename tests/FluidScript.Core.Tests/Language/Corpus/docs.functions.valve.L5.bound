@@ -14,9 +14,9 @@ connection V1.in -> V1__in.
 connection V1.out -> V1__out.
 connection V2.in -> V2__in.
 connection V2.out -> V2__out.
+FS1507 [35..54] 'V1' is not connected to anything.
 FS1510 [35..54] Added node 'V1__in' (I3).
 FS1510 [35..54] Added node 'V1__out' (I3).
-FS1507 [35..54] 'V1' is not connected to anything.
+FS1507 [57..118] 'V2' is not connected to anything.
 FS1510 [57..118] Added node 'V2__in' (I3).
 FS1510 [57..118] Added node 'V2__out' (I3).
-FS1507 [57..118] 'V2' is not connected to anything.

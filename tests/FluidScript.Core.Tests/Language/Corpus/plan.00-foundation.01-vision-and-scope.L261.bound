@@ -32,5 +32,5 @@ show [temperature] scale
 FS1510 [282..284] Added node 'N2' (I1).
 FS1510 [375..384] Added node 'PU1__HE1' (I2).
 FS1510 [387..399] Added node 'HE1__3WV' (I2).
-FS1510 [467..484] Added pipe '3WV__N3' (I7).
 FS1510 [467..484] Added node '3WV__N3__in' (I2).
+FS1510 [467..484] Added pipe '3WV__N3' (I7).

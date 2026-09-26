@@ -16,11 +16,11 @@ connection N4. -> N4__N1.in
 connection N4__N1.out -> N1.
 connection P2.in -> P2__in.
 connection P2.out -> P2__out.
+FS1507 [35..83] 'P2' is not connected to anything.
 FS1510 [35..83] Added node 'P2__in' (I3).
 FS1510 [35..83] Added node 'P2__out' (I3).
-FS1507 [35..83] 'P2' is not connected to anything.
-FS1510 [87..107] Added pipe 'N4__N1' (I7).
 FS1510 [87..89] Added node 'N4' (I1).
-FS2107 [87..107] 'N4' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [87..107] Added pipe 'N4__N1' (I7).
 FS2107 [87..107] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS2107 [87..107] 'N4' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [92..94] Added node 'N1' (I1).

@@ -13,6 +13,6 @@ component T1__in1 node in script at  tag  style
 component T1__out1 node in script at  tag  style 
 connection T1.in1 -> T1__in1.
 connection T1.out1 -> T1__out1.
+FS1507 [35..158] 'T1' is not connected to anything.
 FS1510 [35..158] Added node 'T1__in1' (I3).
 FS1510 [35..158] Added node 'T1__out1' (I3).
-FS1507 [35..158] 'T1' is not connected to anything.

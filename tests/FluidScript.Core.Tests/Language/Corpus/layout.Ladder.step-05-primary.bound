@@ -40,9 +40,9 @@ connection PCV__HE1__in. -> PCV__HE1.in
 connection PCV__HE1__out. -> HE1.in2
 connection PU1.out -> PU1__HE1.
 connection PU1__HE1. -> HE1.in
-FS1510 [421..456] Added pipe 'PCV__HE1' (I7).
 FS1510 [421..456] Added node 'PCV__HE1__in' (I2).
 FS1510 [421..456] Added node 'PCV__HE1__out' (I2).
+FS1510 [421..456] Added pipe 'PCV__HE1' (I7).
 FS1510 [486..506] Added node 'PU1__HE1' (I2).
 FS1510 [509..531] Added node 'HE1__LOAD' (I2).
 FS1510 [534..544] Added node 'LOAD__CV1' (I2).

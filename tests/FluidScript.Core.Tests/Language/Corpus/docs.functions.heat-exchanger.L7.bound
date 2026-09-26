@@ -17,9 +17,9 @@ connection BLR1.in -> BLR1__in.
 connection BLR1.out -> BLR1__out.
 connection RAD1.in -> RAD1__in.
 connection RAD1.out -> RAD1__out.
+FS1507 [35..80] 'RAD1' is not connected to anything.
 FS1510 [35..80] Added node 'RAD1__in' (I3).
 FS1510 [35..80] Added node 'RAD1__out' (I3).
-FS1507 [35..80] 'RAD1' is not connected to anything.
+FS1507 [83..130] 'BLR1' is not connected to anything.
 FS1510 [83..130] Added node 'BLR1__in' (I3).
 FS1510 [83..130] Added node 'BLR1__out' (I3).
-FS1507 [83..130] 'BLR1' is not connected to anything.

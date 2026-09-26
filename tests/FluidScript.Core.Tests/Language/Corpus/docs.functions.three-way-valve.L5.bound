@@ -6,6 +6,6 @@ component TV1__a node in script at  tag  style
 component TV1__ab node in script at  tag  style 
 connection TV1.a -> TV1__a.
 connection TV1.ab -> TV1__ab.
-FS1510 [35..55] Added node 'TV1__ab' (I3).
-FS1510 [35..55] Added node 'TV1__a' (I3).
 FS1507 [35..55] 'TV1' is not connected to anything.
+FS1510 [35..55] Added node 'TV1__a' (I3).
+FS1510 [35..55] Added node 'TV1__ab' (I3).

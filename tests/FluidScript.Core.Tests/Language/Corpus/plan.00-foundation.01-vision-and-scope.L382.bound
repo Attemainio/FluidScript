@@ -48,13 +48,13 @@ connection PCV__HX1__out. -> HX1.in2
 connection SP.out -> SP__HX1.
 connection SP__HX1. -> HX1.in
 show [temperature] scale 
-FS1510 [568..597] Added pipe 'PCV__HX1' (I7).
 FS1510 [568..597] Added node 'PCV__HX1__in' (I2).
 FS1510 [568..597] Added node 'PCV__HX1__out' (I2).
-FS1510 [627..656] Added pipe 'HX1__NSUP' (I7).
+FS1510 [568..597] Added pipe 'PCV__HX1' (I7).
 FS1510 [627..656] Added node 'HX1__NSUP__in' (I2).
+FS1510 [627..656] Added pipe 'HX1__NSUP' (I7).
 FS1510 [645..649] Added node 'NSUP' (I1).
 FS1510 [673..677] Added node 'NRET' (I1).
-FS1510 [680..696] Added pipe 'NRET__SP' (I7).
 FS1510 [680..696] Added node 'NRET__SP__out' (I2).
+FS1510 [680..696] Added pipe 'NRET__SP' (I7).
 FS1510 [699..718] Added node 'SP__HX1' (I2).

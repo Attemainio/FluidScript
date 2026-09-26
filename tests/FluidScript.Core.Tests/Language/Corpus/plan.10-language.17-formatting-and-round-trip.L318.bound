@@ -19,12 +19,12 @@ connection HE1.in -> HE1__in.
 connection HE1.out -> HE1__out.
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
+FS1507 [35..89] 'HE1' is not connected to anything.
 FS1510 [35..89] Added node 'HE1__in' (I3).
 FS1510 [35..89] Added node 'HE1__out' (I3).
-FS1507 [35..89] 'HE1' is not connected to anything.
-FS1510 [130..150] Added node '3WV__ab' (I3).
-FS1510 [130..150] Added node '3WV__a' (I3).
 FS1507 [130..150] '3WV' is not connected to anything.
+FS1510 [130..150] Added node '3WV__a' (I3).
+FS1510 [130..150] Added node '3WV__ab' (I3).
+FS1507 [166..175] 'PU1' is not connected to anything.
 FS1510 [166..175] Added node 'PU1__in' (I3).
 FS1510 [166..175] Added node 'PU1__out' (I3).
-FS1507 [166..175] 'PU1' is not connected to anything.

@@ -32,5 +32,6 @@ connection PU1__HE1. -> HE1.in
 FS1510 [375..377] Added node 'N2' (I1).
 FS1510 [391..400] Added node 'PU1__HE1' (I2).
 FS1510 [403..412] Added node 'HE1__3WV' (I2).
-FS1510 [426..447] Added pipe '3WV__N3' (I7).
+FS1815 [409..412] '3WV' is wired as a diverting valve: ab from HE1, a to N3, b to N2.
 FS1510 [426..447] Added node '3WV__N3__in' (I2).
+FS1510 [426..447] Added pipe '3WV__N3' (I7).

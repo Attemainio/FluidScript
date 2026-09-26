@@ -10,7 +10,7 @@ component HX1__in node in script at  tag  style
 component HX1__out node in script at  tag  style 
 connection HX1.in -> HX1__in.
 connection HX1.out -> HX1__out.
+FS1507 [35..111] 'HX1' is not connected to anything.
 FS1510 [35..111] Added node 'HX1__in' (I3).
 FS1510 [35..111] Added node 'HX1__out' (I3).
-FS1507 [35..111] 'HX1' is not connected to anything.
 FS2110 [72..80] 'HX1': 'u' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it.

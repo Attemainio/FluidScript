@@ -33,5 +33,6 @@ show [temperature] scale
 FS1510 [707..709] Added node 'N2' (I1).
 FS1510 [800..809] Added node 'PU1__HE1' (I2).
 FS1510 [812..821] Added node 'HE1__3WV' (I2).
-FS1510 [887..908] Added pipe '3WV__N3' (I7).
+FS1815 [818..821] '3WV' is wired as a diverting valve: ab from HE1, a to N3, b to N2.
 FS1510 [887..908] Added node '3WV__N3__in' (I2).
+FS1510 [887..908] Added pipe '3WV__N3' (I7).

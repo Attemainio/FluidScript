@@ -21,9 +21,9 @@ connection N1. -> N2.
 connection N2. -> HE1.in
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
+FS1507 [453..462] 'PU1' is not connected to anything.
 FS1510 [453..462] Added node 'PU1__in' (I3).
 FS1510 [453..462] Added node 'PU1__out' (I3).
-FS1507 [453..462] 'PU1' is not connected to anything.
 FS1510 [520..522] Added node 'N1' (I1).
 FS2107 [520..527] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [525..527] Added node 'N2' (I1).
