@@ -153,7 +153,8 @@ public sealed class RunSnapshotTests
         var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3109");
 
         Assert.Equal(DiagnosticSeverity.Error, error.Severity);
-        Assert.Equal("'3WV.position' is driven by TC1; a schedule cannot also move it.", error.Message);
+        // The run path's message was language 1's ("a schedule") until one template per code (step 5).
+        Assert.StartsWith("'3WV.position' is driven by TC1; an event in a run cannot also move it", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

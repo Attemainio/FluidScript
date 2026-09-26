@@ -42,26 +42,6 @@ public sealed class Language2WordingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ASecondWordingMayNotNameAnArgumentTheFirstDoesNotHave()
-    {
-        // Both wordings render from the one argument list the emitting stage supplied; a placeholder only the second
-        // names would have no value in a language 1 file's list and none in a language 2 file's either.
-        Assert.Throws<ArgumentException>(() => new DiagnosticDescriptor(
-            "FS1302", DiagnosticSeverity.Error, "Cannot add {left}.", language2Template: "Cannot add {right}."));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void ACodeWithOneWordingRendersItInBothLanguages()
-    {
-        var descriptor = new DiagnosticDescriptor("FS1302", DiagnosticSeverity.Error, "Cannot add {left}.");
-        var argument = new DiagnosticArgument("left", "two temperatures");
-
-        Assert.Equal(descriptor.Render(argument), descriptor.RenderLanguage2(argument));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void TheWordingIsRenderedFromTheArgumentsSoApplyingItTwiceChangesNothing()
     {
         var once = Language2Wording.Apply(Diagnostic.Create(

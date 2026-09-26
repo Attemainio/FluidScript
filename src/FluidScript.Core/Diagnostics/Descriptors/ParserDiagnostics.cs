@@ -40,16 +40,14 @@ public static class ParserDiagnostics
     public static DiagnosticDescriptor UnclassifiableStatement { get; } = new(
         "FS1104",
         DiagnosticSeverity.Error,
-        "Cannot read this line. Expected a component declaration or a connection.",
-        language2Template: "Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'.");
+        "Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'.");
 
     /// <summary>A parameter name with no value.</summary>
     /// <value><c>FS1105</c>, an error.</value>
     public static DiagnosticDescriptor ParameterWithoutValue { get; } = new(
         "FS1105",
         DiagnosticSeverity.Error,
-        "'{token}' looks like a parameter but has no value. Write '{token}=…'.",
-        language2Template: "'{token}' looks like a parameter but has no value. Write '{token} = …'.");
+        "'{token}' looks like a parameter but has no value. Write '{token} = …'.");
 
     /// <summary>A hyphen inside a name or a kind name.</summary>
     /// <value><c>FS1108</c>, an error.</value>
@@ -110,8 +108,7 @@ public static class ParserDiagnostics
     public static DiagnosticDescriptor CurveWithoutDriver { get; } = new(
         "FS1116",
         DiagnosticSeverity.Error,
-        "'curve {name}' needs what it depends on, such as 'curve {name} tout'.",
-        language2Template: "'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'.");
+        "'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'.");
 
     /// <summary>A curve row that is not one x and one y.</summary>
     /// <value><c>FS1117</c>, an error.</value>
@@ -142,8 +139,7 @@ public static class ParserDiagnostics
     public static DiagnosticDescriptor MalformedScenarioList { get; } = new(
         "FS1121",
         DiagnosticSeverity.Error,
-        "A value list is one value per scenario, separated by commas, such as '[30, 10]'.",
-        language2Template: "A list is one value per case, separated by commas, such as '[30, 10]'.");
+        "A list is one value per case, separated by commas, such as '[30, 10]'.");
 
     /// <summary>Gets every code the parser emits, for the registry to collect.</summary>
     /// <value>Twenty-three descriptors. Order does not matter; the registry sorts.</value>

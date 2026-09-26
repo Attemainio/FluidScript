@@ -64,10 +64,6 @@ public static class MessageStyleRules
 
         var violations = ImmutableArray.CreateBuilder<string>();
         Check(descriptor, descriptor.Render(arguments), string.Empty, violations);
-        if (descriptor.Language2Template is not null)
-        {
-            Check(descriptor, descriptor.RenderLanguage2(arguments), "language 2 wording, ", violations);
-        }
 
         return violations.ToImmutable();
     }

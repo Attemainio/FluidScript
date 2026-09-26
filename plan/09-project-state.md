@@ -2004,6 +2004,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     - `TokenKind.Keyword`'s dead parser branches stay with the lexicon for package 8 (`U-11`), and the reader's
       language 1 normal form for values is `L-75`, step 5.
     Core 2597/0/2, Api 79/0, frontend 221 and 9 expected failures.
+  - **Step 5a, one template per code (2026-09-26).** The 23 codes with a language 2 wording now have it as their one
+    template, and `DiagnosticDescriptor.Language2Template` and `RenderLanguage2` are gone, with the style rule that
+    checked the second wording, the tests of the two-template contract, and the diagnostics page's "In a language 2
+    file" table. One thing it fixed that was waiting on P6.5: `FS3109`, raised on the run path the wording pass never
+    reached, said "a schedule cannot also move it" and now says "an event in a run". What `Language2Wording` still
+    does is respell arguments the binder writes in its internal form -- an exchanger's `in[2]` as `secondary.in`,
+    `dK` as `K` -- which exists only because of `L-75`; step 5b decides that. The metadata golden moved by the 23
+    messages; no corpus golden moved.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

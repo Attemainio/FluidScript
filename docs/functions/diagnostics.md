@@ -48,15 +48,15 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1002` | Error | Lexer | '{ch}' is not valid here. |
 | `FS1003` | Error | Lexer | '{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'. |
 | `FS1004` | Error | Lexer | '{word}' is reserved. Choose another name. |
-| `FS1104` | Error | Parser | Cannot read this line. Expected a component declaration or a connection. |
-| `FS1105` | Error | Parser | '{token}' looks like a parameter but has no value. Write '{token}=…'. |
+| `FS1104` | Error | Parser | Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'. |
+| `FS1105` | Error | Parser | '{token}' looks like a parameter but has no value. Write '{token} = …'. |
 | `FS1108` | Error | Parser | '{text}' — a name cannot contain '-'. Write '{underscored}'. |
 | `FS1114` | Error | Parser | '{extra}' is more than this line can hold. |
 | `FS1115` | Error | Parser | Put this pair under a 'curve' line. |
-| `FS1116` | Error | Parser | 'curve {name}' needs what it depends on, such as 'curve {name} tout'. |
+| `FS1116` | Error | Parser | 'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'. |
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
 | `FS1119` | Error | Parser | An index is a whole number in brackets right after the name, such as 'in[2]'. |
-| `FS1121` | Error | Parser | A value list is one value per scenario, separated by commas, such as '[30, 10]'. |
+| `FS1121` | Error | Parser | A list is one value per case, separated by commas, such as '[30, 10]'. |
 | `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
 | `FS1210` | Warning | Style directive | Nothing to show called '{name}'. Available: {list}. |
@@ -93,29 +93,29 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1515` | Error | Binder | '{parameter}' names a component property, like 'N2.t'. |
 | `FS1516` | Error | Binder | '{written}' is outside {kind}'s supported {min}…{max} range. |
 | `FS1519` | Info | Binder | '{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}. |
-| `FS1521` | Error | Binder | A 'control' line needs {list}. Missing: {missing}. |
+| `FS1521` | Error | Binder | A controller needs {list}. Missing: {missing}. |
 | `FS1522` | Error | Binder | '{param}' of '{component}' cannot be controlled. |
 | `FS1523` | Error | Binder | '{name}' is a {kind}, not a controller. |
 | `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
 | `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
-| `FS1528` | Error | Binder | '{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=...' or solve in time. |
+| `FS1528` | Error | Binder | '{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time. |
 | `FS1529` | Info | Binder | '{curve}' has two rows at {x}; the later one is used. |
 | `FS1530` | Error | Binder | '{curve}' needs at least two rows to interpolate between. |
 | `FS1531` | Error | Binder | A {kind} has no single {role}. Write it out, such as '{example}'. |
 | `FS1532` | Error | Binder | '{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead. |
-| `FS1533` | Warning | Binder | '{name}' observes nothing. Place it with 'at' and the name of a node. |
+| `FS1533` | Warning | Binder | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
 | `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
 | `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
 | `FS1536` | Info | Binder | '{written}' is now written '{current}'. |
-| `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='. |
+| `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
 | `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
 | `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
-| `FS1540` | Error | Binder | '{written}' states {given} {values} for {count} scenario{plural}: {names}. State one per scenario, or one value for all of them. |
-| `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit. |
-| `FS1542` | Error | Binder | '{name}' is not a scenario of this file. It declares: {names}. |
-| `FS1544` | Error | Binder | '{name}' is declared twice. Each scenario needs its own name. |
-| `FS1545` | Error | Binder | start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds. |
-| `FS1546` | Warning | Binder | This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value. |
+| `FS1540` | Error | Binder | '{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them. |
+| `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block. |
+| `FS1542` | Error | Binder | '{name}' is not a case of this file. It declares: {names}. |
+| `FS1544` | Error | Binder | '{name}' is declared twice. Each case needs its own name. |
+| `FS1545` | Error | Binder | start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00. |
+| `FS1546` | Warning | Binder | This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value. |
 | `FS1548` | Error | Binder | '{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one. |
 | `FS1549` | Warning | Binder | '{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
@@ -145,18 +145,18 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2101` | Error | Components | '{name}': {parameters} cannot all be set. Any {count} of them fix the rest. |
 | `FS2103` | Warning | Components | '{name}': using kv={kv}; dp is implied by it. |
 | `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |
-| `FS2107` | Warning | Components | '{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass. |
+| `FS2107` | Warning | Components | '{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass. |
 | `FS2108` | Error | Components | '{name}': efficiency must be between 0 and 1. |
-| `FS2109` | Error | Components | '{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
-| `FS2110` | Warning | Components | '{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it. |
+| `FS2109` | Error | Components | '{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
+| `FS2110` | Warning | Components | '{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it. |
 | `FS2111` | Error | Components | {name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW. |
-| `FS2112` | Error | Components | '{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open. |
+| `FS2112` | Error | Components | '{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open. |
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
 | `FS2117` | Error | Components | '{name}': the {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
-| `FS2119` | Error | Components | '{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
+| `FS2119` | Error | Components | '{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
 | `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
@@ -178,7 +178,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2307` | Info | Sizing | '{name}' stepped up to DN{n} for velocity. |
 | `FS2310` | Info | Sizing | '{name}' sized to {plates} plates ({area} m²); {required} m² was needed, so it delivers {actual} kW against {stated} kW. |
 | `FS2312` | Info | Sizing | '{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended. |
-| `FS2314` | Warning | Sizing | '{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list. |
+| `FS2314` | Warning | Sizing | '{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list. |
 | `FS2401` | Info | Layout hints | The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum. |
 | `FS2402` | Info | Layout hints | '{group}' has {count} members and will start collapsed; expand it on the canvas to see them. |
 | `FS2403` | Info | Layout hints | '{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn. |
@@ -187,7 +187,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2603` | Error | Catalog | No catalogue '{name}'. Available: {list}. |
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |
-| `FS2606` | Info | Catalog | Using catalogue '{name}'. Write 'catalog {name}' to pin it. |
+| `FS2606` | Info | Catalog | Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it. |
 | `FS3001` | Error | Solver | Could not solve in {steps} steps. Furthest off: {component} {equation} by {amount}. |
 | `FS3002` | Error | Solver | The circuit has no unique solution around {component}. Check for a missing pressure datum, a closed circuit with no stated temperature, or a loop with no driver. |
 | `FS3003` | Error | Solver | The solution is moving away from a balance: {residual} after {steps} steps, from {previous}. |
@@ -212,51 +212,16 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3106` | Warning | Transient | Energy balance drifted by {pct} % over the run. Results may be unreliable. |
 | `FS3107` | Error | Transient | Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}. |
 | `FS3108` | Error | Transient | Cannot initialize '{tank}' layer {layer} at {state}. |
-| `FS3109` | Error | Transient | '{target}' is driven by {controller}; a schedule cannot also move it. |
+| `FS3109` | Error | Transient | '{target}' is driven by {controller}; an event in a run cannot also move it. |
 | `FS3210` | Info | Controllers | {controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}. |
 | `FS3211` | Info | Controllers | {controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands. |
-| `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}. |
+| `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach = {approach}. |
 | `FS4011` | Warning | Design warning | '{name}' throttles its {leg} leg by {drop} kPa at position {position}: that path is {imbalance} kPa easier than the {other} path, more than the {band} kPa the valve drops fully open. A balancing valve between {where} and {name}.{leg} dropping {imbalance} kPa at {flow} kg/s (Kv {kv}) would level the legs and leave the valve its travel. |
 | `FS4012` | Warning | Design warning | '{name}' is written as a {declared} valve and the solve runs it {actual}: {detail}. A body built for one service must not be used for the other. Write it as three_way_valve if the arrangement is open, or wire the ports for {declared}. |
 | `FS4013` | Warning | Design warning | '{name}' must pass {light} kg/s in {lightCase} and {heavy} kg/s in {heavyCase}, {ratio} % of its heaviest flow. {trim} valve at authority {authority} controls down to about {limit} % ({range}:1 × √{authority}), so in {lightCase} it will open and shut rather than modulate. Give the light case a smaller valve in parallel, or split the duty. |
 | `FS4601` | Error | Request | The script has {count} {what}; the limit is {max}, so it is not solved. |
 | `FS5002` | Warning | Rendering | The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there. |
 <!-- END GENERATED: diagnostic-codes -->
-
-## In a language 2 file
-
-A code means the same thing in both languages, and most messages read the same too. Where a message
-quotes language 1's syntax — `in[2]` for an exchanger's second side, `scenarios winter mild` — a
-`fluidscript 2` file gets the wording below instead, with the same code. An exchanger's second side is
-also spelled `secondary.in` / `secondary.out` inside any message about an exchanger, whatever its code.
-
-<!-- BEGIN GENERATED: language-2-diagnostic-wordings -->
-| Code | In a language 2 file |
-|---|---|
-| `FS1104` | Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'. |
-| `FS1105` | '{token}' looks like a parameter but has no value. Write '{token} = …'. |
-| `FS1116` | 'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'. |
-| `FS1121` | A list is one value per case, separated by commas, such as '[30, 10]'. |
-| `FS1521` | A controller needs {list}. Missing: {missing}. |
-| `FS1528` | '{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time. |
-| `FS1533` | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
-| `FS1537` | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
-| `FS1540` | '{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them. |
-| `FS1541` | '{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block. |
-| `FS1542` | '{name}' is not a case of this file. It declares: {names}. |
-| `FS1544` | '{name}' is declared twice. Each case needs its own name. |
-| `FS1545` | start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00. |
-| `FS1546` | This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value. |
-| `FS2107` | '{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass. |
-| `FS2109` | '{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
-| `FS2110` | '{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it. |
-| `FS2112` | '{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open. |
-| `FS2119` | '{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
-| `FS2314` | '{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list. |
-| `FS2606` | Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it. |
-| `FS3109` | '{target}' is driven by {controller}; an event in a run cannot also move it. |
-| `FS4008` | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach = {approach}. |
-<!-- END GENERATED: language-2-diagnostic-wordings -->
 
 ## Withdrawn codes
 

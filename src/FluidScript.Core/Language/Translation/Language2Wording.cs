@@ -63,12 +63,12 @@ public static class Language2Wording
         }
 
         var arguments = Respelled(diagnostic.Code, diagnostic.Arguments, exchangers ?? EmptySet);
-        if (descriptor.Language2Template is null && arguments.SequenceEqual(diagnostic.Arguments))
+        if (arguments.SequenceEqual(diagnostic.Arguments))
         {
             return diagnostic;
         }
 
-        return diagnostic with { Message = descriptor.RenderLanguage2([.. arguments]) };
+        return diagnostic with { Message = descriptor.Render([.. arguments]) };
     }
 
     private static readonly IReadOnlySet<string> EmptySet = new HashSet<string>(StringComparer.Ordinal);

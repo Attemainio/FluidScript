@@ -647,10 +647,12 @@ Codes carry over where their meaning holds. A message that quotes language 1 syn
 wording; a code whose cause cannot be written in language 2 is never raised there. The new range is
 **`FS18xx`**, owned by this document (table below).
 
-**How a message gets its language 2 wording** (package 4). A descriptor may carry a second template,
-`Language2Template`, whose placeholders are a subset of the first's (the constructor refuses any other).
-A diagnostic keeps the arguments it was created with, and `Language2Wording.Apply` renders the second
-template from them, so applying it twice changes nothing. It runs wherever a stage that knows the language
+**How a message gets its language 2 wording** (package 4; one template since package 7 step 5). Package 4 gave
+23 descriptors a second template, `Language2Template`, rendered for a language 2 file from the arguments the
+diagnostic keeps; at the switch each became its code's one template and the second template went (`D-174`), so
+the run path's `FS3109` -- which the pass never reached -- now reads language 2 too. What remains of
+`Language2Wording.Apply` respells arguments the binder writes in its internal form (`L-75`), and applying it twice
+changes nothing. It runs wherever a stage that knows the language
 hands its diagnostics on: `MajorParser` (the parse), `Binder.Bind` (when the parse was language 2, the reader's
 included) and `ModelContractBuilder.Build` (major 2, which gathers every later stage's). **A run's
 diagnostics must go through it too:** `FS3109` is raised by the well-posedness check on the run path, and
@@ -812,8 +814,9 @@ shows what the records say.
 - [x] The direct binder gives the translated path's model on the whole converted corpus (package 6). **Met
       2026-09-26 (`D-178`):** the 130 frozen items bind to their goldens, the translation's diagnostics included;
       the goldens then changed only by `L-70`'s 18 lines.
-- [ ] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
-      changed by its spans alone (package 7).
+- [x] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
+      changed by its spans alone (package 7). **Met 2026-09-26 (steps 4b, 4c, 5):** no golden of the corpus moved at
+      all; the metadata golden and the diagnostics page moved by the retired codes and the merged templates.
 - [ ] The editor highlights and completes language 2 in a file whose version line says 2, and language
       1 otherwise.
 - [ ] The tutorial and a reference page per language 2 statement exist, and the documentation gate

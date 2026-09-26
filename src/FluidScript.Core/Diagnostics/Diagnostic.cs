@@ -63,9 +63,9 @@ public sealed record Diagnostic
 
     /// <summary>Gets the values the message was rendered from, by placeholder name.</summary>
     /// <value>
-    /// What the emitting stage supplied, kept so the message can be rendered again in the wording of the
-    /// script's language (<see cref="DiagnosticDescriptor.RenderLanguage2"/>) by a stage that knows it when the
-    /// emitting stage did not. Empty for a message with no placeholders.
+    /// What the emitting stage supplied, kept so the message can be rendered again
+    /// (<see cref="DiagnosticDescriptor.Render"/>) by a later stage that respells an argument the emitting stage
+    /// wrote in the binder's internal form (<c>L-75</c>). Empty for a message with no placeholders.
     /// </value>
     public ImmutableArray<DiagnosticArgument> Arguments { get; init; } = [];
 

@@ -29,7 +29,6 @@ public sealed class DiagnosticDescriptor
     private const string CodePrefix = "FS";
 
     private readonly ImmutableArray<TemplateSegment> _segments;
-    private readonly ImmutableArray<TemplateSegment> _language2Segments;
 
     /// <summary>Initializes a descriptor for one diagnostic code.</summary>
     /// <param name="code">The code: <c>FS</c> followed by exactly four digits.</param>
@@ -39,19 +38,14 @@ public sealed class DiagnosticDescriptor
     /// the style rules in <c>plan/10-language/16-diagnostics.md</c>. Write <c>{{</c> and <c>}}</c> for
     /// a literal brace.
     /// </param>
-    /// <param name="language2Template">
-    /// The message as a language 2 file reads it, when <paramref name="messageTemplate"/> quotes language 1's
-    /// syntax (<c>19</c> §Diagnostics); <see langword="null"/> when one wording serves both. It may use only
-    /// placeholders <paramref name="messageTemplate"/> has, since the emitting stage supplies those.
-    /// </param>
     /// <exception cref="ArgumentException">
     /// The code is not <c>FS</c> plus four digits, its first two digits are not an allocated
-    /// <see cref="DiagnosticArea"/>, a template is blank, a template's braces are unbalanced or name an
-    /// empty placeholder, or the language 2 template names a placeholder the first does not. Each of
+    /// <see cref="DiagnosticArea"/>, the template is blank, or its braces are unbalanced or name an
+    /// empty placeholder. Each of
     /// these is a mistake in the descriptor's own source rather than in a script, so it fails at
     /// construction — which happens once, as the registry is built.
     /// </exception>
-    public DiagnosticDescriptor(string code, DiagnosticSeverity severity, string messageTemplate, string? language2Template = null)
+    public DiagnosticDescriptor(string code, DiagnosticSeverity severity, string messageTemplate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
         ArgumentException.ThrowIfNullOrWhiteSpace(messageTemplate);
@@ -67,26 +61,6 @@ public sealed class DiagnosticDescriptor
                 .Select(static segment => segment.Text)
                 .Distinct(StringComparer.Ordinal),
         ];
-
-        if (language2Template is null)
-        {
-            return;
-        }
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(language2Template);
-        Language2Template = language2Template;
-        _language2Segments = ParseTemplate(language2Template);
-
-        var unknown = _language2Segments
-            .Where(segment => segment.IsPlaceholder && !ArgumentNames.Contains(segment.Text, StringComparer.Ordinal))
-            .Select(static segment => segment.Text)
-            .FirstOrDefault();
-        if (unknown is not null)
-        {
-            throw new ArgumentException(
-                $"{code}'s language 2 template names '{{{unknown}}}', which its message template does not supply.",
-                nameof(language2Template));
-        }
     }
 
     /// <summary>Gets the stable code this descriptor defines.</summary>
@@ -100,13 +74,6 @@ public sealed class DiagnosticDescriptor
     /// <summary>Gets the message with its placeholders still in place.</summary>
     /// <value>The template as written, which is the form the generated <c>/docs</c> page shows.</value>
     public string MessageTemplate { get; }
-
-    /// <summary>Gets the message a language 2 file reads, with its placeholders still in place.</summary>
-    /// <value>
-    /// <see langword="null"/> when <see cref="MessageTemplate"/> serves both languages, which is most codes: only
-    /// a message that quotes language 1's syntax has a second wording (<c>19</c> §Diagnostics).
-    /// </value>
-    public string? Language2Template { get; }
 
     /// <summary>Gets what this code is about.</summary>
     /// <value>
@@ -135,14 +102,6 @@ public sealed class DiagnosticDescriptor
     /// </returns>
     public string Render(params ReadOnlySpan<DiagnosticArgument> arguments) =>
         RenderSegments(_segments, MessageTemplate.Length, arguments);
-
-    /// <summary>Renders the message a language 2 file reads.</summary>
-    /// <param name="arguments">The arguments the emitting stage supplied, as for <see cref="Render"/>.</param>
-    /// <returns><see cref="Language2Template"/> rendered, or the one message when the code has no second wording.</returns>
-    public string RenderLanguage2(params ReadOnlySpan<DiagnosticArgument> arguments) =>
-        Language2Template is null
-            ? Render(arguments)
-            : RenderSegments(_language2Segments, Language2Template.Length, arguments);
 
     private static string RenderSegments(
         ImmutableArray<TemplateSegment> segments, int length, ReadOnlySpan<DiagnosticArgument> arguments)
