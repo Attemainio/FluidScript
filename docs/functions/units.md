@@ -57,8 +57,8 @@ accepted in any case.
 |---|---|
 | Dimensionless | `%` |
 | Length | `m`, `mm`, `cm`, `dm`, `km`, `in`, `ft` |
-| Temperature | `C`, `°C`, `K`, `F`, `°F` |
-| Temperature delta | `dK`, `dC` |
+| Temperature | `C`, `°C`, `F`, `°F` |
+| Temperature delta | `K`, `dK`, `dC` |
 | Pressure | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`, `kPag`, `barg`, `Paa`, `kPaa`, `MPaa`, `bara`, `mbara`, `psia` |
 | Pressure delta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`, `dPa`, `dkPa`, `dbar` |
 | Power | `W`, `kW`, `MW`, `hp` |

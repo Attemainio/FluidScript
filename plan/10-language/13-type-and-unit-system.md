@@ -49,7 +49,7 @@ Three columns, and they are three different things — conflating any two is how
 | `Dimensionless` | — | — | — | Ratios, efficiencies, counts. Percent is a unit of this dimension. |
 | `Length` | m | **m** | mm below 1 m, else m | `length=45` is 45 metres. Write `dn=50` or `45 mm` for millimetres. |
 | `Temperature` | K | **°C** — *exception* | °C | Nobody writes `in=293.15`. **See the offset rule below.** |
-| `TemperatureDelta` | K | dK | K | A *separate dimension* from `Temperature`; explicit syntax is `dK` or `dC` (`D-26`). |
+| `TemperatureDelta` | K | dK | K | A *separate dimension* from `Temperature`; written `K`, `dK` or `dC` (`D-26`, `D-172`). |
 | `Pressure` | Pa | **kPa gauge** — *exception* | kPa gauge | Bare, `kPa`, `kPag`, `bar`, and `barg` are gauge; `kPaa`/`bara` are absolute (`D-26`). |
 | `PressureDelta` | Pa | **kPa** — *exception* | kPa | Same exception, same reason. Separate dimension, as for temperature. |
 | `Power` | W | **kW** — *exception* | kW | `power=30` is the brief's own example and `R-04` states it. |
@@ -126,13 +126,12 @@ temperature and `TemperatureDelta − Temperature` is an error, because subtract
 and a type system that pretended otherwise would accept `30 K - 20 C` and produce something. The same
 asymmetry applies to `Pressure` / `PressureDelta`.
 
-`K`, `C`, and `°C` are absolute temperatures. A temperature difference is written `dK` or `dC`;
-`let dT = 30 dK` therefore has a type without inspecting where `dT` is later used. A difference
-written as `30 K` is an error with a fix to `30 dK`, not a context-dependent interpretation (`D-26`).
-
-**Language 2 reads `K` as a difference** (`D-172`, [`19`](19-fluidscript-2.md)): a quantity whose whole unit
-is `K` is a `TemperatureDelta` there, and an absolute kelvin is not writable. The reading is chosen by the version
-line, never by use, so this section's property holds in both languages; compound units containing `K` are unchanged.
+`C`, `°C`, `F` and `°F` are absolute temperatures. A temperature difference is written `K`, `dK` or `dC`,
+so `let dT = 30 K` has a type without inspecting where `dT` is later used. A whole `K` is a difference because
+that is how engineers write a band or a split (`D-172`); an absolute temperature in kelvin is not writable, and
+compound units containing `K` (`kJ/(kg*K)`, `W/K`) are unchanged. The unit table reads it so directly (`D-179`):
+no stage rewrites `K` to `dK`. `D-26` made `K` absolute with an explicit `dK`; `D-172` superseded that half of
+it, and the `dK` and `dC` spellings stay accepted.
 
 ## Unit symbol table
 
@@ -141,8 +140,8 @@ Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for mult
 | Dimension | Accepted symbols |
 |---|---|
 | Length | `m`, `mm`, `cm`, `dm`, `km`, `in`, `ft` |
-| Temperature | `C`, `°C`, `F`, `°F`, `K` |
-| TemperatureDelta | `dK`, `dC` |
+| Temperature | `C`, `°C`, `F`, `°F` |
+| TemperatureDelta | `K`, `dK`, `dC` |
 | Pressure | `Pa`, `kPa`, `kPag`, `MPa`, `bar`, `barg`, `mbar`, `psi`, `mH2O`, `mmH2O` (gauge); `Paa`, `kPaa`, `MPaa`, `bara`, `mbara`, `psia` (absolute) |
 | PressureDelta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`; and its own `dPa`, `dkPa`, `dbar` (`D-127`) |
 | Power | `W`, `kW`, `MW`, `hp` |
@@ -427,7 +426,7 @@ A format that depends on the reader's locale means one file means two things on 
 3. A unit symbol maps to one dimension, except pressure spellings shared by `Pressure` and
    `PressureDelta`, whose target parameter supplies that affine distinction -- and `dPa`, `dkPa`,
    `dbar` spell the delta outright where no target does, in an expression (`D-127`). Temperature has
-   no such exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head, and `Head` accepts no
+   no such exception: `K`, `dK` and `dC` are deltas and `C`, `°C`, `F`, `°F` absolute (`D-172`). `m` is Length and never Head, and `Head` accepts no
    symbol at all (`D-50`); a `head` *parameter* accepts a Length value at assignment (`D-126`).
 4. Converting a value to a unit and back yields the original within 1e-12 relative.
 5. No `double` representing a dimensioned value appears on a public Core signature.
@@ -448,8 +447,8 @@ A format that depends on the reader's locale means one file means two things on 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1301` | Unknown unit symbol | Error | `'{sym}' is not a unit. Did you mean '{suggestion}'?` |
-| `FS1302` | Adding two absolute temperatures (or pressures) | Error | `Cannot add two temperatures. To offset by a difference, write '{a} + {n} dK'.` |
-| `FS1303` | Delta written with an absolute-temperature unit | Error | `'{n} K' is an absolute temperature. Write '{n} dK' for a difference.` |
+| `FS1302` | Adding two absolute temperatures (or pressures) | Error | `Cannot add two temperatures. To offset by a difference, write '{a} + {n} K'.` |
+| ~~`FS1303`~~ | Never implemented; unreachable since `K` is a difference (`D-172`) | — | — |
 | `FS1304` | Dimension mismatch in an assignment | Error | `'{param}' is a {expected}; '{value}' is a {actual}.` |
 | `FS1305` | Dimension mismatch in an operation | Error | `Cannot {op} a {a} and a {b}.` |
 | `FS1306` | Value outside a parameter's physical range | Warning | `{param} = {value} is outside the usual range ({lo}–{hi}). Check the unit.` |
@@ -526,5 +525,5 @@ drawn a diagram.
 
 ## Open questions
 
-None. `D-26` fixes gauge/absolute pressure spellings and makes `K` absolute with explicit `dK`/`dC`
-temperature differences.
+None. `D-26` fixes gauge/absolute pressure spellings; `D-172` makes a whole `K` a temperature difference, with
+`dK`/`dC` kept, and `D-179` reads it so in the unit table itself.

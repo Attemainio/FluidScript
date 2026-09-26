@@ -243,11 +243,13 @@ public static class UnitTable
         // Temperature -- absolute. 'C' without the degree sign is required: nobody types the symbol.
         yield return new UnitSymbol("C", Dimension.Temperature, 1, 273.15);
         yield return new UnitSymbol("°C", Dimension.Temperature, 1, 273.15);
-        yield return new UnitSymbol("K", Dimension.Temperature, 1);
         yield return new UnitSymbol("F", Dimension.Temperature, Fahrenheit, 273.15 - (32 * Fahrenheit));
         yield return new UnitSymbol("°F", Dimension.Temperature, Fahrenheit, 273.15 - (32 * Fahrenheit));
 
-        // TemperatureDelta -- a difference is spelled differently, so it has a type without context.
+        // TemperatureDelta -- a difference is spelled differently, so it has a type without context. A whole
+        // 'K' is a difference, as engineers write a band or a split (D-172); an absolute temperature in kelvin
+        // is not writable, and 'dK' and 'dC' stay accepted.
+        yield return new UnitSymbol("K", Dimension.TemperatureDelta, 1);
         yield return new UnitSymbol("dK", Dimension.TemperatureDelta, 1);
         yield return new UnitSymbol("dC", Dimension.TemperatureDelta, 1);
 

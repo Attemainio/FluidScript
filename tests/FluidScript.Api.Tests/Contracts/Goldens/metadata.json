@@ -2865,7 +2865,6 @@
       "units": [
         "C",
         "°C",
-        "K",
         "F",
         "°F"
       ],
@@ -2879,11 +2878,6 @@
           "symbol": "°C",
           "factor": 1,
           "offset": 273.15
-        },
-        {
-          "symbol": "K",
-          "factor": 1,
-          "offset": 0
         },
         {
           "symbol": "F",
@@ -2902,10 +2896,16 @@
       "siUnit": "K",
       "canonicalUnit": "dK",
       "units": [
+        "K",
         "dK",
         "dC"
       ],
       "conversions": [
+        {
+          "symbol": "K",
+          "factor": 1,
+          "offset": 0
+        },
         {
           "symbol": "dK",
           "factor": 1,

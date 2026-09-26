@@ -132,11 +132,21 @@ public sealed class UnitTableTests
     [Trait("Category", "Unit")]
     [InlineData("C", 20, 293.15)]
     [InlineData("°C", 20, 293.15)]
-    [InlineData("K", 293.15, 293.15)]
     [InlineData("F", 68, 293.15)]
     public void Temperature_ConvertsToKelvin(string text, double value, double expected)
     {
         Assert.Equal(expected, Symbol(text, Dimension.Temperature).ToSi(value), 9);
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("K")]
+    [InlineData("dK")]
+    [InlineData("dC")]
+    public void AWholeKIsATemperatureDifference(string text)
+    {
+        // D-172: a band, a split or an approach is written in kelvin; an absolute temperature in K is not writable.
+        Assert.Equal(20, Symbol(text, Dimension.TemperatureDelta).ToSi(20), 9);
     }
 
     [Theory]

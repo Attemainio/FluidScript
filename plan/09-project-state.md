@@ -2012,6 +2012,16 @@ that governed each size. What P6.8 still owes, and what comes after:
     does is respell arguments the binder writes in its internal form -- an exchanger's `in[2]` as `secondary.in`,
     `dK` as `K` -- which exists only because of `L-75`; step 5b decides that. The metadata golden moved by the 23
     messages; no corpus golden moved.
+  - **Step 5b-1, `K` is a difference in the unit table (2026-09-26, `D-179`).** The user chose to split `L-75`:
+    values are read as written, and nothing makes up a token the author did not write. Before this, the reader
+    rewrote a whole `K` to `dK` so the binder's unit table (where `K` was absolute) would type it as a difference,
+    and the wording pass rewrote `dK` back to `K` in `FS1302`'s example. Now `K` is a `TemperatureDelta` row in
+    `UnitTable` itself; the reader's `Kelvin()` rewrite and the wording's `KelvinDifference` respell are gone, and
+    `FS1302` suggests `20 °C + 30 K` directly. `13` states the rule and marks `FS1303` (never implemented) as
+    unreachable. The canonical unit on the wire stays `dK`, because contract 2.3 pins it: filed as `C-140`, to go
+    with `C-139` in package 8 as one contract major. `docs/functions/units.md` and the metadata golden moved (`K`
+    under temperature delta); no corpus golden moved. The generated property and exchanger pages still show `dK`,
+    which is `C-140`'s and package 9's.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

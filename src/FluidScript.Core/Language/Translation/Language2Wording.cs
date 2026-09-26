@@ -27,7 +27,6 @@ public static class Language2Wording
     private const string Exchanger = "heat_exchanger";
 
     private static readonly Regex SecondSide = new(@"\b(in|out)\[2\]", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-    private static readonly Regex KelvinDifference = new(@"\bdK\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     /// <summary>Re-renders every diagnostic in language 2's words.</summary>
     /// <param name="diagnostics">A language 2 file's diagnostics, from any stage.</param>
@@ -128,9 +127,6 @@ public static class Language2Wording
             ("FS1503", "available") or ("FS1503", "parameter")
                 or ("FS1505", "available") or ("FS1505", "port")
                 or ("FS1538", "port") when kind == Exchanger => Sides(argument.Value),
-
-            // A worked example of a difference, which language 2 writes in K (D-172); dC stays, being language 2 too.
-            ("FS1302", "example") => KelvinDifference.Replace(argument.Value, "K"),
 
             _ => argument.Value,
         };

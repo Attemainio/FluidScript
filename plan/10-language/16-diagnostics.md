@@ -215,7 +215,7 @@ message in every document.
 
 1. **Sentence case, ending in a period.** Not `Unexpected token`, not `UNEXPECTED TOKEN`.
 2. **Say what is wrong, then what to do.** `Cannot add two temperatures. To offset by a difference,
-   write '20C + 30 dK'.` — the second sentence is the value.
+   write '20C + 30 K'.` — the second sentence is the value.
 3. **Name the thing.** Quote the user's identifier, unit, or value. `A heat_exchanger has no 'flow'`
    beats `Unknown property`.
 4. **List the alternatives when the set is small.** `It accepts: power, in, out, area.` Costs one
@@ -335,7 +335,7 @@ FS1503  Error   line 4, col 20-24
         Suggestion: "Change 'pwor' to 'power'"  → replace [20,24) with "power"
 
 FS1302  Error   line 4, col 37-44
-        Cannot add two temperatures. To offset by a difference, write '20C + 30 dK'.
+        Cannot add two temperatures. To offset by a difference, write '20C + 30 K'.
 ```
 
 What the rules produced: `FS1503` names the thing (3), lists alternatives (4), and suggests by edit

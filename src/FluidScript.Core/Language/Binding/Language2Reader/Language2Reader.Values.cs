@@ -13,13 +13,11 @@ internal sealed partial class Language2Reader
 {
     /// <summary>Translates a value into what language 1's evaluator reads.</summary>
     /// <remarks>
-    /// Three differences, each resolved here so the evaluator stays language 1's: a bare <c>K</c> is a difference
-    /// (<c>D-172</c>), a list's trailing unit belongs to each item (<c>19</c> §Values), and an exchanger's
-    /// <c>primary</c> and <c>secondary</c> are language 1's first and second side.
+    /// Two differences, each resolved here: a list's trailing unit belongs to each item (<c>19</c> §Values), and an
+    /// exchanger's <c>primary</c> and <c>secondary</c> are its registry ports' first and second side (<c>L-75</c>).
     /// </remarks>
     private ExpressionSyntax Value(ExpressionSyntax value) => value switch
     {
-        QuantityLiteralSyntax quantity => Kelvin(quantity),
         UnitListSyntax list => WithUnit(list),
         ScenarioListSyntax list => list with
         {
@@ -37,17 +35,6 @@ internal sealed partial class Language2Reader
         _ => value,
     };
 
-    /// <summary>Reads a bare <c>K</c> as a temperature difference (<c>D-172</c>).</summary>
-    /// <remarks>
-    /// The token keeps its text, <c>20 K</c>, so a message quotes what was written; only the unit the evaluator
-    /// looks up changes, to language 1's <c>dK</c>. A compound unit that holds a <c>K</c> is another spelling and
-    /// is left alone.
-    /// </remarks>
-    private static QuantityLiteralSyntax Kelvin(QuantityLiteralSyntax quantity) =>
-        quantity.Token.Unit == "K" ? new QuantityLiteralSyntax(quantity.Token with { Unit = "dK" }) : quantity;
-
-    private static string Language1Unit(string unit) => unit == "K" ? "dK" : unit;
-
     /// <summary>Gives each item of <c>[85, 70] C</c> the list's unit, where the item states none.</summary>
     /// <remarks>
     /// A bare number becomes a quantity in the unit, <c>-26</c> keeps its sign, and a bare name takes the unit as
@@ -56,7 +43,7 @@ internal sealed partial class Language2Reader
     /// </remarks>
     private ScenarioListSyntax WithUnit(UnitListSyntax list)
     {
-        var unit = Language1Unit(list.UnitText);
+        var unit = list.UnitText;
 
         return list.List with
         {

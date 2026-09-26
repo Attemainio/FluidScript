@@ -221,6 +221,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-176` | Accepted | 2026-09-26 | `sized_at` names any `let`, read directly or through a curve, by its exact spelling |
 | `D-177` | Accepted | 2026-09-26 | The direct binder reads language 2 into small records of its own; sides resolve to the registry's ports; language 2 has no schedule roles |
 | `D-178` | Accepted | 2026-09-26 | Language 2 is bound directly against a frozen corpus, in one step, and language 1 is deleted behind it |
+| `D-179` | Accepted | 2026-09-26 | Values are read as language 2 writes them; an exchanger's ports keep their registry id and gain their language spelling |
 <!-- index:end -->
 
 ---
@@ -8077,3 +8078,42 @@ are frozen with its results, so each one is either reproduced or changed with a 
 path in between binds a mixed tree, and every piece of language 1 stays alive until the last switch.
 
 **Constrains.** `19` §Binding directly; `DirectBindingTests`, which goes with the translation; package 7's scope.
+
+---
+
+## D-179 · Values are read as language 2 writes them; an exchanger's ports keep their registry id and gain their language spelling
+
+**Accepted · 2026-09-26** (the user's call, "Split", deciding `L-75` at package 7 step 5) · amends `D-174` rule 2 and
+`D-177` for values and port spellings · constrains [`19`](../10-language/19-fluidscript-2.md) §Values, §Diagnostics,
+[`13`](../10-language/13-type-and-unit-system.md), the registry's port records
+
+**What was open.** `D-174` rule 2 deletes what the translation only respelled, and with it `Language2Wording`. After
+package 6 the reader still respelled values before the evaluator saw them (`L-75`): a bare `K` became `dK`, a list's
+trailing unit and a range's upper unit were copied onto bare items as made tokens, and `HX1.secondary.out.t` became
+`HX1.out[2].t` with a zero-width `[2]` made up at the name's end. `Language2Wording` then respelled `in[2]` and `dK`
+back in messages. Removing both entirely means renaming an exchanger's ports in the registry, the model contract, the
+layout and the editor's completion, because `in[2]` (key `in2`) is the port's id everywhere downstream.
+
+**The rule.**
+
+1. **A value means what it says where it is written.** A whole `K` is a temperature difference in the unit table
+   itself (`D-172`), so nothing rewrites it; a list's unit and a range's upper unit are applied when the value is
+   evaluated, with no token made up for them.
+2. **A port has an id and a spelling.** An exchanger's second side keeps its registry id (`in[2]`, `out[2]`; keys
+   `in2`, `out2`) on the wire, in the layout and in the solver. Its language spelling is `secondary.in` /
+   `secondary.out` (and `primary.in` / `primary.out` for the first side), which the registry records and the
+   binder's lookup resolves, and which a message about the port writes.
+3. **`Language2Wording` goes when no emit site needs it.** Each emit site that names a port writes its spelling; the
+   respelling pass is then deleted, as `D-174` rule 2 intended.
+
+**Why.** It removes the made tokens -- which a message quoting a value's text relied on staying as written -- and
+`dK` as internal vocabulary, without moving port ids that the contract, the layout goldens and the editor use.
+The id/spelling split already exists (`in2` beside `in[2]`); this names it and gives it a third form.
+
+**Rejected.** *Fully native*: renaming the exchanger's ports everywhere. Clean, but it moves wire port ids, layout
+goldens and the frontend, which belongs with package 8's contract change if it is ever wanted. *Keep the rewrite* as
+the binder's normal form: no behaviour change, but made tokens and `dK` stay as internal vocabulary and every message
+depends on a respelling pass.
+
+**Constrains.** `19` §Values and §Diagnostics; `13`'s `K`; `L-75`; `C-140` (the wire's `dK`, which rule 1 does not
+change because the canonical unit is pinned to the contract version).

@@ -33,7 +33,7 @@ rendering ([`52-editor`](../50-frontend/52-editor.md),
 {
   "code": "FS1302",
   "severity": "error",                 // "error" | "warning" | "info"
-  "message": "Cannot add two temperatures. To offset by a difference, write '20C + 30 dK'.",
+  "message": "Cannot add two temperatures. To offset by a difference, write '20C + 30 K'.",
 
   "range": {                           // null for a diagnostic with no source location
     "start": { "line": 3, "character": 37 },
@@ -157,7 +157,7 @@ not a diagnostic.
     "related": [] },
 
   { "code": "FS1302", "severity": "error",
-    "message": "Cannot add two temperatures. To offset by a difference, write '20C + 30 dK'.",
+    "message": "Cannot add two temperatures. To offset by a difference, write '20C + 30 K'.",
     "range": { "start": { "line": 3, "character": 37 },
                "end":   { "line": 3, "character": 44 },
                "offset": 137, "length": 7 },

@@ -466,9 +466,7 @@ public sealed class ExpressionEvaluator
     /// to be quoted from <c>SiValue</c>, and for a temperature that is kelvin: <c>20 C + 30 C</c> was
     /// answered with <em>"write '20 °C + 303.15 dK'"</em>, which is 323 °C rather than the 50 the user
     /// meant. Worse than an unhelpful message, because the correction compiles -- there is no second
-    /// error to catch it. It read as correct because the only test asserted that the message contained
-    /// the letters <c>dK</c>, and because <c>40 C + 30 K</c>, the other case anyone tries, happens to
-    /// come out right: kelvin has no offset, so its SI value <em>is</em> the written number.
+    /// error to catch it. The difference is written in <c>K</c> (<c>D-172</c>).
     /// </remarks>
     private static string Example(Quantity left, Quantity right)
     {
@@ -480,7 +478,7 @@ public sealed class ExpressionEvaluator
             return "a difference rather than a second absolute value";
         }
 
-        return $"{left.ValueIn(celsius):0.##} °C + {right.ValueIn(right.SourceUnit ?? celsius):0.##} dK";
+        return $"{left.ValueIn(celsius):0.##} °C + {right.ValueIn(right.SourceUnit ?? celsius):0.##} K";
     }
 
     private EvaluationResult.Failed Fail(DiagnosticDescriptor descriptor, TextSpan span, params DiagnosticArgument[] arguments)
