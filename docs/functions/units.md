@@ -22,7 +22,7 @@ number you have not seen before still reads the way you would guess.
 | Dimensionless | — | the value itself | — |
 | Length | `m` | `m` | `m` |
 | Temperature | `K` | `°C` ** | `°C` |
-| Temperature delta | `K` | `dK` | `K` |
+| Temperature delta | `K` | `K` | `K` |
 | Pressure | `Pa` | `kPa` ** | `kPa` |
 | Pressure delta | `Pa` | `kPa` ** | `kPa` |
 | Power | `W` | `kW` ** | `kW` |

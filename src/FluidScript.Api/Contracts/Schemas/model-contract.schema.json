@@ -80,14 +80,7 @@
       ],
       "properties": {
         "name": {
-          "description": "The project name.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "defaultMode": {
-          "description": "The default solve mode, steady, transient or null.",
+          "description": "The project\u0027s title.",
           "type": [
             "string",
             "null"
@@ -95,8 +88,7 @@
         }
       },
       "required": [
-        "name",
-        "defaultMode"
+        "name"
       ]
     },
     "style": {
@@ -104,13 +96,6 @@
       "description": "Presentation Core carries and never interprets.",
       "type": "object",
       "properties": {
-        "tokens": {
-          "description": "The applied style tokens as written.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "spacing": {
           "description": "The spacing value in world units, or null (D-37).",
           "type": [
@@ -163,63 +148,11 @@
             "fill",
             "corner"
           ]
-        },
-        "named": {
-          "description": "The named styles, style name = \u2026, resolved, for an editor to list.",
-          "type": "object",
-          "additionalProperties": {
-            "title": "ResolvedStyle",
-            "description": "A style with every name resolved (D-104). A null colour or width is the theme\u0027s default.",
-            "type": "object",
-            "properties": {
-              "stroke": {
-                "description": "The stroke colour, #rrggbb, or null for the theme\u0027s.",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "strokeWidth": {
-                "description": "The stroke width in CSS pixels at scale 1, or null for the theme\u0027s.",
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "pattern": {
-                "description": "solid, dashed, dotted or dash-dot.",
-                "type": "string"
-              },
-              "fill": {
-                "description": "The static fill colour, or null for none; the colour scale paints over it while show is active.",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "corner": {
-                "description": "fillet, round, sharp or null for the theme\u0027s.",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            },
-            "required": [
-              "stroke",
-              "strokeWidth",
-              "pattern",
-              "fill",
-              "corner"
-            ]
-          }
         }
       },
       "required": [
-        "tokens",
         "spacing",
-        "default",
-        "named"
+        "default"
       ]
     },
     "circuits": {

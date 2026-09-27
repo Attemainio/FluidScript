@@ -1,4 +1,4 @@
-import { ApiError, type ApiClient } from '../../api/client.ts';
+import { ApiError, ContractMismatchError, type ApiClient } from '../../api/client.ts';
 import type { DraftStoreState } from '../../state/draftStore.ts';
 import {
   debounceMs as defaultDebounceMs,
@@ -201,17 +201,24 @@ export class CompilePipeline {
           if (controller.signal.aborted) {
             return; // a newer request is already running
           }
-          if (error instanceof ApiError) {
+          if (error instanceof ContractMismatchError) {
+            this.drafts.applyFault(request.documentId, request.revision, {
+              status: error.status,
+              contractVersion: error.received,
+            });
+          } else if (error instanceof ApiError) {
             if (!error.superseded) {
+              const { correlationId } = error.problem;
               this.drafts.applyFault(
                 request.documentId,
                 request.revision,
-                error.status,
-                error.problem.correlationId,
+                correlationId === undefined
+                  ? { status: error.status }
+                  : { status: error.status, correlationId },
               );
             }
           } else {
-            this.drafts.applyFault(request.documentId, request.revision, 0);
+            this.drafts.applyFault(request.documentId, request.revision, { status: 0 });
           }
         },
       )

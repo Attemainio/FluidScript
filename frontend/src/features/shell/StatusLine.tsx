@@ -32,7 +32,11 @@ export function StatusLine(): React.ReactNode {
         <StatusDot status={state.status} label={text} />
         {draft.fault !== null && (
           <span className="status-line__fault">
-            {draft.fault.status === 0 ? 'Not connected' : `Request failed (${draft.fault.status})`}
+            {draft.fault.contractVersion !== undefined
+              ? `The host was updated (model contract ${draft.fault.contractVersion}) · reload the page`
+              : draft.fault.status === 0
+                ? 'Not connected'
+                : `Request failed (${draft.fault.status})`}
             {draft.fault.correlationId !== undefined && ` · ${draft.fault.correlationId}`}
           </span>
         )}

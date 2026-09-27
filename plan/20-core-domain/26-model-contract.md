@@ -55,23 +55,20 @@ converting there costs one pass and removes a whole class of consumer bug.
 
 ```jsonc
 {
-  "contractVersion": "2.0",            // D-33 made `circuit` → `circuits` a breaking change
+  "contractVersion": "3.0",            // majors: D-33's `circuits` (2.0); C-139/C-140's removals and `K` (3.0)
   "provenance": {
     "sourceHash": "sha256:…", "languageMajor": 1,
     "catalog": { "id": "steel-en10255", "version": "2026.1" },
     "propertyBackend": { "id": "sharp-prop", "version": "…" },
     "atmosphereKPaAbsolute": 101.325       // gauge/absolute boundary fixed by D-26
   },
-  "project": {                         // D-37; absent when the script has no `project` line
-    "name": "plant_01",
-    "defaultMode": "dynamic"           // "steady" | "transient" | null
+  "project": {                         // D-37; absent when the script gives no title
+    "name": "plant_01"                 // the mode is a run's, not the project's (D-169); 3.0 dropped `defaultMode`
   },
 
   "style": {                           // D-104: Core resolves, the renderer draws
-    "tokens": ["blue", "2px", "fillet", "--"],
     "spacing": 20,                     // world units, or null — D-37; the layout margin since D-103
-    "default": { "stroke": "#0000ff", "strokeWidth": 2, "pattern": "dashed", "fill": null, "corner": "fillet" },
-    "named": { "trace": { "stroke": "#ff0000", "strokeWidth": null, "pattern": "solid", "fill": null, "corner": null } }
+    "default": { "stroke": "#0000ff", "strokeWidth": 2, "pattern": "dashed", "fill": null, "corner": "fillet" }
   },
 
   "circuits": [                        // D-33; always at least one, in declaration order
@@ -191,7 +188,7 @@ converting there costs one pass and removes a whole class of consumer bug.
   },                                     // one scale per available property (D-117): switching is client-side
 
   "bindings": [                          // evaluated `let` values, contract 1.0
-    { "name": "dT", "value": 30, "unit": "dK", "dimension": "TemperatureDelta", "siUnit": null },
+    { "name": "dT", "value": 30, "unit": "K", "dimension": "TemperatureDelta", "siUnit": null },
     { "name": "ratio", "value": 1.5, "unit": null, "dimension": null, "siUnit": "kg/(s³·K)" },
     { "name": "x", "value": null, "unit": null, "dimension": null, "siUnit": null }  // deferred, U-5
   ],
@@ -274,7 +271,7 @@ it, each recorded here rather than left for a reader of the golden files to disc
   always drew. `D-46`'s emitted schema and the generated TypeScript mirror are not built: P5.2's,
   with the endpoints that carry the payload. The golden files and the round trip are Api tests.
 
-- **The unit strings are the language's canonical spellings**: `°C` not `C`, `dK` for a temperature
+- **The unit strings are the language's canonical spellings**: `°C` not `C`, `dK` (since `3.0`, `K`) for a temperature
   difference, `kPa` gauge. A dimension with no canonical spelling -- head, Kv -- goes out in its SI
   unit (`m`, `m3/h`), which is what a bare number meant for it. A dimensionless value has `unit: null`.
   Confirmed 2026-09-15: the wire carries `°C`, `kPa`, `kW` and `kg/s` **always**, and the frontend
@@ -364,7 +361,7 @@ grew, and nothing else moved.
   on the active `show` scale. An anchor's `direction` is the outward normal; the flow direction is
   not on the wire, because `connections[].flow` already says which way each connection runs and the
   renderer's arrow follows the route.
-- **`style.default` and `style.named` are resolved** (`ResolvedStyleWire`): `stroke` and `fill`
+- **`style.default` and `style.named` (removed in `3.0`, `C-139`) are resolved** (`ResolvedStyleWire`): `stroke` and `fill`
   as `#rrggbb` (named CSS colours resolved by Core, `NamedColours`), `strokeWidth` in px, `pattern`,
   `corner`; a null field means the theme's default, and a placement or route carries `style` only
   when the script said something about it, so an unstyled model is byte-identical to before on
@@ -405,9 +402,12 @@ is what it was sized for, the state is what it is doing. A hover panel showing `
   handle unknown values. Consumers ignore what they do not know.
 - **Major** — anything a consumer could misread: a removed field, a changed unit, a changed meaning.
 
-The frontend checks the major version on connect and refuses to render on a mismatch rather than
-drawing a diagram from fields it is misinterpreting. A wrong number rendered confidently is worse than
-no diagram.
+The frontend checks the major version of every versioned body it reads -- compile, solve, validate,
+metadata -- and refuses to render on a mismatch rather than drawing a diagram from fields it is
+misinterpreting: it applies nothing from the answer, keeps the last model, and tells the user the host
+was updated and to reload (`51` error cases). A wrong number rendered confidently is worse than no
+diagram. The check is `frontend/src/api/client.ts`'s `contractMajor`, raised with every major; it
+was claimed here from `1.0` and first built with `3.0` (`U-12`).
 
 **The unit of a field is part of the contract.** Changing `dp` from kPa to bar is a major version bump
 even though the JSON shape is identical — this is the change that would otherwise ship silently and
@@ -429,8 +429,8 @@ The rejected softer options are worth recording, because both look cheaper and a
   duplication. Cost: the shape now depends on the data, so every consumer needs both code paths and
   the single-circuit path is the one that gets tested.
 
-A major bump is honest and the frontend already refuses to render on a major mismatch, which is
-exactly the behaviour wanted here.
+A major bump is honest, and refusing to render on a major mismatch is exactly the behaviour wanted
+here. (This section said the frontend already did; it did not, until `3.0` -- `U-12`.)
 
 ### `2.2` → `2.3`: `solve.residualNorm` may be `null`
 
@@ -439,6 +439,26 @@ infinity: the serializer threw and the endpoint answered 500 (`FS9001`) instead 
 Found by `P6.11` package 4 (2026-09-25) on a controlled loop, in both languages. The field is now `null` there —
 this document's own rule, *null means not computed*. A minor bump: the only new value appears in a case that
 never reached a consumer before, since the whole response failed.
+
+### `2.3` → `3.0`: language 1's fields go, and a temperature difference is `K`
+
+`P6.11` package 8 (2026-09-27). One major, taken once, for three changes that each needed one:
+
+- **`project.defaultMode`, `style.tokens` and `style.named` are removed** (`C-139`). Only language 1
+  could fill them -- `project dynamic`, a style line's raw tokens, `style hot = ...` -- so under
+  language 2 they were always `null`, a list re-made from a `style:` block, and `{}`. A removed field
+  is a major by the rule above: a reader of `model.project.defaultMode` gets `undefined`, not an error.
+  A block's settings still reach the wire, resolved, in `style.default`.
+- **`TemperatureDelta`'s unit is `K`, not `dK`** (`C-140`, `D-172`). Identical JSON shape, a changed
+  unit string: this is the case the rule exists for. The value is the same number -- a kelvin
+  difference either way -- so no conversion is involved, only the label.
+- **The metadata's port carries `spelling` and `aliases`** (`A-8`, `D-179`): `in[2]` is the id and
+  `secondary.in` what a script writes. Additive on its own; it rides the major rather than
+  earning a `3.1` the same day.
+
+Rejected: `2.4` with the three fields still sent empty and a deprecation note. Nothing reads them
+(`tsc` compiled the frontend with them deleted), so keeping them would be three fields described in
+the contract and meaningless on the wire, and the unit change would still need the major.
 
 ### `pressureDatum` moved out of the circuit, and that is a correction
 

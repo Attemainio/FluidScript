@@ -423,14 +423,14 @@ the circuit that wires them (`19` rule 3), which is a declaration; side 1 is `pr
 | `power` | Power | kW | −100000 … 100000 | Duty transferred. Positive adds heat to side 1. |
 | `in.t`, `out.t` | Temperature | °C | −50 … 300 | Side-1 inlet / outlet temperature |
 | `secondary.in.t`, `secondary.out.t` | Temperature | °C | −50 … 300 | Side-2 inlet / outlet temperature |
-| `dt`, `secondary.in.dt` | TemperatureDelta | dK | 0.1 … 200 | Temperature change across that side. Always positive; the sign follows `power` |
+| `dt`, `secondary.in.dt` | TemperatureDelta | K | 0.1 … 200 | Temperature change across that side. Always positive; the sign follows `power` |
 | `dp`, `secondary.in.dp` | PressureDelta | kPa | 0 … 1000 | Pressure drop at design flow, per side |
 | `flow`, `secondary.in.flow` | MassFlow | kg/s | 0 … 1000 | Flow constraint, per side: a `FixedFlow` row on that side's branch (P5.13b, `S-72`) |
 | `vflow`, `secondary.in.vflow` | VolumeFlow | l/s (`D-125`) | 0 … 1000 | The same constraint as a volume flow, held at the density of the side's inlet node as solved (`ṁ − ρ(p,h)·V̇ = 0`); one of `flow`/`vflow` per side |
 | `ua` | — (W/K) | W/K | 1 … 1e7 | Overall conductance. The thermal size, independent of how it is achieved |
 | `area` | Area | m² | 1e-3 … 1e4 | Heat transfer area |
 | `u` | — (W/(m²·K)) | W/(m²·K) | 10 … 20000 | Overall heat transfer coefficient |
-| `approach` | TemperatureDelta | dK | 0.1 … 100 | **Minimum** temperature difference the design must respect |
+| `approach` | TemperatureDelta | K | 0.1 … 100 | **Minimum** temperature difference the design must respect |
 | `arrangement` | *symbol* | — | — | `counter` (default) · `parallel` · `crossflow` |
 | `plates` | Dimensionless | — | 3 … 800 | Total plate count. Effective plates are `plates − 2` |
 | `lamella` | Length | m | 1 mm … 20 mm | Lamella between adjacent plates. Written `lamella=2.4 mm` |

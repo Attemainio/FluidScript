@@ -30,7 +30,7 @@ const model: ModelContract = {
   ...substation,
   bindings: [
     { name: 'Tsupply', value: 70, unit: '°C', dimension: 'Temperature', siUnit: null },
-    { name: 'dTdesign', value: 20, unit: 'dK', dimension: 'TemperatureDelta', siUnit: null },
+    { name: 'dTdesign', value: 20, unit: 'K', dimension: 'TemperatureDelta', siUnit: null },
     { name: 'Qtotal', value: 120, unit: 'kW', dimension: 'Power', siUnit: null },
     { name: 'later', value: null, unit: null, dimension: null, siUnit: null },
     { name: 'laterDp', value: null, unit: null, dimension: 'PressureDelta', siUnit: null },
@@ -138,7 +138,7 @@ describe('parameter completion', () => {
     expect(inlet?.detail).toBe('Temperature · °C · typically -50…300');
     expect(labels(result.items)).toContain('secondary.in.flow');
     expect(result.items.find((i) => i.label === 'dt')?.detail).toBe(
-      'TemperatureDelta · dK · typically 0.1…200',
+      'TemperatureDelta · K · typically 0.1…200',
     );
   });
 

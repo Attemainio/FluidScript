@@ -108,11 +108,11 @@ public sealed class ModelContractBuilderTests
     {
         // Changing a dimension's canonical unit changes the wire, which is a major bump (26): this
         // table is the version's, and it fails until both move together.
-        Assert.Equal("2.3", ModelContractBuilder.ContractVersion);
+        Assert.Equal("3.0", ModelContractBuilder.ContractVersion);
 
         var pinned = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Temperature"] = "°C", ["TemperatureDelta"] = "dK", ["Pressure"] = "kPa", ["PressureDelta"] = "kPa",
+            ["Temperature"] = "°C", ["TemperatureDelta"] = "K", ["Pressure"] = "kPa", ["PressureDelta"] = "kPa",
             ["Power"] = "kW", ["MassFlow"] = "kg/s", ["Volume"] = "dm3", ["Length"] = "m",
             ["Enthalpy"] = "J/kg", ["Density"] = "kg/m3", ["Energy"] = "J",
         };
@@ -120,7 +120,7 @@ public sealed class ModelContractBuilderTests
         foreach (var (dimension, unit) in pinned)
         {
             var actual = typeof(Dimension).GetProperty(dimension)!.GetValue(null) is Dimension d ? UnitTable.CanonicalUnitFor(d)?.Text : null;
-            Assert.True(string.Equals(unit, actual, StringComparison.Ordinal), $"{dimension}: contract 2.0 pins '{unit}', the table says '{actual}'.");
+            Assert.True(string.Equals(unit, actual, StringComparison.Ordinal), $"{dimension}: contract {ModelContractBuilder.ContractVersion} pins '{unit}', the table says '{actual}'.");
         }
 
         // No canonical spelling: these go out in SI, and that too is pinned.
@@ -413,7 +413,7 @@ public sealed class ModelContractBuilderTests
         var visualization = contract.Visualization;
 
         Assert.Equal("temperature_change", visualization.Active);
-        Assert.Equal("dK", visualization.Scales["temperature_change"].Unit);
+        Assert.Equal("K", visualization.Scales["temperature_change"].Unit);
         Assert.Equal("J/kg", visualization.Scales["enthalpy_change"].Unit);
         Assert.Equal("J/(kg*K)", visualization.Scales["specific_heat"].Unit);
 

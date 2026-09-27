@@ -158,7 +158,7 @@ export async function renderWireTypes(): Promise<string> {
     '/* eslint-disable */',
     '',
   ];
-  const seen = new Set<string>();
+  const seen = new Map<string, string>();
 
   for (const [name, file] of Object.entries(schemaFiles)) {
     const path = fileURLToPath(new URL(`${file}.schema.json`, schemaDir));
@@ -172,13 +172,22 @@ export async function renderWireTypes(): Promise<string> {
     });
 
     // The three schemas share records (a Diagnostic appears in all three); one declaration each.
+    // Two records that share a title across schemas but differ in shape are two types, and keeping
+    // the first silently retypes the second: the metadata's port was typed as the model's until 3.0.
     for (const block of rendered.split(/\n(?=export )/)) {
       const match = /^export (?:interface|type) (\w+)/.exec(block);
       const key = match?.[1] ?? block;
-      if (seen.has(key)) {
+      const known = seen.get(key);
+      if (known !== undefined) {
+        if (known !== block.trimEnd()) {
+          throw new Error(
+            `${file}.schema.json declares ${key} with a shape another schema already gave it; ` +
+              'rename one of the wire records so their titles differ',
+          );
+        }
         continue;
       }
-      seen.add(key);
+      seen.set(key, block.trimEnd());
       parts.push(block.trimEnd(), '');
     }
   }

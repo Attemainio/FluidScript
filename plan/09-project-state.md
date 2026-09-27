@@ -2079,6 +2079,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     `A-8` (the metadata's port spellings), with `A-7` (`43`'s `start` settings) before P6.5; **package 9**, `docs/`
     rewritten for language 2. Open from this package and not scheduled into either: `L-81`–`L-83` (message
     wording, a silent duplicate version line), `L-72`–`L-74`, `L-71`, `L-67`, and `L-66`'s remainder.
+  - **`P6.11` package 8, step 1: contract 3.0 (2026-09-27; `C-139`, `C-140`, `A-8` closed; `U-12`, `U-13` found
+    and closed).** One major for three changes (`26` §`2.3` → `3.0`): `project.defaultMode`, `style.tokens` and
+    `style.named` are gone with the binder state behind them; a temperature difference is `K` on the wire (ten
+    `"dK"` in the goldens became `"K"`, and `dK` stays an accepted spelling); a metadata port carries `spelling` and
+    `aliases` (`secondary.in` for `in[2]`, `primary.in` for `in`). Two frontend defects surfaced doing it. **`U-12`:**
+    `26` and `51` said the frontend refuses to render on a major mismatch, and it never checked -- 2.0 shipped on
+    the claim. It checks now, at the one place bodies are read, and a mismatch keeps the last model and asks for a
+    reload. **`U-13`:** the type generator kept the first of two same-titled records, so a kind's metadata ports
+    were typed as the model's ports since P5.4; the Api record is `PortMetaWire` and the generator throws on such a
+    collision. Moved: the eight contract goldens, `metadata.json`, the three schemas, the generated types, the units,
+    properties and model-contract pages, `26`, `42`, `13`, `22`. Core 2590/0/2, Api 79/0, frontend 226 and 10
+    expected failures (`U-11`'s, unchanged). Next in package 8: `U-11`, the editor's tokenizer and completion for
+    language 2, which now has the port spellings to offer; then `A-7` before P6.5.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

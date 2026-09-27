@@ -346,7 +346,7 @@ t=0     Document is now 'HE1 heat_exchanger'. Completion re-triggers on the para
             power    Power · kW · typically 1…10000 — duty; positive adds heat
             in       Temperature · °C · typically −50…300 — inlet constraint
             out      Temperature · °C · typically −50…300 — outlet constraint
-            dt       TemperatureDelta · dK — rise, as an alternative to in/out
+            dt       TemperatureDelta · K — rise, as an alternative to in/out
             dp       PressureDelta · kPa — drop at design flow
             flow     MassFlow · kg/s — flow constraint
 t=300   Debounce fires. Compile returns FS1507 (the component is in no connection) as a

@@ -254,7 +254,7 @@ public readonly record struct Dimension
         new(default, DimensionCategory.Linear, "", null, null),                                              // Dimensionless
         new(new DimensionVector(0, 1, 0, 0), DimensionCategory.Linear, "m", "m", "m"),                       // Length
         new(new DimensionVector(0, 0, 0, 1), DimensionCategory.Absolute, "K", "°C", "°C"),                   // Temperature
-        new(new DimensionVector(0, 0, 0, 1), DimensionCategory.Delta, "K", "dK", "K"),                       // TemperatureDelta
+        new(new DimensionVector(0, 0, 0, 1), DimensionCategory.Delta, "K", "K", "K"),                        // TemperatureDelta: K since contract 3.0 (C-140)
         new(new DimensionVector(1, -1, -2, 0), DimensionCategory.Absolute, "Pa", "kPa", "kPa"),              // Pressure
         new(new DimensionVector(1, -1, -2, 0), DimensionCategory.Delta, "Pa", "kPa", "kPa"),                 // PressureDelta
         new(new DimensionVector(1, 2, -3, 0), DimensionCategory.Linear, "W", "kW", "kW"),                    // Power

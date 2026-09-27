@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.3",
+  "contractVersion": "3.0",
   "provenance": {
     "sourceHash": "sha256:d9d13e0ac51a2ff324694fe2220c4b35a04fdb466b3ff8395ab4bf05aa05a55f",
     "languageMajor": 2,
@@ -14,11 +14,9 @@
     "atmosphereKPaAbsolute": 101.325
   },
   "project": {
-    "name": "project",
-    "defaultMode": null
+    "name": "project"
   },
   "style": {
-    "tokens": [],
     "spacing": null,
     "default": {
       "stroke": null,
@@ -26,8 +24,7 @@
       "pattern": "solid",
       "fill": null,
       "corner": null
-    },
-    "named": {}
+    }
   },
   "circuits": [
     {
@@ -309,7 +306,7 @@
         },
         "dt": {
           "value": 20,
-          "unit": "dK",
+          "unit": "K",
           "source": "stated"
         },
         "elevation": {

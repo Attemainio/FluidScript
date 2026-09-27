@@ -89,9 +89,10 @@ public sealed class DimensionTests
     [Trait("Category", "Unit")]
     public void TheDeltaSpelling_ChangesTypeRatherThanScale()
     {
-        // dK is not a seventh exception: it differs from K in what it means, not what it is worth.
+        // A difference is not a seventh exception: its canonical spelling is K since contract 3.0 (C-140, D-172), the
+        // SI unit, and it differs from a temperature in what it means, not what it is worth.
         Assert.False(Dimension.TemperatureDelta.CanonicalDiffersFromSi);
-        Assert.Equal("dK", Dimension.TemperatureDelta.CanonicalUnit);
+        Assert.Equal("K", Dimension.TemperatureDelta.CanonicalUnit);
         Assert.Equal("K", Dimension.TemperatureDelta.SiUnit);
     }
 

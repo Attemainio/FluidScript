@@ -95,7 +95,7 @@ export class FakeClient implements ApiClient {
 
 export function model(name: string): ModelContract {
   return {
-    contractVersion: '2.3',
+    contractVersion: '3.0',
     circuits: [{ name }],
     components: [],
     symbols: [],

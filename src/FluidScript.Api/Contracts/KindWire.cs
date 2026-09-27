@@ -24,7 +24,7 @@ public sealed record KindWire
     public required string SymbolId { get; init; }
 
     /// <summary>The fixed ports, in declaration order.</summary>
-    public required ImmutableArray<PortWire> Ports { get; init; }
+    public required ImmutableArray<PortMetaWire> Ports { get; init; }
 
     /// <summary>Indexed port families such as a tank's <c>in[2]</c>..<c>in[16]</c> (<c>D-32</c>, <c>D-120</c>).</summary>
     public required ImmutableArray<PortFamilyWire> PortFamilies { get; init; }

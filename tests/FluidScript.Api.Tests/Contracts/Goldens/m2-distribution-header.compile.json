@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.3",
+  "contractVersion": "3.0",
   "provenance": {
     "sourceHash": "sha256:5f896b244dc11c2047fb4169751cdc30315407e6409fdb83e4319188cdb1a09d",
     "languageMajor": 2,
@@ -14,11 +14,9 @@
     "atmosphereKPaAbsolute": 101.325
   },
   "project": {
-    "name": "plant_01",
-    "defaultMode": null
+    "name": "plant_01"
   },
   "style": {
-    "tokens": [],
     "spacing": null,
     "default": {
       "stroke": null,
@@ -26,8 +24,7 @@
       "pattern": "solid",
       "fill": null,
       "corner": null
-    },
-    "named": {}
+    }
   },
   "circuits": [
     {

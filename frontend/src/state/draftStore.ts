@@ -8,6 +8,17 @@ export type SolveStatus = 'idle' | 'converging' | 'converged' | 'failed';
 /** Which source owns the canvas: the draft, or a running simulation the user is watching (`51`). */
 export type CanvasMode = 'draft' | 'simulation';
 
+/**
+ * A request that produced no answer to apply: the status (0 when the host was unreachable) and the
+ * host's correlation id when it sent one, or the contract version it answered in when that was a
+ * major this page cannot read (`26`).
+ */
+export interface Fault {
+  readonly status: number;
+  readonly correlationId?: string;
+  readonly contractVersion?: string;
+}
+
 /** A document's draft state: the last successful model, the current diagnostics, and their revision. */
 export interface DraftState {
   /** The last model a compile returned, kept through failed compiles (`51` invariant 2). */
@@ -23,8 +34,8 @@ export interface DraftState {
   readonly status: SolveStatus;
   readonly timings: Timings | null;
   readonly canvasMode: CanvasMode;
-  /** A request-level failure to show: the status and the host's correlation id when it sent one. */
-  readonly fault: { readonly status: number; readonly correlationId?: string } | null;
+  /** A request-level failure to show. */
+  readonly fault: Fault | null;
   /** The reader's colour-scale switch (`57`): session-only, never written back; `null` follows the script's `show`. */
   readonly shown: string | null;
 }
@@ -38,7 +49,7 @@ export interface DraftStoreState {
   /** Applies a validate's diagnostics; they never replace a compile's for the same or a newer revision (`44`). */
   applyValidate(documentId: string, revision: number, diagnostics: readonly Diagnostic[]): void;
   /** Records a request-level failure; the model stays (`51` error cases). */
-  applyFault(documentId: string, revision: number, status: number, correlationId?: string): void;
+  applyFault(documentId: string, revision: number, fault: Fault): void;
   endCompile(documentId: string, revision: number): void;
   setCanvasMode(documentId: string, mode: CanvasMode): void;
   /** Switches the property the colours follow, or back to the script's with `null` (`57` invariant 6: no request). */
@@ -113,12 +124,12 @@ export const useDraftStore = create<DraftStoreState>()((set) => {
           : { ...draft, diagnostics, diagnosticsRevision: revision },
       ),
 
-    applyFault: (documentId, revision, status, correlationId) =>
+    applyFault: (documentId, revision, fault) =>
       update(documentId, (draft) => ({
         ...draft,
         compiling: draft.compiling === revision ? null : draft.compiling,
         status: draft.model === null ? 'idle' : draft.status,
-        fault: correlationId === undefined ? { status } : { status, correlationId },
+        fault,
       })),
 
     endCompile: (documentId, revision) =>

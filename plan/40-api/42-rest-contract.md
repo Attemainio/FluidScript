@@ -87,7 +87,7 @@ the escalated `FS1507` is why.
 { "script": "circuit coolingLoop\n…" }
 
 // response — 200
-{ "contractVersion": "2.0", "languageMajor": 1,
+{ "contractVersion": "3.0", "languageMajor": 2,
   "diagnostics": [ /* 44's records, ordered by severity then offset */ ],
   "timings": { "parseMs": 1, "bindMs": 2, "sizeMs": 0, "solveMs": 0, "totalMs": 4 } }
 ```
@@ -152,7 +152,10 @@ the same order, each symbol's conversion to the SI base unit as a factor and an 
 2026-09-22): the client converts from these and holds no unit table of its own. Cacheable with an ETag. Parameters and properties are
 listed by name and a parameter's range is in its canonical unit (P5.5, `A-5`), and the document is
 committed as `Api.Tests/Contracts/Goldens/metadata.json` so the editor's completion tests run against
-the real registry without a host. The editor's lexicon -- the reserved words, the unit symbols and
+the real registry without a host. A fixed port carries its id (`name`: `in[2]`, what the model and the
+layout key it by), its `spelling` (`secondary.in`, what a script writes after the dot, `D-179`) and
+its other accepted `aliases` (`primary.in`), so an editor offers what the binder reads (`A-8`, contract
+`3.0`). The editor's lexicon -- the reserved words, the unit symbols and
 `D-15`'s thresholds -- is not part of this document but a committed schema-side file,
 `Contracts/Schemas/language.json`, generated from Core like the schemas and consumed at the
 frontend's build (`52`).
@@ -275,7 +278,9 @@ declaration. A diagnostic about a name underlines the name.
       `title` and every documented member's `description` from the XML docs (P5.4,
       `SchemaDocumentation`, `D-46` step 4), and `frontend/src/api/types.generated.ts` is generated
       from those files by `npm run types` and gated by a test that regenerates it (P5.4). A drift on
-      either side fails a suite.
+      either side fails a suite. Records are named by title across the three schemas, so two records
+      sharing a title with different shapes make the generator throw rather than keep the first
+      (`U-13`, 2026-09-27: the metadata's port was typed as the model's for this reason).
 - [ ] REST majors coexist and cache independently under the policy above; `contractVersion` remains
       the model payload's version rather than an alias for the route major. *The key is
       `(apiMajor, sessionId)` and `contractVersion` is the model's (P5.2); a second major does not

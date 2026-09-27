@@ -91,7 +91,7 @@ public sealed class MetadataDocument
         DrivesFlow = kind.DrivesFlow,
         IsObserver = kind.IsObserver,
         SymbolId = SymbolCatalog.IdFor(kind.Keyword),
-        Ports = [.. kind.Ports.Select(static port => new PortWire(port.Name, Role(port.Role), port.IsOptional))],
+        Ports = [.. kind.Ports.Select(static port => new PortMetaWire(port.Name, port.Spelling, port.Aliases, Role(port.Role), port.IsOptional))],
         PortFamilies = [.. kind.PortFamilies.Select(static family => new PortFamilyWire(
             family.Prefix, family.Pattern, family.MinIndex, family.MaxIndex, Role(family.Role), family.LevelParameterSuffix))],
         // The registry holds parameters and properties in dictionaries, whose order is the process's

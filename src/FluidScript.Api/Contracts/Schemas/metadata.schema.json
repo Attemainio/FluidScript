@@ -75,13 +75,24 @@
             "description": "The fixed ports, in declaration order.",
             "type": "array",
             "items": {
-              "title": "Port",
+              "title": "PortMeta",
               "description": "One fixed port.",
               "type": "object",
               "properties": {
                 "name": {
-                  "description": "The port name as written after a dot.",
+                  "description": "The port\u0027s id, as the model, the layout and the wire know it: in, in[2], ab.",
                   "type": "string"
+                },
+                "spelling": {
+                  "description": "The port as a script writes it after a dot, and as a message names it: secondary.in for an exchanger\u0027s in[2] (D-179).",
+                  "type": "string"
+                },
+                "aliases": {
+                  "description": "The other spellings a script may write it in: primary.in for an exchanger\u0027s in.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "role": {
                   "description": "inlet, outlet or bidirectional.",
@@ -94,6 +105,8 @@
               },
               "required": [
                 "name",
+                "spelling",
+                "aliases",
                 "role",
                 "optional"
               ]

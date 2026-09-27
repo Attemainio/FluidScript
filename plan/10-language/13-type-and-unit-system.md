@@ -49,7 +49,7 @@ Three columns, and they are three different things — conflating any two is how
 | `Dimensionless` | — | — | — | Ratios, efficiencies, counts. Percent is a unit of this dimension. |
 | `Length` | m | **m** | mm below 1 m, else m | `length=45` is 45 metres. Write `dn=50` or `45 mm` for millimetres. |
 | `Temperature` | K | **°C** — *exception* | °C | Nobody writes `in=293.15`. **See the offset rule below.** |
-| `TemperatureDelta` | K | dK | K | A *separate dimension* from `Temperature`; written `K`, `dK` or `dC` (`D-26`, `D-172`). |
+| `TemperatureDelta` | K | K | K | A *separate dimension* from `Temperature`; written `K`, `dK` or `dC` (`D-26`, `D-172`). Canonical `dK` until contract `3.0` (`C-140`). |
 | `Pressure` | Pa | **kPa gauge** — *exception* | kPa gauge | Bare, `kPa`, `kPag`, `bar`, and `barg` are gauge; `kPaa`/`bara` are absolute (`D-26`). |
 | `PressureDelta` | Pa | **kPa** — *exception* | kPa | Same exception, same reason. Separate dimension, as for temperature. |
 | `Power` | W | **kW** — *exception* | kW | `power=30` is the brief's own example and `R-04` states it. |

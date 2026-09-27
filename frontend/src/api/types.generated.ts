@@ -100,20 +100,12 @@ export interface VersionedId {
 
 export interface Project {
   /**
-   * The project name.
+   * The project's title.
    */
   name: string | null;
-  /**
-   * The default solve mode, steady, transient or null.
-   */
-  defaultMode: string | null;
 }
 
 export interface Style {
-  /**
-   * The applied style tokens as written.
-   */
-  tokens: string[];
   /**
    * The spacing value in world units, or null (D-37).
    */
@@ -122,15 +114,6 @@ export interface Style {
    * The project-level style, applied where a circuit states none.
    */
   default: ResolvedStyle;
-  /**
-   * The named styles, style name = …, resolved, for an editor to list.
-   */
-  named: {
-    /**
-     * A style with every name resolved (D-104). A null colour or width is the theme's default.
-     */
-    [k: string]: ResolvedStyle | undefined;
-  };
 }
 
 export interface ResolvedStyle {
@@ -1182,7 +1165,7 @@ export interface Kind {
   /**
    * The fixed ports, in declaration order.
    */
-  ports: Port[];
+  ports: PortMeta[];
   /**
    * Indexed port families such as a tank's in[2]..in[16] (D-32, D-120).
    */
@@ -1211,6 +1194,29 @@ export interface Kind {
    * The property a sensor of this kind measures, or null.
    */
   measuredProperty: string | null;
+}
+
+export interface PortMeta {
+  /**
+   * The port's id, as the model, the layout and the wire know it: in, in[2], ab.
+   */
+  name: string;
+  /**
+   * The port as a script writes it after a dot, and as a message names it: secondary.in for an exchanger's in[2] (D-179).
+   */
+  spelling: string;
+  /**
+   * The other spellings a script may write it in: primary.in for an exchanger's in.
+   */
+  aliases: string[];
+  /**
+   * inlet, outlet or bidirectional.
+   */
+  role: string;
+  /**
+   * Whether inference rule I3 leaves it unconnected without a boundary node.
+   */
+  optional: boolean;
 }
 
 export interface PortFamily {

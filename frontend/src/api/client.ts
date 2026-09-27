@@ -31,6 +31,31 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The contract major this build reads (`26`). A minor is additive and read by any build of the same
+ * major; a major removes fields or changes units (3.0 moved a temperature difference from `dK` to
+ * `K`), so a body from another major is refused rather than rendered with the wrong meaning.
+ */
+export const contractMajor = 3;
+
+/**
+ * A successful answer written in a contract major this build cannot read (`26`, `51` error cases):
+ * the host was upgraded under an open page. Nothing it carries is applied; the user reloads.
+ */
+export class ContractMismatchError extends ApiError {
+  /** The `contractVersion` the host sent. */
+  readonly received: string;
+
+  constructor(received: string) {
+    super(200, {
+      status: 200,
+      title: `The host sends model contract ${received}; this page reads ${contractMajor}.x`,
+    });
+    this.name = 'ContractMismatchError';
+    this.received = received;
+  }
+}
+
 /** The REST calls the editor makes (`42`), typed. Every call takes a signal so the pipeline can abort it. */
 export interface ApiClient {
   compile(request: CompileRequest, signal: AbortSignal): Promise<CompileResponse>;
@@ -67,7 +92,16 @@ export function createClient(fetchImpl: typeof fetch = fetch, base = ''): ApiCli
 
 async function read<T>(response: Response): Promise<T> {
   if (response.ok) {
-    return (await response.json()) as T;
+    const body = (await response.json()) as unknown;
+    const version =
+      typeof body === 'object' && body !== null && 'contractVersion' in body
+        ? (body as { contractVersion: unknown }).contractVersion
+        : undefined;
+    // Every body the host versions is checked here, once, so no caller can render one unchecked.
+    if (typeof version === 'string' && Number.parseInt(version, 10) !== contractMajor) {
+      throw new ContractMismatchError(version);
+    }
+    return body as T;
   }
 
   let problem: ProblemDetails = { status: response.status, title: response.statusText };

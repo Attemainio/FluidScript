@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ApiError } from '../../api/client.ts';
+import { ApiError, ContractMismatchError } from '../../api/client.ts';
 import type { ModelContract } from '../../api/types.ts';
 import { draftOf, useDraftStore } from '../../state/draftStore.ts';
 import {
@@ -138,6 +138,23 @@ describe('the debounce pipeline', () => {
     expect(circuitName(doc)).toBe('good');
     expect(draft.fault).toEqual({ status: 500, correlationId: 'abc' });
     expect(draft.compiling).toBeNull();
+  });
+
+  it('refuses a model from another contract major, keeps the last one, and asks for a reload', async () => {
+    // 51 error cases: a host upgraded under an open page answers in a major this page cannot read.
+    pipeline.edit(doc, 'good', 1);
+    await clock.advance(300);
+    finish(client.calls[0]!, answer('good'));
+    await settle();
+
+    pipeline.edit(doc, 'newer', 2);
+    await clock.advance(300);
+    client.calls[1]!.reject(new ContractMismatchError('4.0'));
+    await settle();
+
+    const draft = draftOf(useDraftStore.getState(), doc);
+    expect(circuitName(doc)).toBe('good');
+    expect(draft.fault).toEqual({ status: 200, contractVersion: '4.0' });
   });
 
   it('cancels the outgoing document on a tab switch and starts nothing for it afterwards', async () => {

@@ -130,23 +130,20 @@ What produced the payload.
 
 ### `Project`
 
-The `project` line.
+The `project` block.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `name` | string or `null` | The project name. |
-| `defaultMode` | string or `null` | The default solve mode, `steady`, `transient` or `null`. |
+| `name` | string or `null` | The project's title. |
 
 ### `Style`
 
-The script's presentation directives, resolved (`D-104`).
+The script's presentation settings, resolved (`D-104`, `D-171`).
 
 | Field | Type | Meaning |
 |---|---|---|
-| `tokens` | array of string | The applied `style` tokens as written. |
 | `spacing` | number or `null` | The `spacing` value in world units, or `null` (`D-37`). |
 | `default` | [`ResolvedStyle`](#resolvedstyle) | The project-level style, applied where a circuit states none. |
-| `named` | object of [`ResolvedStyle`](#resolvedstyle) | The named styles, `style name = …`, resolved, for an editor to list. |
 
 ### `Circuit`
 

@@ -103,13 +103,13 @@ describe('the hover card', () => {
     const model = {
       ...loop,
       bindings: [
-        { name: 'dT', value: 30, unit: 'dK', dimension: 'TemperatureDelta', siUnit: null },
+        { name: 'dT', value: 30, unit: 'K', dimension: 'TemperatureDelta', siUnit: null },
         { name: 'x', value: null, unit: null, dimension: null, siUnit: null },
       ],
     };
     expect(bindingCard(model, 'dT')).toMatchObject({
       subtitle: 'let · TemperatureDelta',
-      state: [{ value: '30', unit: 'dK' }],
+      state: [{ value: '30', unit: 'K' }],
     });
     expect(bindingCard(model, 'x')!.subtitle).toContain('deferred');
     expect(bindingCard(model, 'nope')).toBeNull();

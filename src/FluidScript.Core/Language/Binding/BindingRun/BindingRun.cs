@@ -31,7 +31,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly DependencyGraph _graph = new();
     private readonly List<DeferredExpression> _deferred = [];
     private readonly HashSet<ValueId> _deferredTargets = [];
-    private readonly List<StyleTokenSyntax> _styleTokens = [];
     private readonly Dictionary<StatementSyntax, StyleSpec> _styleAt = new(ReferenceEqualityComparer.Instance);
     private StyleSpec _currentStyle = StyleSpec.Empty;
     private StyleSpec _projectStyle = StyleSpec.Empty;
@@ -40,7 +39,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     // read in a static circuit or a dynamic one.
     private readonly Dictionary<string, string> _bindingCircuits = new(StringComparer.Ordinal);
 
-    private ProjectSettings _project = new(null, null);
+    private ProjectSettings _project = new(null);
 
     private double? _spacing;
 
@@ -70,7 +69,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             },
             Components = [.. _components],
             Bindings = [.. _bindings],
-            Style = new StyleSettings([.. _styleTokens], _spacing, _projectStyle, ImmutableDictionary<string, StyleSpec>.Empty),
+            Style = new StyleSettings(_spacing, _projectStyle),
             Connections = [.. _connections],
             ControlBindings = [.. _controlBindings],
             Disturbances = [.. _disturbances],
@@ -121,7 +120,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var style in reading.ProjectStyles)
         {
-            _styleTokens.AddRange(style);
             ReadStyle(style);
             _projectStyle = _currentStyle;
         }
@@ -134,7 +132,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
             if (!block.Style.IsEmpty)
             {
-                _styleTokens.AddRange(block.Style);
                 ReadStyle(block.Style);
             }
 
@@ -150,7 +147,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     /// <summary>Binds the project's title. Its mode and start belong to a run (<c>D-169</c>), which projects them.</summary>
     /// <param name="name">The project's quoted title.</param>
-    private void BindProject(string? name) => _project = new ProjectSettings(name, null);
+    private void BindProject(string? name) => _project = new ProjectSettings(name);
 
     private void AssignCircuits(List<CircuitBlock> blocks)
     {

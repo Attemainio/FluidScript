@@ -49,22 +49,22 @@ third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long �
 | `pipe` | `re` | — | after the solve |
 | `pipe` | `velocity` | `m/s` | after the solve |
 | `pipe` | `volume` | `dm3` | after sizing |
-| `heat_exchanger` | `approach` | `dK` | after the solve |
+| `heat_exchanger` | `approach` | `K` | after the solve |
 | `heat_exchanger` | `area` | `m2` | after sizing |
 | `heat_exchanger` | `dp` | `kPa` | after the solve |
-| `heat_exchanger` | `dt` | `dK` | after the solve |
+| `heat_exchanger` | `dt` | `K` | after the solve |
 | `heat_exchanger` | `effectiveness` | — | after the solve |
 | `heat_exchanger` | `flow` | `kg/s` | after the solve |
 | `heat_exchanger` | `in.p` | `kPa` | after the solve |
 | `heat_exchanger` | `in.t` | `°C` | after the solve |
-| `heat_exchanger` | `lmtd` | `dK` | after the solve |
+| `heat_exchanger` | `lmtd` | `K` | after the solve |
 | `heat_exchanger` | `ntu` | — | after sizing |
 | `heat_exchanger` | `out.p` | `kPa` | after the solve |
 | `heat_exchanger` | `out.t` | `°C` | after the solve |
 | `heat_exchanger` | `plates` | — | after sizing |
 | `heat_exchanger` | `power` | `kW` | after sizing |
 | `heat_exchanger` | `secondary.in.dp` | `kPa` | after the solve |
-| `heat_exchanger` | `secondary.in.dt` | `dK` | after the solve |
+| `heat_exchanger` | `secondary.in.dt` | `K` | after the solve |
 | `heat_exchanger` | `secondary.in.flow` | `kg/s` | after the solve |
 | `heat_exchanger` | `secondary.in.p` | `kPa` | after the solve |
 | `heat_exchanger` | `secondary.in.t` | `°C` | after the solve |

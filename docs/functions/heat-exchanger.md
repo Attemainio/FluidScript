@@ -46,14 +46,14 @@ the solve makes it the cold side is worse than one that says nothing.
 | `power` | kW | Capacity on a role spelling; signed side-1 heat flow on `heat_exchanger`, `exchanger`, or `hx` |
 | `in.t`, `out.t` | °C | Side-1 inlet and outlet temperature |
 | `in[2].t`, `out[2].t` | °C | Side-2 inlet and outlet temperature |
-| `dt`, `in[2].dt` | dK | Temperature change across that side. Always positive; the sign follows `power` |
+| `dt`, `in[2].dt` | K | Temperature change across that side. Always positive; the sign follows `power` |
 | `dp`, `in[2].dp` | kPa | Pressure drop at design flow, per side. Defaults to 20 kPa; write `dp=0` for an ideal block |
 | `flow`, `in[2].flow` | kg/s | Flow constraint, per side: the branch is held at this mass flow, and the pump on it (or the balancing valve of a parallel branch) is solved for whatever holds it |
 | `vflow`, `in[2].vflow` | l/s — `vflow=0.3` is 0.3 l/s; `vflow=1.1 m3/h` converts | The same constraint as a volume flow, converted at the density of that side's inlet *as solved*: 0.3 l/s of 60 °C water is 0.2950 kg/s, of 20 °C water 0.2995. One of `flow` and `vflow` per side |
 | `ua` | W/K | Overall conductance — the thermal size, independent of how it is achieved |
 | `area` | m² | Heat transfer area |
 | `u` | W/(m²·K) | Overall heat transfer coefficient |
-| `approach` | dK | **Minimum** temperature difference the design must respect |
+| `approach` | K | **Minimum** temperature difference the design must respect |
 | `arrangement` | — | `counter` (the default), `parallel`, or `crossflow` |
 | `plates` | — | Total plate count. Effective plates are `plates − 2` |
 | `lamella` | m | Gap between adjacent plates, usually written `lamella=2.4 mm` |

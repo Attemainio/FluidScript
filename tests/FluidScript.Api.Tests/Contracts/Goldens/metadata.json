@@ -1,6 +1,6 @@
 {
   "restMajor": 1,
-  "contractVersion": "2.3",
+  "contractVersion": "3.0",
   "language": {
     "current": 2,
     "supported": [
@@ -387,11 +387,15 @@
       "ports": [
         {
           "name": "in",
+          "spelling": "in",
+          "aliases": [],
           "role": "inlet",
           "optional": false
         },
         {
           "name": "out",
+          "spelling": "out",
+          "aliases": [],
           "role": "outlet",
           "optional": false
         }
@@ -624,21 +628,33 @@
       "ports": [
         {
           "name": "in",
+          "spelling": "in",
+          "aliases": [
+            "primary.in"
+          ],
           "role": "inlet",
           "optional": false
         },
         {
           "name": "out",
+          "spelling": "out",
+          "aliases": [
+            "primary.out"
+          ],
           "role": "outlet",
           "optional": false
         },
         {
           "name": "in[2]",
+          "spelling": "secondary.in",
+          "aliases": [],
           "role": "inlet",
           "optional": true
         },
         {
           "name": "out[2]",
+          "spelling": "secondary.out",
+          "aliases": [],
           "role": "outlet",
           "optional": true
         }
@@ -650,7 +666,7 @@
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
@@ -729,7 +745,7 @@
           ],
           "valueKind": "quantity",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
@@ -974,7 +990,7 @@
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
@@ -1194,7 +1210,7 @@
         {
           "name": "approach",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "availability": "solved"
         },
         {
@@ -1212,7 +1228,7 @@
         {
           "name": "dt",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "availability": "solved"
         },
         {
@@ -1242,7 +1258,7 @@
         {
           "name": "lmtd",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "availability": "solved"
         },
         {
@@ -1284,7 +1300,7 @@
         {
           "name": "secondary.in.dt",
           "dimension": "TemperatureDelta",
-          "unit": "dK",
+          "unit": "K",
           "availability": "solved"
         },
         {
@@ -1361,11 +1377,15 @@
       "ports": [
         {
           "name": "in",
+          "spelling": "in",
+          "aliases": [],
           "role": "inlet",
           "optional": false
         },
         {
           "name": "out",
+          "spelling": "out",
+          "aliases": [],
           "role": "outlet",
           "optional": false
         }
@@ -1604,16 +1624,22 @@
       "ports": [
         {
           "name": "ab",
+          "spelling": "ab",
+          "aliases": [],
           "role": "bidirectional",
           "optional": false
         },
         {
           "name": "a",
+          "spelling": "a",
+          "aliases": [],
           "role": "bidirectional",
           "optional": false
         },
         {
           "name": "b",
+          "spelling": "b",
+          "aliases": [],
           "role": "bidirectional",
           "optional": true
         }
@@ -1890,11 +1916,15 @@
       "ports": [
         {
           "name": "in",
+          "spelling": "in",
+          "aliases": [],
           "role": "inlet",
           "optional": false
         },
         {
           "name": "out",
+          "spelling": "out",
+          "aliases": [],
           "role": "outlet",
           "optional": false
         }
@@ -2152,11 +2182,15 @@
       "ports": [
         {
           "name": "in",
+          "spelling": "in",
+          "aliases": [],
           "role": "bidirectional",
           "optional": false
         },
         {
           "name": "out",
+          "spelling": "out",
+          "aliases": [],
           "role": "bidirectional",
           "optional": false
         }
@@ -2906,7 +2940,7 @@
     {
       "name": "TemperatureDelta",
       "siUnit": "K",
-      "canonicalUnit": "dK",
+      "canonicalUnit": "K",
       "units": [
         "K",
         "dK",

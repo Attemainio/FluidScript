@@ -38,7 +38,7 @@ namespace FluidScript.Core.Model;
 public static partial class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "2.3";
+    public const string ContractVersion = "3.0";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", FluidScript.Core.Physics.Fluids.PropertyBackend.PackageVersion);
@@ -170,14 +170,8 @@ public static partial class ModelContractBuilder
                 PropertyBackend = PropertyBackend,
                 AtmosphereKPaAbsolute = UnitTable.StandardAtmosphere / 1000,
             },
-            Project = model.Project.Name is null && model.Project.DefaultMode is null
-                ? null
-                : new ProjectWire(model.Project.Name, ModeName(model.Project.DefaultMode)),
-            Style = new StyleWire(
-                [.. model.Style.Tokens.Select(static token => token.Text)],
-                model.Style.Spacing,
-                Styles.Resolve(model.Style.Default),
-                model.Style.Definitions.OrderBy(static d => d.Key, StringComparer.Ordinal).ToDictionary(static d => d.Key, static d => Styles.Resolve(d.Value), StringComparer.Ordinal)),
+            Project = model.Project.Name is null ? null : new ProjectWire(model.Project.Name),
+            Style = new StyleWire(model.Style.Spacing, Styles.Resolve(model.Style.Default)),
             Circuits = circuits,
             PressureDatums = [.. HydraulicPartition.Of(graph).Select(static part => part.Datum).Where(static datum => datum.Length > 0)],
             Components = components.ToImmutable(),
