@@ -1,24 +1,15 @@
 {
-  "reservedWords": [
+  "statementWords": [
     "fluidscript",
     "project",
-    "circuit",
-    "fluid",
-    "dynamic",
-    "static",
-    "spacing",
-    "style",
-    "show",
     "let",
-    "catalog",
-    "connections",
-    "schedule",
-    "inlet",
-    "outlet",
-    "control",
     "curve",
-    "design",
-    "scenarios"
+    "circuit",
+    "run"
+  ],
+  "eventWords": [
+    "at",
+    "over"
   ],
   "unitSymbols": [
     "kJ/(kg*K)",
@@ -74,7 +65,6 @@
     "dm",
     "ft",
     "hp",
-    "in",
     "kJ",
     "kW",
     "kg",
@@ -98,8 +88,7 @@
     "h",
     "l",
     "m",
-    "s",
-    "t"
+    "s"
   ],
   "resolveThreshold": 0.7,
   "ambiguityMargin": 0.05,

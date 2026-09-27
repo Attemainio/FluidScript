@@ -364,11 +364,12 @@ then runs on it unchanged. An override holds from t = 0: a parameter's is a step
 by the binder into a step at 0 on every parameter that reads it, and a driver handed to a curve of time re-points
 that driver's curves at it, so they follow the clock through `CurveClock` as a language 1 chain does.
 
-**[`12-grammar`](../10-language/12-grammar.md) now defines this**, as a `schedule` section whose
-statements are `at`/`over` disturbances. `at` and `over` are not reserved words — section position
-classifies them, exactly as it does connections — and the target is the `component.parameter` shape the
-expression grammar already parses. The alternative, disturbances configured in the UI outside the
-script, violates principle P5 and was rejected there.
+**[`19`](../10-language/19-fluidscript-2.md) §Runs now defines this**, as a run block whose `at` and `over`
+lines are events (language 1's `schedule` section, [`12`](../10-language/12-grammar.md), went with language 1).
+`at` and `over` open a statement only inside a run -- the block classifies them, as position classifies every
+language 2 statement -- and the target is the `component.parameter` shape the expression grammar already
+parses. The alternative, disturbances configured in the UI outside the script, violates principle P5 and was
+rejected there.
 
 ## Frame production
 

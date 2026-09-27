@@ -115,7 +115,7 @@ FluidScript.Core/
 ├── Language/
 │   ├── Syntax/
 │   │   ├── Text/     SourceText, LinePosition, TextEdit
-│   │   ├── Lexing/   Lexer, LexResult, Token, TokenKind, Trivia, TriviaKind, ReservedWord, ReservedWords
+│   │   ├── Lexing/   Lexer, LexResult, Token, TokenKind, Trivia, TriviaKind
 │   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser (class folder, S3)
 │   │   ├── Printing/ Formatter, SyntaxPrinter
 │   │   └── Ast/      SyntaxNode · Statements/ · Expressions/           (one node per file, S2)
@@ -124,7 +124,8 @@ FluidScript.Core/
 │   │   ├── BindingRun/  the BindingRun partials                  (class folder: namespace …Binding)
 │   │   └── Symbols/  SymbolMap, CurveSymbols, TopologySymbols
 │   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, ScheduleRoleRegistry,
-│   │                 PropertyTable, NameResolution, InputLimits, Range
+│   │                 PropertyTable, NameResolution, InputLimits, Range, SettingRegistry (language 2's
+│   │                 statement words and block settings, `L-86`), SettingInfo, SettingValueKind
 │   ├── Translation/  Language2Translator, TranslationRun (class folder) — language 2's tree into the
 │   │                 statements the binder reads (`19`, added 2026-09-25 with P6.11 package 3a)
 │   └── Compatibility/ ScriptCompatibility, MajorParser

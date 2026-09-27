@@ -45,10 +45,6 @@ public sealed record Token
     /// <value>Empty when the token is followed directly by another, or by a line break.</value>
     public ImmutableArray<Trivia> TrailingTrivia { get; init; } = [];
 
-    /// <summary>Gets which reserved word this is.</summary>
-    /// <value><see cref="ReservedWord.None"/> unless <see cref="Kind"/> is <see cref="TokenKind.Keyword"/>.</value>
-    public ReservedWord Keyword { get; init; } = ReservedWord.None;
-
     /// <summary>Gets the numeric value as written, before any unit conversion.</summary>
     /// <value>
     /// <see langword="null"/> unless <see cref="Kind"/> is <see cref="TokenKind.NumberLiteral"/> or

@@ -23,6 +23,15 @@ public sealed record MetadataWire
     /// <summary>Every component kind, in registry order.</summary>
     public required ImmutableArray<KindWire> Kinds { get; init; }
 
+    /// <summary>The words that open a statement at a line's start (<c>19</c>); none is reserved by the lexer.</summary>
+    public required ImmutableArray<string> StatementWords { get; init; }
+
+    /// <summary>The words that open an event inside a run: a step and a ramp.</summary>
+    public required ImmutableArray<string> EventWords { get; init; }
+
+    /// <summary>Each block and the settings it takes: the project, a circuit, a run, a style and a controller (<c>19</c>, since contract 3.1).</summary>
+    public required ImmutableArray<SettingBlockWire> Blocks { get; init; }
+
     /// <summary>Every dimension a parameter or property can have, with its units.</summary>
     public required ImmutableArray<DimensionWire> Dimensions { get; init; }
 

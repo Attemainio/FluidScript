@@ -181,8 +181,9 @@ lexer: `fluidscript`, `project`, `let`, `curve`, `circuit`, `run`; inside a run 
 component may therefore not be named one of the six — `run pump` is a run head that fails — and that is
 `FS1004`, as a reserved word used as a name is in language 1. Before an `=` a statement word is a setting's
 name, which no statement starts with: a controller's `curve = heating` (found in package 3d, where the
-controller's own table needed it). The lexer reserves nothing, which keeps
-language 1's reserved-word table, and everything generated from it, unchanged. `time` is the one
+controller's own table needed it). The lexer reserves nothing. The statement words, and each block's
+settings below, are one Core table, `SettingRegistry`, which the parser, the reader, the editor's lexicon
+and the metadata all read (`L-86`, `A-9`, package 8); language 1's reserved-word table went with it. `time` is the one
 built-in driver name. Kinds and parameters are names the binder checks against the registry, so a new
 kind or parameter needs no grammar change. A name binds **only by its exact spelling** (`D-170`): case
 and underscores are normalised as `D-15`'s first stage does, curated aliases resolve as its second stage

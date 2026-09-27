@@ -56,7 +56,7 @@ accepted in any case.
 | Quantity | You can write |
 |---|---|
 | Dimensionless | `%` |
-| Length | `m`, `mm`, `cm`, `dm`, `km`, `in`, `ft` |
+| Length | `m`, `mm`, `cm`, `dm`, `km`, `ft` |
 | Temperature | `C`, `°C`, `F`, `°F` |
 | Temperature delta | `K`, `dK`, `dC` |
 | Pressure | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`, `kPag`, `barg`, `Paa`, `kPaa`, `MPaa`, `bara`, `mbara`, `psia` |
@@ -65,7 +65,7 @@ accepted in any case.
 | Energy | `J`, `kJ`, `MJ`, `Wh`, `kWh`, `MWh` |
 | Mass flow | `kg/s`, `kg/h`, `t/h` |
 | Volume flow | `m3/s`, `m3/h`, `l/s`, `l/min`, `l/h` |
-| Mass | `kg`, `g`, `t` |
+| Mass | `kg`, `g` |
 | Time | `s`, `ms`, `min`, `h`, `d` |
 | Velocity | `m/s`, `km/h` |
 | Density | `kg/m3` |

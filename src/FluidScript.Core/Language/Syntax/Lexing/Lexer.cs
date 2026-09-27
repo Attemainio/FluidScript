@@ -73,7 +73,11 @@ public static class Lexer
     private static bool IsWordChar(char c) => IsWordStart(c) || IsDigit(c);
 
     /// <summary>Gets the unit symbols not recognised after a number: <c>in</c> (inch) and <c>t</c> (tonne), which are port and property names.</summary>
-    internal static ImmutableArray<string> ExcludedUnitSymbols { get; } = ["in", "t"];
+    /// <value>
+    /// The unit table still holds them, so a conversion stays defined; nothing a script writes reaches them (<c>19</c>
+    /// §Values, units, lists and ranges), and a list of what a script may write leaves them out (<c>A-9</c>).
+    /// </value>
+    public static ImmutableArray<string> ExcludedUnitSymbols { get; } = ["in", "t"];
 
     private sealed class Scanner(SourceText source)
     {

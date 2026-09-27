@@ -2092,6 +2092,21 @@ that governed each size. What P6.8 still owes, and what comes after:
     properties and model-contract pages, `26`, `42`, `13`, `22`. Core 2590/0/2, Api 79/0, frontend 226 and 10
     expected failures (`U-11`'s, unchanged). Next in package 8: `U-11`, the editor's tokenizer and completion for
     language 2, which now has the port spellings to offer; then `A-7` before P6.5.
+  - **Package 8, step 2: the editor reads language 2 (2026-09-27; `U-11` closed; `L-85`, `L-86`, `A-9`, `T-7` found
+    and closed).** Planning the completion found that nothing an editor needs beyond a component's parameters was
+    published: language 2's statement words and every block's settings were string literals in five places (`L-86`),
+    so the metadata could not carry them and the lexicon still carried language 1's reserved words, the inch and the
+    tonne (`A-9`). The user chose one Core table published through the metadata over a sixth copy or a hard-coded
+    editor list: `SettingRegistry`, read by the parser, the reader and the metadata, held to the reader and the run
+    binder by `SettingRegistryTests`; contract **3.1** adds `statementWords`, `eventWords` and `blocks`, and drops
+    `in` and `t` from the units a script may write. `ReservedWord`, `ReservedWords` and `TokenKind.Keyword` are
+    deleted. The tokenizer lexes as Core does and tracks blocks by indentation; completion reads a line as the
+    parser does -- statement words, each block's settings, a controller's settings by type, ports by spelling, a
+    run's events, a curve's drivers -- and binds a kind by spelling or alias only (`D-170`). Found on the way and
+    fixed: an untitled `project:` was titled "project" on the wire (`L-85`); the docs gate walked language 1's
+    words, so `run` had no page (`T-7`, now written); `33` still put events in language 1's `schedule` section.
+    `FS1808` lists a type's settings in `19`'s order. Core 2625/0/2, Api 79/0, frontend 253/0 -- no expected
+    failures left. Next: `A-7` (`43`'s `start` settings) before P6.5; then package 9, `docs/` for language 2.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

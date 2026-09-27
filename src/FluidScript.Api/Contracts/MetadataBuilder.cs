@@ -6,7 +6,9 @@ using FluidScript.Core.Catalogs.Valves;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Model;
+using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Units;
 
 using Microsoft.Extensions.Options;
@@ -62,6 +64,9 @@ public sealed class MetadataDocument
             ContractVersion = ModelContractBuilder.ContractVersion,
             Language = new LanguageVersionsWire(versions.Current.Value, [.. versions.Supported.Select(static major => major.Value)]),
             Kinds = [.. ComponentRegistry.Default.Kinds.Select(Kind)],
+            StatementWords = SettingRegistry.StatementWords,
+            EventWords = SettingRegistry.EventWords,
+            Blocks = [.. SettingRegistry.Blocks.Select(static block => new SettingBlockWire(block.Block, [.. block.Settings.Select(Setting)]))],
             Dimensions = [.. Dimension.All.Select(DimensionOf)],
             Symbols = SymbolCatalog.All,
             Diagnostics = [.. DiagnosticRegistry.All.Select(static descriptor => new DiagnosticCodeWire(
@@ -147,9 +152,31 @@ public sealed class MetadataDocument
     private static PropertyMetaWire Property(PropertyInfo property) =>
         new(property.Name, property.Dimension.IsNamed ? property.Dimension.Name : null, property.CanonicalUnit, property.Availability.ToString().ToLowerInvariant());
 
+    private static SettingWire Setting(SettingInfo setting) => new()
+    {
+        Name = setting.Name,
+        Aliases = setting.Aliases,
+        Meaning = setting.Meaning,
+        ValueKind = JsonNamingPolicy.CamelCase.ConvertName(setting.Kind.ToString()),
+        Dimension = setting.Dimension is { IsNamed: true } dimension ? dimension.Name : null,
+        Values = setting.Kind switch
+        {
+            // The sets the build knows; the script's own names -- its cases, circuits, components -- are the model's.
+            SettingValueKind.Substance => SubstanceRegistry.Default.Names,
+            SettingValueKind.CircuitRole => [.. CircuitRoleRegistry.All.Select(static role => role.CanonicalName)],
+            SettingValueKind.Catalog => [.. PipeCatalogs.All.OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                .Select(static pair => $"{pair.Key}@{pair.Value.Version}")],
+            _ => setting.Values,
+        },
+        Types = setting.Types,
+    };
+
     private static DimensionWire DimensionOf(Dimension dimension)
     {
-        var units = UnitTable.All.Where(unit => unit.Dimension == dimension).ToImmutableArray();
+        // `in` and `t` convert but cannot be written after a number (`19`), so they are not offered (`A-9`).
+        var units = UnitTable.All
+            .Where(unit => unit.Dimension == dimension && !Lexer.ExcludedUnitSymbols.Contains(unit.Text, StringComparer.Ordinal))
+            .ToImmutableArray();
 
         return new DimensionWire(
             dimension.Name,

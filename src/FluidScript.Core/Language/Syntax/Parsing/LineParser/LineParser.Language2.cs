@@ -192,11 +192,6 @@ internal sealed partial class LineParser
         };
     }
 
-    /// <summary>Whether a line's first word is one of language 2's statement words, which may not name anything.</summary>
-    /// <remarks><c>19</c> §Lines, blocks and names. <c>at</c> and <c>over</c> are statement words only inside a run, so they are not here.</remarks>
-    private static bool IsStatementWord(string text) =>
-        text is "fluidscript" or "project" or "let" or "curve" or "circuit" or "run";
-
     /// <summary>Reports a statement word written where a name belongs, <c>run pump</c>, with language 1's <c>FS1004</c>.</summary>
     private MalformedStatementSyntax StatementWordAsName(Token word) =>
         Fail(ParserDiagnostics.ReservedWordAsName, word.Span, new DiagnosticArgument("word", word.Text));

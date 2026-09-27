@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Text;
 
+using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Tests.Documentation;
@@ -52,7 +54,10 @@ public static class UnitsPage
 
         foreach (var dimension in Dimension.All)
         {
-            var symbols = UnitTable.For(dimension);
+            // `in` and `t` convert but cannot be written after a number (`19`), so the page does not offer them (`A-9`).
+            var symbols = UnitTable.For(dimension)
+                .Where(static s => !Lexer.ExcludedUnitSymbols.Contains(s.Text, StringComparer.Ordinal))
+                .ToImmutableArray();
             builder.AppendLine(
                 $"| {Spaced(dimension.Name)} | {(symbols.IsEmpty
                     ? "*a bare number only*"

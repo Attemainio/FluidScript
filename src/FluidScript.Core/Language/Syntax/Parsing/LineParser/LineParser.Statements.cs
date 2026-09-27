@@ -19,8 +19,7 @@ internal sealed partial class LineParser
         var parameters = ImmutableArray.CreateBuilder<ParameterSyntax>();
         failed = false;
 
-        // `style=` is the one reserved word a parameter may be named after (D-104).
-        while (Current is { Kind: TokenKind.Identifier } or { Kind: TokenKind.Keyword, Text: "style" } && Current is { } nameToken)
+        while (Current is { Kind: TokenKind.Identifier } nameToken)
         {
             // The one bare identifier a parameter list may end in front of: a declaration's sizing
             // point begins here and the caller reads it (`D-94`). Language 2 writes it as a setting per
@@ -58,11 +57,7 @@ internal sealed partial class LineParser
             return null;
         }
 
-        // `style=` is a keyword where a name belongs, so it bypasses the identifier check that
-        // would report it as a reserved word.
-        var name = nameToken.Kind == TokenKind.Keyword
-            ? new QualifiedNameSyntax(new IndexedNameSyntax(new IdentifierSyntax(Advance()), null), [])
-            : TakeQualifiedName();
+        var name = TakeQualifiedName();
         if (name is null)
         {
             return null;

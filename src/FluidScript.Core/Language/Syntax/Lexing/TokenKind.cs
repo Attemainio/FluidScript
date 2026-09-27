@@ -16,11 +16,8 @@ public enum TokenKind
     /// </remarks>
     EndOfFile = 1,
 
-    /// <summary>A word that is not reserved: a component name, a kind name, a parameter name.</summary>
+    /// <summary>A word: a component name, a kind name, a parameter name, a statement word (<c>19</c>: the lexer reserves nothing).</summary>
     Identifier,
-
-    /// <summary>One of the reserved words. See <see cref="Token.Keyword"/> for which.</summary>
-    Keyword,
 
     /// <summary>A number with no unit symbol.</summary>
     NumberLiteral,

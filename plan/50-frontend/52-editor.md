@@ -51,19 +51,24 @@ mitigation is that the client's grammar only needs to be *lexically* correct —
 does not bind or validate — so it cannot disagree with the server about anything that matters.
 Divergence shows as a mis-coloured token, not a wrong result.
 
-**As built (P5.5, 2026-09-18): a CodeMirror `StreamLanguage`, not a Lezer grammar.** The
-tokenizer is `features/editor/language/tokenizer.ts`, a line-at-a-time port of Core's lexer rules
-1–5 (maximal munch on the unit table, `3WV` as a name, `30 kW` as one quantity, `..`) with the
-section carried as the stream state, and roles assigned by position on the line the way `12`'s
-statement disambiguation does. A Lezer grammar would need `12`'s word classification, which is a
+**As built (P5.5, 2026-09-18; language 2 since P6.11 package 8, 2026-09-27): a CodeMirror
+`StreamLanguage`, not a Lezer grammar.** The tokenizer is `features/editor/language/tokenizer.ts`, a
+line-at-a-time port of Core's lexer (maximal munch on the unit table, `3WV` as a name, `30 kW` as one
+quantity, `..`, a date or clock time as one token, no reserved words, no unit before an `=` even past
+spaces) with the **open blocks** carried as the stream state -- a stack of heads and their indentation,
+closed by a line no deeper than its head (`19` §Lines, blocks and names) -- and roles assigned the way
+`LineParser.ClassifyLanguage2` reads a line: a statement word at the start opens its statement, otherwise
+the qualified name the line starts with is followed by `=` for a setting, `-` for a connection, anything
+else for a declaration. A Lezer grammar would need `12`'s word classification, which is a
 lookup in the unit table and a longest-match over it, and Lezer's tokenizer is a generated
 automaton with no table lookup; the external-tokenizer escape hatch is the same hand-written code
 with the grammar wrapped around it. What the stream tokenizer gives up is the syntax tree: folding,
 bracket matching by tree and a tree-driven completion context. None of those is in this document's
 scope, and completion reads the line, which is what `12`'s one-line-one-statement invariant makes
-sufficient. The reserved words, unit symbols and `D-15` thresholds come from the host's committed
-`language.json` (`LexiconWire`), generated into `lexicon.generated.ts` and gated by a test, so the
-editor's lexicon cannot drift from the compiler's (invariant 5). The corpus agreement test is
+sufficient. The statement words, the event words, the unit symbols a script may write and `D-15`'s
+thresholds come from the host's committed `language.json` (`LexiconWire`), generated into
+`lexicon.generated.ts` and gated by a test, so the editor's lexicon cannot drift from the compiler's
+(invariant 5). The corpus agreement test is
 `TokenGoldenTests` on the Core side, writing one golden per sample with every token's offset, length
 and kind, and `tokenizer.test.ts` on the frontend side, replaying the same samples through the
 tokenizer against those goldens.
@@ -76,7 +81,7 @@ roles; `55` holds the hex values for both themes.
 
 | Token | Style |
 |---|---|
-| Keyword (`circuit`, `fluid`, `let`, `connections`) | Keyword colour, medium weight |
+| Statement word (`project`, `circuit`, `let`, `curve`, `run`; `at` and `over` in a run) | Keyword colour, medium weight |
 | Component kind | Type colour |
 | Identifier in declaration position | Emphasised — it is a name being introduced |
 | Parameter name | Muted |
@@ -92,18 +97,24 @@ while keeping the unit legible, in a language where columns of numbers are the n
 
 Driven by `/api/v1/metadata` ([`42-rest-contract`](../40-api/42-rest-contract.md)), fetched once and
 cached, plus the current compile's symbol table for anything the user has written. Completion is
-contextual on the cursor's syntactic position:
+contextual on the cursor's syntactic position, read as the parser reads a language 2 line (`19`): the
+block the line sits in, then what its first name is followed by.
 
 | Position | Offers |
 |---|---|
-| Start of a line, declaration section | Nothing (the user is naming a component) |
+| Start of a line, top level | The statement words (`fluidscript`, `project`, `let`, `curve`, `circuit`, `run`) |
+| Start of a line in a `project`, `circuit`, `run` or `style:` block | That block's settings from the metadata's `blocks`, less those written; in a circuit also every component name (a connection starts there); in a run also `at`, `over`, the `let`s and the components (overrides) |
+| Start of a line in a declaration block | That kind's parameters, less those written; for a controller, the settings its `type` takes (`D-168`) |
 | Second token of a declaration | Every component kind, matched **alias-aware** — see below |
-| After a kind or a parameter | That kind's remaining parameters, with dimension and range |
-| After `param=` | **Dimension-filtered**: `let` names, `Component.property` references, and unit symbols, all restricted to the parameter's dimension |
-| Start of a line, connection section | Every declared and inferred component name |
-| After `-` in a connection | Component names, then `.port` after a dot |
-| After `.` on a component | That component's properties |
-| Inside `schedule` | Settable `component.parameter` targets, then a time or a range |
+| After a kind or a parameter's value | That kind's remaining parameters (a controller's settings), with dimension and range |
+| After `name =` | **Dimension-filtered** for a quantity: `let` names, `Component.property` references, and unit symbols, all restricted to the dimension; a setting's words (`corner`, `type`), the build's sets (substances, circuit roles, catalogues), or the script's own (its cases, circuits, curves, actuators, sensors), by the setting's `valueKind` |
+| After `-` in a connection | Every declared and inferred component name |
+| After `Name.` at a connection's end | The component's ports as a script spells them (`in`, `secondary.in`, `primary.in`); after `HX1.secondary.`, the rest |
+| After a connection's chain | The pipe's parameters (`roughness = 0.05 mm`) |
+| After `Name.` in a value | That component's properties |
+| After a port on a declaration, `secondary.in.` | That port's quantities, less those written |
+| In a run, after an event's time | Component names; after `Name.`, its settable parameters (a controller's `setpoint`); after `=`, a value of the target's dimension |
+| After `curve NAME:` | The `let`s and `time`, the drivers a curve reads |
 
 Indexed tank metadata is pattern-based (`D-32`). After `T1.` the editor offers already materialized ports plus
 `in{1..16}`/`out{1..16}` templates; after `T1 tank` it offers `volume`, `layers`, `t`, the valid
@@ -117,10 +128,17 @@ leave the editor.
 **Inferred component names are offered in connection position**, marked as inferred. A user who wants
 to reference `HE1__3WV` should not have to type it from memory.
 
+**Every setting comes from the metadata** (invariant 5): `blocks` carries each block's settings from
+`SettingRegistry`, the table the reader checks a setting against, so the editor cannot offer a setting the
+reader refuses (`L-86`, `A-9`). The script's own names -- a `cases` list, its curves, its circuits -- are read
+from the document or the model, never from a list in the editor.
+
 ### Kind completion is alias-aware, and Tab commits the canonical spelling
 
 `D-15` gave the binder three ways to reach a kind: normalisation, curated aliases, and similarity.
-Completion has to see all three, or the editor will red-underline something the compiler accepts.
+`D-170` keeps the first two as binding and makes the third a suggestion: a near spelling is `FS1502` with
+the near kind as its fix. Completion sees all three -- the first two to offer what binds, the third to
+offer the fix -- and, like the binder, reads a merely similar kind as no kind at all.
 
 **Matching.** The typed prefix is normalised the same way the binder normalises — lowercased, `_` and
 spaces removed — and matched against every kind's normalised keyword **and every normalised alias**.
@@ -152,11 +170,11 @@ completion; nothing rewrites it.
 1. Exact normalised match on the canonical keyword.
 2. Prefix match on the canonical keyword, shortest keyword first.
 3. Exact or prefix match on an alias, shown as `via '{alias}'`.
-4. Similarity above `D-15`'s 0.70 threshold, ordered by score.
+4. Similarity above `D-15`'s 0.70 threshold, ordered by score, shown as `did you mean …?`.
 
-Rank 4 exists so that completion and the compiler agree: `pmp` compiles to `pump` with `FS1512`, so
-`pmp` must also *complete* to `pump`. An editor that offered nothing for a string the compiler accepts
-would teach the user that the completion list is the real vocabulary and the aliases are a trap.
+Rank 4 exists so that completion and the compiler agree: `pmp` is `FS1502` with `pump` as its fix
+(`D-170`), so `pmp` *completes* to `pump` -- the fix, offered where it is typed -- while the component
+written `P1 pmp` has no kind, for the editor as for the binder, and its parameters are not offered.
 
 **Ambiguity is shown, not resolved.** Where `D-15`'s 0.05 margin would produce `FS1513`, completion
 lists both candidates adjacent and picks neither by default — the editor must not make a choice the
@@ -172,7 +190,7 @@ let dTdesign = 20 K
 let Tflow    = 70 C
 let Qtotal   = 120 kW
 
-RAD1 heat_exchanger power=│
+RAD1 heat_exchanger power = │
 ```
 
 At the cursor, `power` is `Power`, so:
@@ -183,10 +201,10 @@ At the cursor, `power` is `Power`, so:
 | `BLR.power`, `LOAD.power` | `P1.dp`, `N2.t` | Wrong dimension |
 | `kW`, `W`, `MW`, `hp` | `K`, `C`, `m` | Not `Power` symbols |
 
-And at `in=│`, `Tflow` is offered and `dTdesign` is not — the distinction `13`'s two temperature
+And at `in.t = │`, `Tflow` is offered and `dTdesign` is not — the distinction `13`'s two temperature
 dimensions exist to make, surfaced at the moment it matters rather than as an `FS1302` afterwards.
 
-**Filtering is on the dimension, not on the unit.** `power=30000 W` and `power=30` are both `Power`, so
+**Filtering is on the dimension, not on the unit.** `power = 30000 W` and `power = 30` are both `Power`, so
 both `W` and `kW` are offered; what is excluded is `K`, which would be a different dimension and a real
 error. Filtering on the *canonical* unit instead would hide the explicit-unit escape hatch `D-07`
 exists to provide.
@@ -215,8 +233,8 @@ without memorising anything:
 ```
 let Tsupply = 70 C
 
-BLR heat_ex⇥ power=150 out=Ts⇥
-     └─ heat_exchanger              └─ Tsupply · Temperature · 70 °C
+BLR heat_ex⇥ power = 150 out.t = Ts⇥
+     └─ heat_exchanger                   └─ Tsupply · Temperature · 70 °C
 ```
 
 Two Tab presses, no documentation, and the result is the canonical spelling with a dimensionally
@@ -330,26 +348,26 @@ the cursor, or every canvas interaction moves the user's caret.
 
 ## Worked example
 
-A user types `HE1 heat_ex`:
+A user types `HE1 heat_ex` on a line of a circuit block:
 
 ```
-t=0     'HE1 heat_ex' — Lezer classifies HE1 as an identifier in declaration position,
-        'heat_ex' as an identifier in kind position. HE1 renders emphasised.
+t=0     '  HE1 heat_ex' — the tokenizer reads a name followed by a name, a declaration:
+        HE1 in declaration position, 'heat_ex' in kind position. HE1 renders emphasised.
 t=0     Completion triggers on the kind position. 'heat_ex' normalises to 'heatex' and
         prefix-matches the canonical keyword, so it ranks first:
             heat_exchanger    Heat source, consumer, or two-sided exchanger.
-                              Ports: in, out, in2, out2.
+                              Ports: in, out, secondary.in, secondary.out.
             heat_exchanger    via 'heater'
         Selected; Tab accepts and inserts the canonical 'heat_exchanger' (D-15).
 t=0     Document is now 'HE1 heat_exchanger'. Completion re-triggers on the parameter
         position:
             power    Power · kW · typically 1…10000 — duty; positive adds heat
-            in       Temperature · °C · typically −50…300 — inlet constraint
-            out      Temperature · °C · typically −50…300 — outlet constraint
-            dt       TemperatureDelta · K — rise, as an alternative to in/out
+            in.t     Temperature · °C · typically −50…300 — inlet constraint
+            out.t    Temperature · °C · typically −50…300 — outlet constraint
+            dt       TemperatureDelta · K — rise, as an alternative to in.t/out.t
             dp       PressureDelta · kPa — drop at design flow
             flow     MassFlow · kg/s — flow constraint
-t=300   Debounce fires. Compile returns FS1507 (the component is in no connection) as a
+t=300   Debounce fires. Compile returns FS1507 ('HE1' is not connected to anything) as a
         warning. An amber squiggle appears under HE1.
 t=300   The canvas shows HE1 floating, unconnected.
 ```
@@ -361,16 +379,16 @@ same metadata that documents the component.
 **The same session, three keystrokes later**, showing the dimension filter:
 
 ```
-t=1200  User types 'out=Ts'. The cursor is after 'out=', so the parameter is known to
-        be Temperature. The symbol table holds three lets:
+t=1200  User types 'out.t = Ts'. The cursor is after 'out.t =', so the parameter is
+        known to be Temperature. The symbol table holds three lets:
             Tsupply   Temperature       70 °C
-            dTdesign  TemperatureDelta  20 dK
+            dTdesign  TemperatureDelta  20 K
             Qtotal    Power             120 kW
         Only Tsupply is offered — 'Ts' prefix-matches it, and the other two are the
         wrong dimension. dTdesign is excluded even though it is a temperature-ish
         thing, which is 13's Temperature/TemperatureDelta split doing its job before
         the compile rather than after it.
-t=1200  Tab accepts. Document reads 'HE1 heat_exchanger power=150 out=Tsupply'.
+t=1200  Tab accepts. Document reads 'HE1 heat_exchanger power = 150 out.t = Tsupply'.
 ```
 
 Without the filter that list is three items and one of them produces `FS1302`. With it the list is one
@@ -387,7 +405,7 @@ item and it is right. The cost is a dimension lookup the editor already has from
 - [x] The editor is fully usable with the network disabled. (P5.5: completion, format and go-to-definition return nothing rather than throwing when the host or the model is missing.)
 - [ ] A dirty draft survives reload through `58`; unavailable recovery storage is visible and offers Download.
 - [x] The client's tokenizer and the server agree on token classification over the whole sample corpus —
-      a test that catches the two grammars diverging. (P5.5: `TokenGoldenTests` and `tokenizer.test.ts` over the same goldens.)
+      a test that catches the two grammars diverging. (P5.5: `TokenGoldenTests` and `tokenizer.test.ts` over the same goldens. Language 1's tokenizer disagreed with all nine language 2 samples from package 7 until package 8 (`U-11`); they agree again.)
 
 ### Completion acceptance criteria
 
@@ -395,13 +413,21 @@ item and it is right. The cost is a dimension lookup the editor already has from
       keyword in every case.
 - [x] Every alias in the registry is reachable by completion, asserted by walking the registry rather
       than by a fixed list — an alias the binder accepts and completion hides is a trap.
-- [x] `pmp` offers `pump`, matching what the binder does with it (`FS1512`). Completion and the
-      compiler accept the same set of strings.
+- [x] `pmp` offers `pump` as the fix, as the binder does (`FS1502`, `D-170`), and `P1 pmp` has no kind:
+      its parameters are not offered. Completion and the compiler bind the same set of strings.
+- [x] Every block's settings come from the metadata's `blocks`, and each one the table lists is one the
+      reader takes. (Package 8: `SettingRegistryTests` writes each setting and finds no `FS1503`;
+      `completion.test.ts` reads the settings from the committed metadata golden.)
+- [x] A controller's block offers the settings its `type` takes: `band` for a `PI`, `differential` for an
+      `onoff`, and a `curve` controller no `setpoint`.
+- [x] A port is offered as a script spells it: `HX1.` offers `secondary.in` and `primary.in`, never `in[2]`
+      (`D-179`, `A-8`).
+- [x] Completion never throws at any offset of any sample, with or without a model.
 - [x] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `U-6`, closed 2026-09-22 -- the list's first option is the typed text itself and inserts nothing, since CodeMirror's preselection is global.)
-- [x] After `out=`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
-      After `dt=`, the reverse. This is the single highest-value completion test, because it is the
+- [x] After `out.t =`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
+      After `dt =`, the reverse. This is the single highest-value completion test, because it is the
       distinction `FS1302` exists to catch.
-- [x] After `power=`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
+- [x] After `power =`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
       unit, or the explicit-unit escape hatch disappears.
 - [x] A `let` whose value is deferred is offered with its dimension and no value. (`U-5`, closed 2026-09-22: the binder types a deferred expression from the units and properties it names, and the wire carries the dimension.)
 - [x] A parameter on an unresolved kind offers everything rather than nothing.
@@ -412,6 +438,6 @@ item and it is right. The cost is a dimension lookup the editor already has from
 
 ## Open questions
 
-None. The client tokenizer performs lexical classification plus section tracking; v1 is one open document without a
+None. The client tokenizer performs lexical classification plus block tracking; v1 is one open document without a
 file tree; standard Save/Open shortcuts are retained; alias canonicalization is an explicit whole-file
 command and never an automatic rewrite.

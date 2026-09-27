@@ -155,35 +155,25 @@ style "#2f6f9f"
 There are no escape sequences. If you leave a quote off, FluidScript tells you rather than swallowing
 the rest of the file.
 
-## Reserved words
+## Statement words
 
-These words start a statement, so they cannot be used as names. Everything else is available —
-component kinds such as `pump`, `node` and `pipe` are **not** reserved, so a component called `pipe`
-is legal.
+These words open a statement at the start of a line, so a component cannot be named one of them.
+Nothing is reserved anywhere else: before an `=` each is an ordinary setting's name (a controller's
+`curve = heating`), and component kinds such as `pump`, `node` and `pipe` are not reserved either, so
+a component called `pipe` is legal. `at` and `over` open a statement only inside a run.
 
-<!-- BEGIN GENERATED: reserved-words -->
-| Word | Introduces |
+<!-- BEGIN GENERATED: statement-words -->
+| Word | Opens |
 |---|---|
 | `fluidscript` | the version line every script opens with |
-| `project` | the project name, and the default for how the file is solved |
-| `circuit` | a circuit, and everything that follows until the next one |
-| `fluid` | what a circuit carries, and how it is solved |
-| `dynamic` | solving in time — qualifies `project` or `fluid` |
-| `static` | solving as a steady state — qualifies `project` or `fluid` |
-| `spacing` | how far apart components are drawn |
-| `style` | how the following components are drawn |
-| `show` | which property the colour scale follows |
-| `let` | a name for a value you use more than once |
-| `catalog` | which catalogue sizes are chosen from |
-| `connections` | a circuit's topology |
-| `schedule` | what changes, and when, during a run |
-| `inlet` | where a subcircuit takes flow from its parent |
-| `outlet` | where a subcircuit gives that flow back |
-| `control` | which controller drives what, measuring what |
-| `curve` | a named table of values, interpolated between its rows |
-| `design` | which case the drawing shows — and, with no scenarios, what is sized for |
-| `scenarios` | the named cases the plant must work in, all of which it is sized for |
-<!-- END GENERATED: reserved-words -->
+| `project` | the project block: its title, its cases, its catalogue and its presentation |
+| `let` | a named value; a list makes it a driver, one value per case |
+| `curve` | a named table read against its driver, interpolated between its rows |
+| `circuit` | a circuit block: its fluid, its components and their connections |
+| `run` | a run block: what happens to the plant in time |
+| `at` | a step, inside a run only |
+| `over` | a ramp, inside a run only |
+<!-- END GENERATED: statement-words -->
 
 `|` is not used for anything, and is deliberately kept free.
 

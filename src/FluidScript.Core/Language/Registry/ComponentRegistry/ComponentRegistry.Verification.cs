@@ -7,10 +7,10 @@ namespace FluidScript.Core.Language.Registry;
 public sealed partial class ComponentRegistry
 {
     // Everything asserted here is a rule the data can break silently. A duplicated normalised spelling
-    // would make one kind unreachable depending on registration order; an alias equal to a reserved
-    // word would be unwriteable, because a reserved word never reaches kind position (`D-40` did
-    // exactly this to `control`); a tag code that lexes as a unit would produce equipment tags the
-    // language reads as numbers.
+    // would make one kind unreachable depending on registration order; a spelling equal to a statement
+    // word would be unwriteable, because the parser refuses a statement word where a name belongs
+    // (`19`; language 1's `D-40` did the same to `control`); a tag code that lexes as a unit would
+    // produce equipment tags the language reads as numbers.
     private static void Verify(
         ImmutableArray<ComponentKindInfo> kinds,
         ImmutableDictionary<string, ComponentKindInfo> index)
@@ -30,20 +30,13 @@ public sealed partial class ComponentRegistry
 
                 claimed[normalized] = kind.Keyword;
 
-                // A kind's own keyword MAY be a reserved word. It could not be until `D-64` made
-                // `S1 supply t=5` a declaration: statement classification reads the *first* token, so a
-                // reserved word in kind position is unambiguous, and `supply N3` still attaches a
-                // subcircuit because that line starts with the keyword.
-                //
-                // An alias may not, and the difference is worth keeping. An alias is a convenience
-                // spelling, so one that collides with a reserved word buys a second way to write
-                // something already writable and costs a reader the question of which they are looking
-                // at. Only a kind the decision log sanctions should be reachable by a reserved word.
-                if (!string.Equals(spelling, kind.Keyword, StringComparison.Ordinal)
-                    && ReservedWords.TryMatch(spelling, out _))
+                // Language 1 let a kind's own keyword be a reserved word (`D-64`: `S1 inlet t=5`), since
+                // its statements were told apart by the first token alone. Language 2 refuses a statement
+                // word wherever a name belongs, kind position included, so no spelling may be one.
+                if (SettingRegistry.IsStatementWord(spelling))
                 {
                     throw new InvalidOperationException(
-                        $"'{spelling}' is a reserved word, so it may not be an alias for '{kind.Keyword}'.");
+                        $"'{spelling}' is a statement word, so it may not spell the kind '{kind.Keyword}'.");
                 }
             }
 

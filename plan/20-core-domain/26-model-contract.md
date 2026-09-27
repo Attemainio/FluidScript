@@ -55,7 +55,7 @@ converting there costs one pass and removes a whole class of consumer bug.
 
 ```jsonc
 {
-  "contractVersion": "3.0",            // majors: D-33's `circuits` (2.0); C-139/C-140's removals and `K` (3.0)
+  "contractVersion": "3.1",            // majors: D-33's `circuits` (2.0); C-139/C-140's removals and `K` (3.0)
   "provenance": {
     "sourceHash": "sha256:…", "languageMajor": 1,
     "catalog": { "id": "steel-en10255", "version": "2026.1" },
@@ -459,6 +459,20 @@ never reached a consumer before, since the whole response failed.
 Rejected: `2.4` with the three fields still sent empty and a deprecation note. Nothing reads them
 (`tsc` compiled the frontend with them deleted), so keeping them would be three fields described in
 the contract and meaningless on the wire, and the unit change would still need the major.
+
+### `3.0` → `3.1`: the metadata describes language 2's blocks, and an untitled project has no title
+
+`P6.11` package 8, the editor's completion for language 2 (2026-09-27). A minor, because each change is additive or
+removes only what could not occur:
+
+- **The metadata gains `statementWords`, `eventWords` and `blocks`** (`A-9`, `L-86`): each block's settings as
+  `42` describes them, from the Core table the reader checks settings against. A consumer that does not know them
+  ignores them.
+- **The metadata's `dimensions[].units` leaves out `in` and `t`**, and `language.json`'s lexicon does too. Language
+  2's lexer never reads either after a number, so no model, no value and no script could carry them; a consumer
+  that knew them loses nothing it could meet.
+- **`project` is absent for an untitled `project:` block** (`L-85`), as this document always said: the reader had
+  sent the word `project` as its title. A correction to what `3.0` already specified, not a change of shape.
 
 ### `pressureDatum` moved out of the circuit, and that is a correction
 

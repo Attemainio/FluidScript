@@ -1,6 +1,5 @@
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Registry;
-using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Documentation;
@@ -34,21 +33,14 @@ public sealed class DocumentationGateTests
     private static IReadOnlyCollection<string> RegisteredComponentKinds =>
         [.. ComponentRegistry.Default.Kinds.Select(static kind => kind.Keyword)];
 
-    /// <summary>
-    /// Reserved words that introduce a statement, which the gate must cover as well as the component
-    /// registry.
-    /// </summary>
+    /// <summary>The words that open a statement, which the gate must cover as well as the component registry.</summary>
     /// <remarks>
-    /// Enumerating these matters as much as enumerating the kinds: <c>D-33</c>, <c>D-37</c> and
-    /// <c>D-40</c> added five statements that are not component kinds, and a gate walking only the
-    /// registry would have passed all five undocumented. <c>dynamic</c> and <c>static</c> are absent
-    /// because they qualify another directive and introduce nothing — they are documented on the page
-    /// of the directive they qualify, which is where a reader meets them.
+    /// Enumerating these matters as much as enumerating the kinds: a statement that is not a component kind would
+    /// otherwise pass undocumented. Language 2's are <c>SettingRegistry.StatementWords</c>; <c>at</c> and <c>over</c>
+    /// open an event inside a run and are documented on the page of the run. Until P6.11 package 8 the gate read
+    /// language 1's reserved words, and language 2's <c>run</c> shipped without a page (<c>T-7</c>).
     /// </remarks>
-    private static IReadOnlyCollection<string> StatementReservedWords =>
-        [.. Enum.GetValues<ReservedWord>()
-            .Where(static word => word is not (ReservedWord.None or ReservedWord.Dynamic or ReservedWord.Static))
-            .Select(ReservedWords.TextOf)];
+    private static IReadOnlyCollection<string> StatementWords => SettingRegistry.StatementWords;
 
     // `heat_exchanger` is documented at `heat-exchanger.md`: the file names use hyphens, because a URL
     // does. `inlet` and `outlet` share one page, since neither is meaningful without the other.
@@ -90,9 +82,9 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
-    public void EveryStatementReservedWordHasItsPage()
+    public void EveryStatementWordHasItsPage()
     {
-        var undocumented = StatementReservedWords.Where(word => !HasPage(word)).ToArray();
+        var undocumented = StatementWords.Where(word => !HasPage(word)).ToArray();
 
         Assert.True(
             undocumented.Length == 0,
@@ -158,8 +150,8 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
-    public void TheSyntaxPageListsEveryReservedWord() =>
-        AssertGenerated("syntax.md", (SyntaxPage.ReservedWordsRegion, SyntaxPage.Render()));
+    public void TheSyntaxPageListsEveryStatementWord() =>
+        AssertGenerated("syntax.md", (SyntaxPage.StatementWordsRegion, SyntaxPage.Render()));
 
     [Fact]
     [Trait("Category", "Docs")]

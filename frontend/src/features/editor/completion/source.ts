@@ -31,9 +31,11 @@ export function fluidscriptCompletion(context: CompletionContext): CompletionRes
     result.context !== 'value' &&
     result.context !== 'port' &&
     result.context !== 'property' &&
+    result.context !== 'target' &&
+    result.context !== 'driver' &&
     result.context !== 'connection-name'
   ) {
-    // Only after a typed character, except where a dot or an equals sign just opened a position.
+    // Only after a typed character, except where a dot, a colon or an equals sign just opened a position.
     return null;
   }
 

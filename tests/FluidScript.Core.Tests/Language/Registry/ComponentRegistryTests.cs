@@ -144,18 +144,18 @@ public sealed class ComponentRegistryTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void NoAliasIsAReservedWord()
+    public void NoSpellingIsAStatementWord()
     {
-        // D-40 reserved `control`, which silently invalidated it as an alias of `controller`: a
-        // reserved word never reaches kind position, so the alias was unwriteable. This is the check
-        // that makes the next reserved word fail the build instead of repeating it.
+        // D-40 reserved `control`, which silently invalidated it as an alias of `controller`: a reserved word
+        // never reached kind position, so the alias was unwriteable. Language 2 refuses a statement word
+        // wherever a name belongs, the kind's own keyword included (`19`), so the check covers every spelling.
         foreach (var kind in Registry.Kinds)
         {
-            foreach (var alias in kind.Aliases)
+            foreach (var spelling in kind.Aliases.Prepend(kind.Keyword))
             {
                 Assert.False(
-                    ReservedWords.TryMatch(alias, out _),
-                    $"'{alias}' is a reserved word and can never appear in kind position.");
+                    SettingRegistry.IsStatementWord(spelling),
+                    $"'{spelling}' is a statement word and can never appear in kind position.");
             }
         }
     }

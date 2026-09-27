@@ -20,26 +20,8 @@ namespace FluidScript.Core.Language.Binding;
 /// </remarks>
 internal sealed partial class Language2Reader
 {
-    /// <summary>Every setting a language 2 controller has, in <c>19</c>'s order.</summary>
-    private static readonly ImmutableArray<string> ControllerSettings =
-        ["type", "moves", "reads", "setpoint", "band", "kp", "ti", "td", "output", "action", "differential", "curve"];
-
     /// <summary>What the controller's declaration keeps; the rest go on its control line.</summary>
     private static readonly ImmutableHashSet<string> DeclaredSettings = ["type", "kp", "ti", "td", "action"];
-
-    /// <summary>The settings every type takes.</summary>
-    private static readonly ImmutableArray<string> CommonSettings = ["type", "moves", "reads", "setpoint", "output", "action"];
-
-    /// <summary>The settings each type adds to the common ones, by the type's normalised spelling (<c>19</c>'s table).</summary>
-    private static readonly ImmutableDictionary<string, ImmutableArray<string>> TypeSettings =
-        new Dictionary<string, ImmutableArray<string>>(StringComparer.Ordinal)
-        {
-            ["p"] = ["band", "kp"],
-            ["pi"] = ["band", "kp", "ti"],
-            ["pid"] = ["band", "kp", "ti", "td"],
-            ["onoff"] = ["differential"],
-            ["curve"] = ["curve"],
-        }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>Files a declaration in its circuit, and for a controller the control line it implies under it.</summary>
     private void Declare(BindingRun.CircuitBlock circuit, ComponentDeclarationSyntax declaration, ImmutableArray<ParameterSyntax> body)
@@ -72,9 +54,9 @@ internal sealed partial class Language2Reader
 
         foreach (var setting in written)
         {
-            if (!ControllerSettings.Contains(Key(setting)))
+            if (SettingRegistry.Find(SettingRegistry.Controller, setting.Name.Text) is null)
             {
-                Unknown("controller", setting, string.Join(", ", ControllerSettings));
+                Unknown("controller", setting, SettingRegistry.Listed(SettingRegistry.Controller));
                 continue;
             }
 
@@ -86,12 +68,11 @@ internal sealed partial class Language2Reader
 
         // An unknown type is the binder's `FS1514`, against the registry's list; nothing here can say which
         // settings it would have had.
-        if (!TypeSettings.TryGetValue(NameResolution.Normalize(typeWritten), out var own))
+        var allowed = SettingRegistry.ControllerSettingsOf(typeWritten).Select(static setting => setting.Name).ToList();
+        if (allowed.Count == 0)
         {
             return kept;
         }
-
-        var allowed = CommonSettings.Concat(own).Where(setting => !(own.Contains("curve") && setting == "setpoint")).ToList();
 
         foreach (var setting in kept.ToArray())
         {

@@ -4,13 +4,18 @@ import type {
   ModelContract,
   ParameterMeta,
   PropertyMeta,
+  Setting,
 } from '../../../api/types.ts';
-import { ambiguityMargin, resolveThreshold } from '../language/lexicon.generated.ts';
+import { ambiguityMargin, eventWords, resolveThreshold, statementWords } from '../language/lexicon.generated.ts';
 import {
+  enclosing,
+  indentOf,
   initialState,
+  lexLine,
+  qualifiedEnd,
   tokenizeLine,
-  type LineToken,
-  type Section,
+  type Lexed,
+  type OpenBlock,
   type TokenizerState,
 } from '../language/tokenizer.ts';
 import { normalize, score } from './similarity.ts';
@@ -26,11 +31,14 @@ export interface Item {
   /** A longer explanation: the parameter's basis, the alias that matched. */
   readonly info?: string;
   readonly type:
+    | 'keyword'
     | 'kind'
     | 'parameter'
+    | 'setting'
     | 'let'
     | 'reference'
     | 'unit'
+    | 'value'
     | 'name'
     | 'port'
     | 'property'
@@ -55,14 +63,17 @@ export interface Completion {
 /** The positions of `52`'s table. */
 export type ContextKind =
   | 'none'
+  | 'statement'
+  | 'setting'
   | 'kind'
   | 'parameter'
   | 'value'
   | 'connection-name'
   | 'port'
   | 'property'
-  | 'schedule-target'
-  | 'let-value';
+  | 'target'
+  | 'let-value'
+  | 'driver';
 
 /** What completion needs to know: the language and the last compile. */
 export interface Sources {
@@ -76,186 +87,160 @@ export interface Position {
   readonly offset: number;
 }
 
+/** A value's filter: the dimension it must have and the words it may be, or nothing known. */
+interface Want {
+  readonly dimension: string | null;
+  readonly words: readonly string[];
+}
+
+/** Everything a position is read against. */
+interface Here {
+  readonly metadata: Metadata;
+  readonly sources: Sources;
+  readonly doc: string;
+  readonly lineStart: number;
+  readonly block: OpenBlock | null;
+  readonly tokens: readonly Lexed[];
+}
+
+const isPunct = (token: Lexed | undefined, text: string): boolean =>
+  token?.kind === 'Punctuation' && token.text === text;
+
+const statements: ReadonlySet<string> = new Set(statementWords);
+
 /**
- * Completion at a position (`52`'s table): contextual on the line's tokens before the cursor and
- * the section the line is in. Everything offered comes from `/metadata` or the model (invariant 5);
- * with no metadata the list is empty and typing is unaffected (`52` error cases).
+ * Completion at a position (`52`'s table), read as the parser reads the line (`19`): the block the
+ * line sits in, then what the line's first name is followed by. Everything offered comes from
+ * `/metadata`, the model, or a name the document itself writes (invariant 5); with no metadata the
+ * list is empty and typing is unaffected (`52` error cases).
  */
 export function complete(position: Position, sources: Sources): Completion {
-  const { lineStart, line, column, section } = locate(position);
+  const { lineStart, line, column, state } = locate(position);
   const before = line.slice(0, column);
-  const state: TokenizerState = { section };
-  const tokens = tokenizeLine(before, state).filter((t) => t.kind !== 'Comment');
   const wordStart = wordStartAt(before);
   const prefix = before.slice(wordStart);
   const from = lineStart + wordStart;
-  const preceding = tokens.filter((t) => t.to <= wordStart);
-  const last = preceding[preceding.length - 1];
-  const beforeLast = preceding[preceding.length - 2];
   const metadata = sources.metadata;
 
-  const none = (context: ContextKind): Completion => ({ from, items: [], context });
-  if (metadata === null) {
-    return none('none');
+  const none = (context: ContextKind = 'none'): Completion => ({ from, items: [], context });
+  const lexed = lexLine(before);
+  if (metadata === null || lexed.some((t) => t.kind === 'Comment' || t.kind === 'StringLiteral' && t.to > wordStart)) {
+    return none();
   }
 
-  const first = preceding[0];
-  const directive = first?.kind === 'Keyword' && !(first.role === 'kind');
+  const tokens = lexed.filter((t) => t.to <= wordStart);
+  const block = enclosing(state, indentOf(before));
+  const here: Here = { metadata, sources, doc: position.doc, lineStart, block, tokens };
+  const at = (context: ContextKind, items: Item[]): Completion => ({ from, items, context });
 
-  // After a dot on a declaration line, behind a port: the port's state -- `in.` offers `t`,
-  // `in[2].` offers `t`, `flow`, `dp`, `dt` (D-120). Checked before the reference rule below,
-  // since `in` is not a component.
-  if (
-    last?.kind === 'Punctuation' &&
-    last.text === '.' &&
-    !directive &&
-    section !== 'connections' &&
-    section !== 'schedule' &&
-    preceding.length >= 3 &&
-    preceding[1] !== undefined
-  ) {
-    const kind = resolveKind(metadata, preceding[1].text);
-    const head = nameEndingAt(preceding, preceding.length - 2);
-    const items = kind === null || head === null ? [] : portQuantities(kind, preceding, head);
-    if (items.length > 0) {
-      return { from, items, context: 'parameter' };
+  if (block?.kind === 'curve') {
+    return none();
+  }
+
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1];
+
+  // ---- the start of a line: what a line in this block may begin with --------------------------------
+  if (first === undefined) {
+    const start = lineStartItems(here);
+    return at(start.context, start.items);
+  }
+
+  const opener = first.kind === 'Identifier' && statements.has(first.text) && !isPunct(tokens[1], '=');
+  const event = first.kind === 'Identifier' && eventWords.includes(first.text) && block?.kind === 'run';
+
+  // ---- after a dot: a port, a port's state, a property or an event's target -------------------------
+  if (isPunct(last, '.')) {
+    return afterDot(here, event);
+  }
+
+  // A curve's driver, after `curve NAME:`: a let, or the clock.
+  if (opener && first.text === 'curve') {
+    return isPunct(last, ':') ? at('driver', drivers(here)) : none();
+  }
+  if (opener && first.text === 'let') {
+    return isPunct(last, '=') || isOperator(last) ? at('let-value', values(here, null)) : none();
+  }
+  if (opener) {
+    return none();
+  }
+
+  const equalsAt = lastIndex(tokens, (t) => isPunct(t, '='));
+  const chainEnd = connectionEnd(tokens);
+
+  // ---- a connection: names after each `-`, the pipe's settings after the chain -----------------------
+  if (chainEnd !== null) {
+    if (isPunct(last, '-') && tokens.length <= chainEnd) {
+      return at('connection-name', componentNames(here, true));
     }
-  }
-
-  // After a dot: a port in a connection, else a property.
-  if (last?.kind === 'Punctuation' && last.text === '.' && beforeLast?.kind === 'Identifier') {
-    const owner = beforeLast.text;
-    const kind = kindOfComponent(owner, sources);
-    if (section === 'connections' || (section === 'schedule' && preceding.length === 2)) {
-      if (section === 'schedule') {
-        return { from, items: targets(kind, prefix), context: 'schedule-target' };
-      }
-      return { from, items: ports(kind, owner, sources, prefix), context: 'port' };
+    const pipe = kindByKeyword(metadata, 'pipe');
+    if (equalsAt >= 0 && (isPunct(last, '=') || isOperator(last))) {
+      return at('value', values(here, wantOf(parameterOf(pipe, nameBefore(tokens, equalsAt)))));
     }
-    return { from, items: properties(kind, prefix), context: 'property' };
-  }
-
-  if (section === 'schedule' && !directive) {
-    if (preceding.length === 0) {
-      return { from, items: componentNames(sources, prefix, false), context: 'schedule-target' };
+    if (tokens.length > chainEnd || !isPunct(last, '-')) {
+      return at('parameter', parameters(pipe, writtenOnLine(tokens)));
     }
-    return none('none');
+    return none();
   }
 
-  if (section === 'connections' && !directive) {
-    if (preceding.length === 0 || (last?.kind === 'Punctuation' && last.text === '-')) {
-      return { from, items: componentNames(sources, prefix, true), context: 'connection-name' };
+  // ---- an event: its time, then its target, then its value --------------------------------------------
+  if (event) {
+    if (isPunct(last, '=')) {
+      return at('value', values(here, wantOf(targetParameter(here, nameBefore(tokens, equalsAt)))));
     }
-    if (last?.kind === 'Punctuation' && last.text === '=' && beforeLast?.kind === 'Identifier') {
-      // A pipe property on the connection line (I7): the pipe kind's parameter.
-      return {
-        from,
-        items: values(
-          metadata,
-          sources,
-          parameterOf(metadata, 'pipe', nameEndingAt(preceding, preceding.length - 2) ?? ''),
-          prefix,
-        ),
-        context: 'value',
-      };
+    if (equalsAt < 0 && tokens.length >= 2 && isTime(last)) {
+      return at('target', componentNames(here, false));
     }
-    if (last?.kind === 'Identifier' && preceding.length >= 3) {
-      return {
-        from,
-        items: parameters(kindByKeyword(metadata, 'pipe'), preceding, prefix),
-        context: 'parameter',
-      };
+    return none();
+  }
+
+  // ---- a setting's value ----------------------------------------------------------------------------
+  if (isPunct(last, '=') || (equalsAt >= 0 && isOperator(last))) {
+    return at('value', valueAfter(here, nameBefore(tokens, equalsAt), equalsAt));
+  }
+
+  // ---- a declaration: its kind, then its parameters -------------------------------------------------
+  const settingLine = isPunct(tokens[qualifiedEnd(tokens, 0)], '=');
+  if (!settingLine && tokens.length === 1 && first.kind === 'Identifier') {
+    return block === null || block.kind === 'circuit' ? at('kind', kinds(metadata, prefix)) : none();
+  }
+  if (!settingLine && tokens[1]?.kind === 'Identifier') {
+    if (isPunct(last, ':')) {
+      return none();
     }
-    return none('none');
+    const kind = resolveKind(metadata, tokens[1].text);
+    return at('parameter', declarationItems(here, kind, first.text, writtenOnLine(tokens)));
   }
 
-  // A let's value: everything that has a value, unfiltered, since the let has no dimension yet.
-  if (directive && first?.text === 'let') {
-    if (last?.kind === 'Punctuation' && last.text === '=') {
-      return { from, items: values(metadata, sources, null, prefix), context: 'let-value' };
-    }
-    if (last?.kind === 'Punctuation' && '+-*/('.includes(last.text)) {
-      return { from, items: values(metadata, sources, null, prefix), context: 'let-value' };
-    }
-    return none('none');
+  // ---- more settings on a setting line: `name = value   name = value` -------------------------------
+  if (settingLine && equalsAt >= 0 && last !== undefined && !isPunct(last, '=')) {
+    return at('parameter', blockItems(here, writtenOnLine(tokens)).filter((i) => i.type !== 'name'));
   }
 
-  if (directive) {
-    return none('none');
-  }
-
-  // A declaration line. Position 0: the name; nothing is offered (the user is naming a component).
-  if (preceding.length === 0) {
-    return none('none');
-  }
-
-  // Position 1: the kind, alias-aware.
-  if (preceding.length === 1 && preceding[0]?.kind === 'Identifier') {
-    return { from, items: kinds(metadata, prefix), context: 'kind' };
-  }
-
-  const kindToken = preceding[1];
-  const kind = kindToken === undefined ? null : resolveKind(metadata, kindToken.text);
-
-  // After `param=`: the value, filtered by the parameter's dimension. The name may be a port's
-  // state, `in[2].t=`, which runs back from the `=` over the dots and brackets (D-120).
-  if (last?.kind === 'Punctuation' && last.text === '=' && beforeLast?.kind === 'Identifier') {
-    const name = nameEndingAt(preceding, preceding.length - 2) ?? beforeLast.text;
-    const parameter = kind === null ? null : parameterOf(metadata, kind.keyword, name);
-    return { from, items: values(metadata, sources, parameter, prefix), context: 'value' };
-  }
-
-  // Inside a value expression: references and lets, filtered as the parameter is.
-  if (last?.kind === 'Punctuation' && '+-*/('.includes(last.text)) {
-    const parameterName = parameterBefore(preceding);
-    const parameter =
-      kind === null || parameterName === null
-        ? null
-        : parameterOf(metadata, kind.keyword, parameterName);
-    return { from, items: values(metadata, sources, parameter, prefix), context: 'value' };
-  }
-
-  // After the kind or a completed parameter: the kind's remaining parameters.
-  if (
-    kind !== null &&
-    (last?.kind === 'Identifier' ||
-      last?.kind === 'Keyword' ||
-      last?.kind === 'NumberLiteral' ||
-      last?.kind === 'QuantityLiteral' ||
-      last?.kind === 'StringLiteral' ||
-      (last?.kind === 'Punctuation' && last.text === ']'))
-  ) {
-    return {
-      from,
-      items: parameters(kind, preceding, prefix, componentNamed(preceding[0]?.text ?? '', sources)),
-      context: 'parameter',
-    };
-  }
-
-  return none('none');
+  return none();
 }
 
-// ---- context ---------------------------------------------------------------------------------------
+// ---- positions ---------------------------------------------------------------------------------------
 
 function locate(position: Position): {
   lineStart: number;
   line: string;
   column: number;
-  section: Section;
+  state: TokenizerState;
 } {
   const doc = position.doc;
   const lineStart = doc.lastIndexOf('\n', position.offset - 1) + 1;
   const lineEnd = doc.indexOf('\n', position.offset);
-  const line = doc.slice(lineStart, lineEnd < 0 ? doc.length : lineEnd);
+  const line = doc.slice(lineStart, lineEnd < 0 ? doc.length : lineEnd).replace(/\r$/, '');
   const state = initialState();
   let at = 0;
   while (at < lineStart) {
     const end = doc.indexOf('\n', at);
     const stop = end < 0 ? doc.length : end;
-    tokenizeLine(doc.slice(at, stop), state);
+    tokenizeLine(doc.slice(at, stop).replace(/\r$/, ''), state);
     at = stop + 1;
   }
-  return { lineStart, line, column: position.offset - lineStart, section: state.section };
+  return { lineStart, line, column: position.offset - lineStart, state };
 }
 
 function wordStartAt(before: string): number {
@@ -266,29 +251,54 @@ function wordStartAt(before: string): number {
   return i;
 }
 
-function parameterBefore(tokens: readonly LineToken[]): string | null {
-  for (let i = tokens.length - 1; i >= 1; i--) {
-    const token = tokens[i];
-    if (
-      token?.kind === 'Punctuation' &&
-      token.text === '=' &&
-      tokens[i - 1]?.kind === 'Identifier'
-    ) {
-      return nameEndingAt(tokens, i - 1);
+function lastIndex(tokens: readonly Lexed[], test: (token: Lexed) => boolean): number {
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (test(tokens[i]!)) {
+      return i;
     }
   }
-  return null;
+  return -1;
+}
+
+function isOperator(token: Lexed | undefined): boolean {
+  return token?.kind === 'Punctuation' && '+-*/(,['.includes(token.text);
+}
+
+function isTime(token: Lexed | undefined): boolean {
+  return (
+    token?.kind === 'QuantityLiteral' ||
+    token?.kind === 'NumberLiteral' ||
+    token?.kind === 'DateLiteral'
+  );
+}
+
+/** Where a connection's chain ends, or null when the line is not one (`19`: a name, then `-`). */
+function connectionEnd(tokens: readonly Lexed[]): number | null {
+  if (tokens[0]?.kind !== 'Identifier' || statements.has(tokens[0].text)) {
+    return null;
+  }
+  let k = qualifiedEnd(tokens, 0);
+  if (!isPunct(tokens[k], '-')) {
+    return null;
+  }
+  while (isPunct(tokens[k], '-')) {
+    if (tokens[k + 1]?.kind !== 'Identifier') {
+      return k + 1;
+    }
+    k = qualifiedEnd(tokens, k + 1);
+  }
+  return k;
 }
 
 /**
- * The parameter name whose last token is `tokens[end]`: `power`, or `in[2].t` -- whatever runs
- * back without a gap over words, dots, brackets and the index between them, the adjacency the
- * parser demands (`12`, D-120). Null when `tokens[end]` is neither a word nor a closing bracket.
+ * The name whose last token sits just before `tokens[equals]`: `power`, or `secondary.in.t` -- whatever
+ * runs back over words, dots, brackets and the index between them, which touch (`12`, D-120).
  */
-function nameEndingAt(tokens: readonly LineToken[], end: number): string | null {
+function nameBefore(tokens: readonly Lexed[], equals: number): string {
+  let end = equals - 1;
   const tail = tokens[end];
-  if (tail?.kind !== 'Identifier' && !(tail?.kind === 'Punctuation' && tail.text === ']')) {
-    return null;
+  if (tail === undefined || (tail.kind !== 'Identifier' && !isPunct(tail, ']'))) {
+    return '';
   }
   let start = end;
   let from = tail.from;
@@ -300,39 +310,314 @@ function nameEndingAt(tokens: readonly LineToken[], end: number): string | null 
     const joins =
       part.kind === 'Identifier' ||
       part.kind === 'NumberLiteral' ||
-      (part.kind === 'Punctuation' &&
-        (part.text === '.' || part.text === '[' || part.text === ']'));
+      (part.kind === 'Punctuation' && (part.text === '.' || part.text === '[' || part.text === ']'));
     if (!joins) {
       break;
     }
     start = j;
     from = part.from;
   }
+  end = equals;
   return tokens
-    .slice(start, end + 1)
+    .slice(start, end)
     .map((t) => t.text)
     .join('');
 }
 
-/** The names already written on the line, `power` and `in[2].t` alike, normalised. */
-function writtenNames(preceding: readonly LineToken[]): Set<string> {
+/** The names already written before an `=` on the line, normalised. */
+function writtenOnLine(tokens: readonly Lexed[]): Set<string> {
   const written = new Set<string>();
-  for (let i = 1; i + 1 < preceding.length; i++) {
-    const next = preceding[i + 1];
-    if (next?.kind === 'Punctuation' && next.text === '=') {
-      const name = nameEndingAt(preceding, i);
-      if (name !== null) {
+  tokens.forEach((token, index) => {
+    if (isPunct(token, '=')) {
+      const name = nameBefore(tokens, index);
+      if (name.length > 0) {
         written.add(normalize(name));
       }
     }
+  });
+  return written;
+}
+
+/**
+ * The names written before an `=` on the lines of the block the cursor sits in, above the cursor: a
+ * block's settings and a declaration block's parameters are each written once.
+ */
+function writtenInBlock(here: Here): Set<string> {
+  const written = new Set<string>();
+  const block = here.block;
+  if (block === null) {
+    return written;
+  }
+  let end = here.lineStart - 1;
+  while (end > 0) {
+    const start = here.doc.lastIndexOf('\n', end - 1) + 1;
+    const line = here.doc.slice(start, end).replace(/\r$/, '');
+    const tokens = lexLine(line).filter((t) => t.kind !== 'Comment');
+    if (tokens.length > 0) {
+      if (indentOf(line) <= block.indent) {
+        break;
+      }
+      writtenOnLine(tokens).forEach((name) => written.add(name));
+    }
+    end = start - 1;
   }
   return written;
 }
 
-/** Escapes a family pattern's brackets and dots and turns `{index}` into a capture. */
-function familyPattern(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp('^' + escaped.replace('\\{index\\}', '(\\d+)') + '$');
+/** A controller's type as its block or its line states it; `PI` when absent (`19`). */
+function controllerType(here: Here): string {
+  const own = /\btype\s*=\s*(\w+)/.exec(here.tokens.map((t) => t.text).join(' '));
+  if (own !== null) {
+    return own[1] ?? 'PI';
+  }
+  const block = here.block;
+  if (block === null) {
+    return 'PI';
+  }
+  let end = here.lineStart - 1;
+  while (end > 0) {
+    const start = here.doc.lastIndexOf('\n', end - 1) + 1;
+    const line = here.doc.slice(start, end);
+    const match = /^\s*type\s*=\s*(\w+)/.exec(line);
+    if (match !== null) {
+      return match[1] ?? 'PI';
+    }
+    if (line.trim().length > 0 && !line.trim().startsWith('#') && indentOf(line) <= block.indent) {
+      break;
+    }
+    end = start - 1;
+  }
+  return 'PI';
+}
+
+// ---- what a position offers ----------------------------------------------------------------------
+
+/** A line's first word: the statement words at the top, a block's settings and names inside it. */
+function lineStartItems(here: Here): { context: ContextKind; items: Item[] } {
+  if (here.block === null) {
+    let rank = 1000;
+    return {
+      context: 'statement',
+      items: statementWords.map((word) => ({ label: word, type: 'keyword', rank: rank-- })),
+    };
+  }
+  return { context: 'setting', items: blockItems(here, writtenInBlock(here)) };
+}
+
+/** What a line in the cursor's block may start with, less what is already written. */
+function blockItems(here: Here, written: Set<string>): Item[] {
+  const block = here.block;
+  const metadata = here.metadata;
+  switch (block?.kind) {
+    case 'project':
+    case 'circuit':
+    case 'run':
+    case 'style': {
+      const items = settingItems(blockSettings(metadata, block.kind), written);
+      if (block.kind === 'circuit') {
+        items.push(...componentNames(here, true, 500));
+      }
+      if (block.kind === 'run') {
+        let rank = 500;
+        for (const word of eventWords) {
+          items.push({ label: word, type: 'keyword', detail: word === 'at' ? 'a step' : 'a ramp', rank: rank-- });
+        }
+        for (const binding of here.sources.model?.bindings ?? []) {
+          items.push({ label: binding.name, type: 'let', detail: 'an override for this run', rank: rank-- });
+        }
+        items.push(...componentNames(here, false, rank));
+      }
+      return items;
+    }
+    case 'declaration': {
+      const kind = block.writtenKind === undefined ? null : resolveKind(metadata, block.writtenKind);
+      return declarationItems(here, kind, block.name ?? '', written);
+    }
+    default:
+      return [];
+  }
+}
+
+/** A declaration's parameters: its kind's, or a controller's settings for its type (`D-168`). */
+function declarationItems(here: Here, kind: Kind | null, name: string, written: Set<string>): Item[] {
+  if (kind?.keyword === 'controller') {
+    const type = controllerType(here);
+    const settings = blockSettings(here.metadata, 'controller').filter(
+      (s) => s.types.length === 0 || s.types.some((t) => normalize(t) === normalize(type)),
+    );
+    return settingItems(settings, written);
+  }
+  return parameters(kind, written, componentNamed(name, here.sources));
+}
+
+function blockSettings(metadata: Metadata, name: string): readonly Setting[] {
+  return metadata.blocks.find((b) => b.name === name)?.settings ?? [];
+}
+
+function settingItems(settings: readonly Setting[], written: Set<string>): Item[] {
+  let rank = 1000;
+  const items: Item[] = [];
+  for (const setting of settings) {
+    if (written.has(normalize(setting.name)) || setting.aliases.some((a) => written.has(normalize(a)))) {
+      continue;
+    }
+    items.push({
+      label: setting.name,
+      ...(setting.valueKind === 'block' ? { insert: `${setting.name}:` } : {}),
+      type: 'setting',
+      detail: setting.dimension === null ? setting.meaning : `${setting.dimension} · ${setting.meaning}`,
+      rank: rank--,
+    });
+  }
+  return items;
+}
+
+/** The value after `name =`, by what the name is where it stands. */
+function valueAfter(here: Here, name: string, equalsAt: number): Item[] {
+  const tokens = here.tokens;
+  const block = here.block;
+  const metadata = here.metadata;
+
+  // On a declaration line, `NAME kind  param = …`: the kind's parameter.
+  if (!isPunct(tokens[qualifiedEnd(tokens, 0)], '=') && tokens[1]?.kind === 'Identifier' && equalsAt >= 2) {
+    const kind = resolveKind(metadata, tokens[1].text);
+    return kind?.keyword === 'controller'
+      ? settingValues(here, blockSettings(metadata, 'controller'), name)
+      : values(here, wantOf(parameterOf(kind, name)));
+  }
+
+  switch (block?.kind) {
+    case 'declaration': {
+      const kind = block.writtenKind === undefined ? null : resolveKind(metadata, block.writtenKind);
+      return kind?.keyword === 'controller'
+        ? settingValues(here, blockSettings(metadata, 'controller'), name)
+        : values(here, wantOf(parameterOf(kind, name)));
+    }
+    case 'project':
+    case 'circuit':
+    case 'style':
+      return settingValues(here, blockSettings(metadata, block.kind), name);
+    case 'run': {
+      if (findSetting(blockSettings(metadata, 'run'), name) !== null) {
+        return settingValues(here, blockSettings(metadata, 'run'), name);
+      }
+      // An override: of a parameter, `RAD.power =`, or of a let, `outdoor =`.
+      if (name.includes('.')) {
+        return values(here, wantOf(targetParameter(here, name)));
+      }
+      const binding = here.sources.model?.bindings.find((b) => b.name === name);
+      return values(here, binding === undefined ? null : { dimension: binding.dimension, words: [] }, true);
+    }
+    default:
+      return values(here, null);
+  }
+}
+
+function findSetting(settings: readonly Setting[], written: string): Setting | null {
+  const normalized = normalize(written);
+  return (
+    settings.find(
+      (s) => normalize(s.name) === normalized || s.aliases.some((a) => normalize(a) === normalized),
+    ) ?? null
+  );
+}
+
+/** A setting's value by what it is (`SettingValueKind`): its words, the script's own names, or a quantity. */
+function settingValues(here: Here, settings: readonly Setting[], name: string): Item[] {
+  const setting = findSetting(settings, name);
+  if (setting === null) {
+    return [];
+  }
+  let rank = 1000;
+  const words = (list: readonly string[], detail?: string): Item[] =>
+    list.map((word) => ({ label: word, type: 'value', ...(detail === undefined ? {} : { detail }), rank: rank-- }));
+  const model = here.sources.model;
+
+  switch (setting.valueKind) {
+    case 'word':
+    case 'substance':
+    case 'circuitRole':
+    case 'catalog':
+      return words(setting.values);
+    case 'case':
+      return words(namesInDocument(here.doc, /^\s*cases\s*=\s*\[([^\]]*)\]/m), 'a case');
+    case 'circuits':
+      return (model?.circuits ?? []).map((c) => ({
+        label: `"${c.name}"`,
+        type: 'value',
+        detail: 'a circuit',
+        rank: rank--,
+      }));
+    case 'quantity':
+      return values(here, setting.dimension === null ? null : { dimension: setting.dimension, words: [] });
+    case 'actuator':
+      return actuators(here);
+    case 'measurement':
+      return [...measurements(here), ...drivers(here)];
+    case 'value':
+      return [...values(here, null), ...curves(here)];
+    case 'curve':
+      return curves(here);
+    default:
+      return [];
+  }
+}
+
+/** After a dot: which of the four a dotted name is depends on where it stands (`19`). */
+function afterDot(here: Here, event: boolean): Completion {
+  const tokens = here.tokens;
+  const metadata = here.metadata;
+  const dot = tokens.length - 1;
+  let start = dot;
+  while (start > 0) {
+    const part = tokens[start - 1];
+    const next = tokens[start];
+    if (part === undefined || next === undefined || part.to !== next.from) {
+      break;
+    }
+    if (part.kind !== 'Identifier' && part.kind !== 'NumberLiteral' && !isPunct(part, '.') && !isPunct(part, '[') && !isPunct(part, ']')) {
+      break;
+    }
+    start--;
+  }
+  const owner = tokens[start];
+  const path = tokens
+    .slice(start + 1, dot)
+    .map((t) => t.text)
+    .join('')
+    .replace(/^\./, '');
+  const from = here.lineStart + (tokens[dot]?.to ?? 0);
+  const at = (context: ContextKind, items: Item[]): Completion => ({ from, items, context });
+  if (owner?.kind !== 'Identifier') {
+    return at('none', []);
+  }
+  const previous = tokens[start - 1];
+  const block = here.block;
+  const valuePosition =
+    tokens.slice(0, start).some((t) => isPunct(t, '=')) || isOperator(previous) && !isPunct(previous, '-');
+
+  // In a value: a component's property, `HX1.dp`, or the rest of a property's spelling.
+  if (valuePosition) {
+    return at('property', properties(kindOfComponent(owner.text, here), path));
+  }
+  // An event's target, or a run's override of a parameter.
+  if (event || (block?.kind === 'run' && start === 0)) {
+    return at('target', targets(kindOfComponent(owner.text, here), path));
+  }
+  // A port's state on a declaration: `HX1 exchanger  secondary.in.` or in its block, `primary.out.`.
+  const declarationLine = start >= 2 && tokens[1]?.kind === 'Identifier' && !isPunct(previous, '-');
+  if (declarationLine || (block?.kind === 'declaration' && start === 0)) {
+    const written = declarationLine ? tokens[1]!.text : block?.writtenKind;
+    const kind = written === undefined ? null : resolveKind(metadata, written);
+    const head = tokens
+      .slice(start, dot)
+      .map((t) => t.text)
+      .join('');
+    const items = kind === null ? [] : portQuantities(kind, head, writtenOnLine(tokens));
+    return at(items.length > 0 ? 'parameter' : 'port', items.length > 0 ? items : kind === null ? [] : portPaths(kind, head));
+  }
+  // A connection's end: the component's ports, as a script spells them.
+  return at('port', ports(kindOfComponent(owner.text, here), owner.text, here.sources, path));
 }
 
 // ---- kinds ------------------------------------------------------------------------------------------
@@ -341,7 +626,11 @@ function kindByKeyword(metadata: Metadata, keyword: string): Kind | null {
   return metadata.kinds.find((k) => k.keyword === keyword) ?? null;
 }
 
-/** Resolves a written kind as the binder does: normalised, then aliases, then similarity above the threshold. */
+/**
+ * Resolves a written kind as the binder does since `D-170`: by its spelling, case and underscores
+ * aside, or a curated alias. A merely similar spelling does not bind -- the binder reports it with
+ * the near kind as the fix -- so it resolves to nothing here either.
+ */
 export function resolveKind(metadata: Metadata, written: string): Kind | null {
   const normalized = normalize(written);
   for (const kind of metadata.kinds) {
@@ -352,16 +641,7 @@ export function resolveKind(metadata: Metadata, written: string): Kind | null {
       return kind;
     }
   }
-  const ranked = rankKinds(metadata, written);
-  const best = ranked[0];
-  const next = ranked[1];
-  if (best === undefined || best.score < resolveThreshold) {
-    return null;
-  }
-  if (next !== undefined && best.score - next.score < ambiguityMargin) {
-    return null;
-  }
-  return best.kind;
+  return null;
 }
 
 interface RankedKind {
@@ -402,6 +682,7 @@ function rankKinds(metadata: Metadata, written: string): RankedKind[] {
         score(normalized, keyword),
         ...kind.aliases.map((a) => score(normalized, normalize(a))),
       );
+      // A near spelling is offered as the binder offers it, as the fix (`D-170`): it never binds as written.
       if (similarity >= resolveThreshold) {
         consider({ kind, score: similarity, via: null, tier: 4 });
       }
@@ -439,22 +720,22 @@ function kinds(metadata: Metadata, prefix: string): Item[] {
     label: r.kind.keyword,
     insert: r.kind.keyword,
     type: 'kind',
-    detail: r.via === null ? describeKind(r.kind) : `via '${r.via}'`,
+    detail:
+      r.via !== null ? `via '${r.via}'` : r.tier === 4 ? `did you mean ${r.kind.keyword}?` : describeKind(r.kind),
     ...(ambiguous && index < 2 ? { ambiguous: true } : {}),
     rank: 1000 - index,
   }));
 }
 
 function describeKind(kind: Kind): string {
-  const ports = kind.ports.map((p) => p.name).join(', ');
+  const ports = kind.ports.map((p) => p.spelling).join(', ');
   return ports.length === 0 ? '' : `Ports: ${ports}`;
 }
 
 // ---- parameters -----------------------------------------------------------------------------------
 
-function parameterOf(metadata: Metadata, keyword: string, written: string): ParameterMeta | null {
-  const kind = kindByKeyword(metadata, keyword);
-  if (kind === null) {
+function parameterOf(kind: Kind | null, written: string): ParameterMeta | null {
+  if (kind === null || written.length === 0) {
     return null;
   }
   const normalized = normalize(written);
@@ -472,26 +753,46 @@ function parameterOf(metadata: Metadata, keyword: string, written: string): Para
   return null;
 }
 
+function wantOf(parameter: ParameterMeta | null): Want | null {
+  if (parameter === null) {
+    return null;
+  }
+  return {
+    dimension: parameter.dimension,
+    words: parameter.valueKind === 'symbol' ? parameter.acceptedSymbols : [],
+  };
+}
+
+/** Escapes a family pattern's brackets and dots and turns `{index}` into a capture. */
+function familyPattern(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('^' + escaped.replace('\\{index\\}', '(\\d+)') + '$');
+}
+
+/** A port spelled another way resolves to the spelling its parameters are named by: `primary.in` is `in` (`D-179`). */
+function canonicalPort(kind: Kind, head: string): string {
+  const port = kind.ports.find((p) => p.aliases.includes(head));
+  return port?.spelling ?? head.replace('[1]', '');
+}
+
 /**
- * The quantities a port's state may be written with, for `in.` or `in[2].`: every parameter of the
- * kind whose name is `{head}.{quantity}`, minus the ones the line already states (D-120).
+ * The quantities a port's state may be written with, after `in.` or `secondary.in.`: every parameter
+ * of the kind named `{port}.{quantity}`, minus the ones the line already states (D-120, D-179).
  */
-function portQuantities(kind: Kind, preceding: readonly LineToken[], head: string): Item[] {
-  const written = writtenNames(preceding);
-  const folded = head.replace('[1]', '');
+function portQuantities(kind: Kind, written: string, stated: Set<string>): Item[] {
+  const head = canonicalPort(kind, written);
   const items: Item[] = [];
   let rank = 1000;
   for (const parameter of kind.parameters) {
-    const dot = parameter.name.indexOf('.');
-    if (dot < 0) {
+    if (!parameter.name.startsWith(head + '.')) {
       continue;
     }
-    const port = parameter.name.slice(0, dot);
-    if ((port !== folded && port !== head) || written.has(normalize(parameter.name))) {
+    const rest = parameter.name.slice(head.length + 1);
+    if (rest.includes('.') || stated.has(normalize(parameter.name))) {
       continue;
     }
     items.push({
-      label: parameter.name.slice(dot + 1),
+      label: rest,
       type: 'parameter',
       detail: describeParameter(parameter),
       info: omissionText(parameter),
@@ -499,18 +800,40 @@ function portQuantities(kind: Kind, preceding: readonly LineToken[], head: strin
     });
   }
   for (const family of kind.indexedParameters) {
-    const match = familyPattern(family.pattern.slice(0, family.pattern.indexOf('.'))).exec(head);
-    if (match === null || family.pattern.indexOf('.') < 0) {
+    const dot = family.pattern.lastIndexOf('.');
+    if (dot < 0) {
+      continue;
+    }
+    const match = familyPattern(family.pattern.slice(0, dot)).exec(written);
+    if (match === null) {
       continue;
     }
     const name = family.pattern.replace('{index}', match[1] ?? '');
-    if (!written.has(normalize(name))) {
+    if (!stated.has(normalize(name))) {
       items.push({
-        label: family.pattern.slice(family.pattern.indexOf('.') + 1),
+        label: family.pattern.slice(dot + 1),
         type: 'parameter',
         detail: describeParameter(family.element),
         rank: rank--,
       });
+    }
+  }
+  return items;
+}
+
+/** After `secondary.` on a declaration: the rest of each port spelling that starts there. */
+function portPaths(kind: Kind, head: string): Item[] {
+  const seen = new Set<string>();
+  let rank = 1000;
+  const items: Item[] = [];
+  for (const parameter of kind.parameters) {
+    if (!parameter.name.startsWith(head + '.')) {
+      continue;
+    }
+    const next = parameter.name.slice(head.length + 1).split('.')[0] ?? '';
+    if (next.length > 0 && !seen.has(next)) {
+      seen.add(next);
+      items.push({ label: next, type: 'port', rank: rank-- });
     }
   }
   return items;
@@ -529,8 +852,7 @@ function describeParameter(parameter: ParameterMeta): string {
 
 function parameters(
   kind: Kind | null,
-  preceding: readonly LineToken[],
-  prefix: string,
+  written: Set<string>,
   declared?: {
     readonly parameters: Readonly<Record<string, unknown>>;
     readonly layers?: number;
@@ -539,7 +861,6 @@ function parameters(
   if (kind === null) {
     return [];
   }
-  const written = writtenNames(preceding);
   const items: Item[] = [];
   let rank = 1000;
   for (const parameter of kind.parameters) {
@@ -586,7 +907,6 @@ function parameters(
       }
     }
   }
-  void prefix;
   return items;
 }
 
@@ -603,24 +923,21 @@ function omissionText(parameter: ParameterMeta): string {
 
 // ---- values ---------------------------------------------------------------------------------------
 
-function values(
-  metadata: Metadata,
-  sources: Sources,
-  parameter: ParameterMeta | null,
-  prefix: string,
-): Item[] {
-  // 52 invariant 5b: filtered to the parameter's dimension, or the dimension is unknown and the filter is off.
-  const dimension = parameter?.dimension ?? null;
-  const filtered = parameter !== null && dimension !== null;
+/**
+ * Values filtered to a dimension (`52` invariant 5b): the lets of it, the properties of it, and its
+ * units -- or, where the dimension is unknown, every let and property and no filter. A word-valued
+ * parameter offers its words and nothing else.
+ */
+function values(here: Here, want: Want | null, withCurves = false): Item[] {
+  const metadata = here.metadata;
+  const sources = here.sources;
+  const dimension = want?.dimension ?? null;
+  const filtered = want !== null && dimension !== null;
   const items: Item[] = [];
   let rank = 1000;
 
-  if (parameter !== null && parameter.valueKind === 'symbol') {
-    return parameter.acceptedSymbols.map((symbol) => ({
-      label: symbol,
-      type: 'unit',
-      rank: rank--,
-    }));
+  if (want !== null && want.words.length > 0) {
+    return want.words.map((word) => ({ label: word, type: 'value', rank: rank-- }));
   }
 
   for (const binding of sources.model?.bindings ?? []) {
@@ -640,6 +957,11 @@ function values(
       dimmed: unnamed || deferred,
       rank: rank--,
     });
+  }
+
+  if (withCurves || !filtered) {
+    items.push(...curves(here, rank));
+    rank -= items.length;
   }
 
   for (const component of sources.model?.components ?? []) {
@@ -667,16 +989,90 @@ function values(
     }
   }
 
-  void prefix;
+  return items;
+}
+
+/** Names a document writes in a list, `cases = [winter, mild]`: the script's own vocabulary. */
+function namesInDocument(doc: string, pattern: RegExp): string[] {
+  const match = pattern.exec(doc);
+  return match === null
+    ? []
+    : (match[1] ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => /^\w+$/.test(s));
+}
+
+/** The curves the document declares, `curve heat_demand: outdoor`, by name. */
+function curves(here: Here, start = 400): Item[] {
+  const items: Item[] = [];
+  let rank = start;
+  for (const match of here.doc.matchAll(/^\s*curve\s+(\w+)\s*:\s*(\w+)?/gm)) {
+    items.push({
+      label: match[1] ?? '',
+      type: 'reference',
+      detail: `a curve of ${match[2] ?? '?'}`,
+      rank: rank--,
+    });
+  }
+  return items;
+}
+
+/** A curve's or a controller's driver: a let, or the run's clock. */
+function drivers(here: Here): Item[] {
+  let rank = 1000;
+  const items: Item[] = (here.sources.model?.bindings ?? []).map((binding) => ({
+    label: binding.name,
+    type: 'let',
+    detail: binding.dimension ?? 'a let',
+    rank: rank--,
+  }));
+  items.push({ label: 'time', type: 'value', detail: "the run's clock", rank: rank-- });
+  return items;
+}
+
+/** What a controller may move: a component whose kind has an actuated parameter (`D-61`). */
+function actuators(here: Here): Item[] {
+  let rank = 1000;
+  const items: Item[] = [];
+  for (const component of here.sources.model?.components ?? []) {
+    const kind = kindByKeyword(here.metadata, component.kind);
+    if (kind?.actuatedParameter != null) {
+      items.push({
+        label: component.id,
+        type: 'name',
+        detail: `${component.kind} · moves its ${kind.actuatedParameter}`,
+        rank: rank--,
+      });
+    }
+  }
+  return items;
+}
+
+/** What a controller may read: a sensor, by what it measures. */
+function measurements(here: Here): Item[] {
+  let rank = 1000;
+  const items: Item[] = [];
+  for (const component of here.sources.model?.components ?? []) {
+    const kind = kindByKeyword(here.metadata, component.kind);
+    if (kind?.measuredProperty != null) {
+      items.push({
+        label: component.id,
+        type: 'name',
+        detail: `${component.kind} · reads ${kind.measuredProperty}`,
+        rank: rank--,
+      });
+    }
+  }
   return items;
 }
 
 // ---- names, ports, properties, targets --------------------------------------------------------------
 
-function componentNames(sources: Sources, prefix: string, includeInferred: boolean): Item[] {
+function componentNames(here: Here, includeInferred: boolean, start = 1000): Item[] {
   const items: Item[] = [];
-  let rank = 1000;
-  for (const component of sources.model?.components ?? []) {
+  let rank = start;
+  for (const component of here.sources.model?.components ?? []) {
     const inferred = component.origin !== 'declared';
     if (inferred && !includeInferred) {
       continue;
@@ -688,16 +1084,12 @@ function componentNames(sources: Sources, prefix: string, includeInferred: boole
       rank: rank--,
     });
   }
-  void prefix;
   return items;
 }
 
-function kindOfComponent(name: string, sources: Sources): Kind | null {
-  const metadata = sources.metadata;
-  const component = sources.model?.components.find((c) => c.id === name);
-  return metadata === null || component === undefined
-    ? null
-    : kindByKeyword(metadata, component.kind);
+function kindOfComponent(name: string, here: Here): Kind | null {
+  const component = here.sources.model?.components.find((c) => c.id === name);
+  return component === undefined ? null : kindByKeyword(here.metadata, component.kind);
 }
 
 function componentNamed(
@@ -714,17 +1106,34 @@ function componentNamed(
   return { parameters: component.parameters, ...(typeof layers === 'number' ? { layers } : {}) };
 }
 
-function ports(kind: Kind | null, owner: string, sources: Sources, prefix: string): Item[] {
+/**
+ * A component's ports as a script writes them after its name and a dot (`D-179`): `in`, `out`,
+ * `secondary.in`, `primary.in`; after `HX1.secondary.`, the rest. A tank's families add the members
+ * the model materialized and the next one as a template.
+ */
+function ports(kind: Kind | null, owner: string, sources: Sources, path: string): Item[] {
   if (kind === null) {
     return [];
   }
   const items: Item[] = [];
   let rank = 1000;
+  const lead = path.length === 0 ? '' : path + '.';
+  const offer = (spelling: string, detail: string): void => {
+    if (spelling.startsWith(lead) && spelling.length > lead.length) {
+      items.push({ label: spelling.slice(lead.length), type: 'port', detail, rank: rank-- });
+    }
+  };
+  for (const port of kind.ports) {
+    offer(port.spelling, port.role);
+    for (const alias of port.aliases) {
+      offer(alias, `${port.role} · also ${port.spelling}`);
+    }
+  }
+  if (lead.length > 0) {
+    return items;
+  }
   const component = sources.model?.components.find((c) => c.id === owner);
   const materialized = new Set(component?.ports.map((p) => p.name) ?? []);
-  for (const port of kind.ports) {
-    items.push({ label: port.name, type: 'port', detail: port.role, rank: rank-- });
-  }
   for (const family of kind.portFamilies) {
     // The model's port ids are the keys (`in2`); the script writes the pattern (`in[2]`), and the
     // first member is the fixed port already listed above (D-120).
@@ -757,41 +1166,58 @@ function ports(kind: Kind | null, owner: string, sources: Sources, prefix: strin
       });
     }
   }
-  void prefix;
   return items;
 }
 
-function properties(kind: Kind | null, prefix: string): Item[] {
+function properties(kind: Kind | null, path: string): Item[] {
   if (kind === null) {
     return [];
   }
   let rank = 1000;
-  const items: Item[] = kind.properties.map((property: PropertyMeta) => ({
-    label: property.name,
-    type: 'property',
-    detail: `${property.dimension ?? 'dimensionless'} · ${property.unit} · ${property.availability}`,
-    rank: rank--,
-  }));
-  for (const family of kind.indexedProperties) {
-    items.push({
-      label: family.pattern,
-      insert: family.pattern.replace('{index}', '1'),
-      type: 'template',
-      detail: family.element.dimension ?? '',
+  const lead = path.length === 0 ? '' : path + '.';
+  const items: Item[] = kind.properties
+    .filter((property: PropertyMeta) => property.name.startsWith(lead))
+    .map((property: PropertyMeta) => ({
+      label: property.name.slice(lead.length),
+      type: 'property',
+      detail: `${property.dimension ?? 'dimensionless'} · ${property.unit} · ${property.availability}`,
       rank: rank--,
-    });
+    }));
+  if (lead.length === 0) {
+    for (const family of kind.indexedProperties) {
+      items.push({
+        label: family.pattern,
+        insert: family.pattern.replace('{index}', '1'),
+        type: 'template',
+        detail: family.element.dimension ?? '',
+        rank: rank--,
+      });
+    }
   }
-  void prefix;
   return items;
 }
 
-function targets(kind: Kind | null, prefix: string): Item[] {
+/** A run's target on a component: its quantity parameters, and a controller's setpoint (`19` §Runs). */
+function targets(kind: Kind | null, path: string): Item[] {
   if (kind === null) {
     return [];
   }
   let rank = 1000;
-  void prefix;
-  return kind.parameters
-    .filter((p) => p.valueKind === 'quantity')
-    .map((p) => ({ label: p.name, type: 'target', detail: describeParameter(p), rank: rank-- }));
+  const lead = path.length === 0 ? '' : path + '.';
+  const items: Item[] = kind.parameters
+    .filter((p) => p.valueKind === 'quantity' && p.name.startsWith(lead))
+    .map((p) => ({ label: p.name.slice(lead.length), type: 'target', detail: describeParameter(p), rank: rank-- }));
+  if (kind.keyword === 'controller' && lead.length === 0) {
+    items.unshift({ label: 'setpoint', type: 'target', detail: 'in what the controller measures', rank: 1001 });
+  }
+  return items;
+}
+
+/** The parameter a run's target names, `RAD.power`, so its value can be filtered by its dimension. */
+function targetParameter(here: Here, name: string): ParameterMeta | null {
+  const dot = name.indexOf('.');
+  if (dot < 0) {
+    return null;
+  }
+  return parameterOf(kindOfComponent(name.slice(0, dot), here), name.slice(dot + 1));
 }

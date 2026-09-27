@@ -493,7 +493,7 @@ public static class Formatter
             return bothWords || spaced ? " " : string.Empty;
         }
 
-        private static bool IsWordLike(Token token) => token.Kind is TokenKind.Identifier or TokenKind.Keyword
+        private static bool IsWordLike(Token token) => token.Kind is TokenKind.Identifier
             or TokenKind.NumberLiteral or TokenKind.QuantityLiteral or TokenKind.StringLiteral or TokenKind.DateLiteral;
     }
 }

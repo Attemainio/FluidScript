@@ -155,7 +155,13 @@ committed as `Api.Tests/Contracts/Goldens/metadata.json` so the editor's complet
 the real registry without a host. A fixed port carries its id (`name`: `in[2]`, what the model and the
 layout key it by), its `spelling` (`secondary.in`, what a script writes after the dot, `D-179`) and
 its other accepted `aliases` (`primary.in`), so an editor offers what the binder reads (`A-8`, contract
-`3.0`). The editor's lexicon -- the reserved words, the unit symbols and
+`3.0`). Since `3.1` the document also carries language 2's `statementWords` and `eventWords`, and `blocks`: each
+block's settings (the project, a circuit, a run, a style, a controller) with its meaning, what its value is
+(`valueKind`), a quantity's dimension, and the closed set of words it takes where the build knows one -- a style's
+`corner`, a controller's `type`, the substances, the circuit roles, the catalogues as `id@version` (`A-9`). It is
+the editor's completion source for everything a script writes before an `=` that is not a component parameter, from
+the same Core table the reader checks settings against (`SettingRegistry`). `dimensions[].units` leaves out `in` and
+`t`, which convert but cannot be written after a number (`19`). The editor's lexicon -- the statement words, the unit symbols and
 `D-15`'s thresholds -- is not part of this document but a committed schema-side file,
 `Contracts/Schemas/language.json`, generated from Core like the schemas and consumed at the
 frontend's build (`52`).

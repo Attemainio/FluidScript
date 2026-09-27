@@ -68,7 +68,7 @@ Traits, so a fast subset can run constantly and the whole suite before a commit.
 | `Category=Validation` | < 60 s | Physical validation cases | Pre-commit |
 | `Category=Golden` | < 10 s | Parser, printer, model-contract snapshots | Pre-commit |
 | `Category=Api` | < 30 s | Endpoint and contract tests | Pre-commit |
-| `Category=Docs` | < 5 s | The documentation gate: registry, reserved words and diagnostic codes against `/docs` | Pre-commit, and its own CI check |
+| `Category=Docs` | < 5 s | The documentation gate: registry, statement words and diagnostic codes against `/docs` | Pre-commit, and its own CI check |
 | `Category=Diagnostic` | *(none — the duration is the measurement)* | Performance harnesses that write a timing report into `diagnostics/` | **Never in a gate**; on request |
 
 **`Category=Diagnostic` is in the table but is not a test tier in the same sense** (`T-1`). It has no

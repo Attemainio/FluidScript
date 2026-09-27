@@ -557,6 +557,99 @@
         ]
       }
     },
+    "statementWords": {
+      "description": "The words that open a statement at a line\u0027s start (19); none is reserved by the lexer.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "eventWords": {
+      "description": "The words that open an event inside a run: a step and a ramp.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocks": {
+      "description": "Each block and the settings it takes: the project, a circuit, a run, a style and a controller (19, since contract 3.1).",
+      "type": "array",
+      "items": {
+        "title": "SettingBlock",
+        "description": "A language 2 block and the settings it takes (19).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "project, circuit, run, style or controller.",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Its settings, in 19\u0027s order. A run takes any other name = as an override; a controller\u0027s replace the kind\u0027s registry parameters.",
+            "type": "array",
+            "items": {
+              "title": "Setting",
+              "description": "One setting a language 2 block takes, as an editor offers it (19, 52, A-9).",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "The setting as a script writes it before its =.",
+                  "type": "string"
+                },
+                "aliases": {
+                  "description": "Other spellings the reader accepts: color for colour.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "meaning": {
+                  "description": "What the setting says, in 19\u0027s words.",
+                  "type": "string"
+                },
+                "valueKind": {
+                  "description": "What its value is: quantity, word, substance, circuitRole, catalog, case, names, circuits, date, range, colour, block, actuator, measurement, value or curve.",
+                  "type": "string"
+                },
+                "dimension": {
+                  "description": "The dimension of a quantity with one fixed dimension, an entry in Dimensions; otherwise null.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "values": {
+                  "description": "The words the value is one of, when that set is closed and known to the build: a word\u0027s values, the substances, the circuit roles, and each catalogue as id@version. Empty when the value is not chosen from a list, or the list is the script\u0027s own (its cases, its circuits, its components).",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "types": {
+                  "description": "The controller types that take the setting; empty when every type does.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "aliases",
+                "meaning",
+                "valueKind",
+                "dimension",
+                "values",
+                "types"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "settings"
+        ]
+      }
+    },
     "dimensions": {
       "description": "Every dimension a parameter or property can have, with its units.",
       "type": "array",
@@ -1008,6 +1101,9 @@
     "contractVersion",
     "language",
     "kinds",
+    "statementWords",
+    "eventWords",
+    "blocks",
     "dimensions",
     "symbols",
     "diagnostics",

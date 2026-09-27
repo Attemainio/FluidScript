@@ -1,5 +1,5 @@
 {
-  "contractVersion": "3.0",
+  "contractVersion": "3.1",
   "provenance": {
     "sourceHash": "sha256:d9d13e0ac51a2ff324694fe2220c4b35a04fdb466b3ff8395ab4bf05aa05a55f",
     "languageMajor": 2,
@@ -12,9 +12,6 @@
       "version": "1.0.0.0"
     },
     "atmosphereKPaAbsolute": 101.325
-  },
-  "project": {
-    "name": "project"
   },
   "style": {
     "spacing": null,

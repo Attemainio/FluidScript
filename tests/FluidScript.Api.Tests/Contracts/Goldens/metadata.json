@@ -1,6 +1,6 @@
 {
   "restMajor": 1,
-  "contractVersion": "3.0",
+  "contractVersion": "3.1",
   "language": {
     "current": 2,
     "supported": [
@@ -2837,6 +2837,385 @@
       "measuredProperty": "flow"
     }
   ],
+  "statementWords": [
+    "fluidscript",
+    "project",
+    "let",
+    "curve",
+    "circuit",
+    "run"
+  ],
+  "eventWords": [
+    "at",
+    "over"
+  ],
+  "blocks": [
+    {
+      "name": "project",
+      "settings": [
+        {
+          "name": "cases",
+          "aliases": [],
+          "meaning": "The operating cases every list is read against, in order",
+          "valueKind": "names",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "catalog",
+          "aliases": [],
+          "meaning": "The pipe catalogue and its version",
+          "valueKind": "catalog",
+          "dimension": null,
+          "values": [
+            "copper_en1057@2026.1",
+            "steel_en10220@2026.1",
+            "steel_en10255@2026.1"
+          ],
+          "types": []
+        },
+        {
+          "name": "show",
+          "aliases": [],
+          "meaning": "The property the diagram colours by, one or a list",
+          "valueKind": "names",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "scale",
+          "aliases": [],
+          "meaning": "The colour scale's range for the first property shown",
+          "valueKind": "range",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "spacing",
+          "aliases": [],
+          "meaning": "The layout's spacing factor",
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "style",
+          "aliases": [],
+          "meaning": "The drawing's defaults, a block of colour, width, corner and line",
+          "valueKind": "block",
+          "dimension": null,
+          "values": [],
+          "types": []
+        }
+      ]
+    },
+    {
+      "name": "circuit",
+      "settings": [
+        {
+          "name": "fluid",
+          "aliases": [],
+          "meaning": "The substance the circuit carries",
+          "valueKind": "substance",
+          "dimension": null,
+          "values": [
+            "water",
+            "air"
+          ],
+          "types": []
+        },
+        {
+          "name": "number",
+          "aliases": [],
+          "meaning": "The tag prefix",
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "role",
+          "aliases": [],
+          "meaning": "The circuit's role, where the drawing places it",
+          "valueKind": "circuitRole",
+          "dimension": null,
+          "values": [
+            "ahu",
+            "cooling",
+            "district",
+            "distribution",
+            "ground_loop",
+            "heat_pump",
+            "heating",
+            "hot_water",
+            "radiator",
+            "solar",
+            "storage",
+            "underfloor"
+          ],
+          "types": []
+        },
+        {
+          "name": "style",
+          "aliases": [],
+          "meaning": "Overrides the project's style for this circuit",
+          "valueKind": "block",
+          "dimension": null,
+          "values": [],
+          "types": []
+        }
+      ]
+    },
+    {
+      "name": "run",
+      "settings": [
+        {
+          "name": "from",
+          "aliases": [],
+          "meaning": "The case whose steady state the run starts from",
+          "valueKind": "case",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "start",
+          "aliases": [],
+          "meaning": "Where the clock sits on curves of time",
+          "valueKind": "date",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "duration",
+          "aliases": [],
+          "meaning": "Simulated time",
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "frame",
+          "aliases": [],
+          "meaning": "Simulated time between kept states",
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "steady",
+          "aliases": [],
+          "meaning": "Circuits held quasi-steady in this run",
+          "valueKind": "circuits",
+          "dimension": null,
+          "values": [],
+          "types": []
+        }
+      ]
+    },
+    {
+      "name": "style",
+      "settings": [
+        {
+          "name": "colour",
+          "aliases": [
+            "color"
+          ],
+          "meaning": "A colour name, or a quoted hex since # starts a comment",
+          "valueKind": "colour",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "width",
+          "aliases": [],
+          "meaning": "The line width in pixels",
+          "valueKind": "quantity",
+          "dimension": "Pixels",
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "corner",
+          "aliases": [],
+          "meaning": "How a route turns",
+          "valueKind": "word",
+          "dimension": null,
+          "values": [
+            "sharp",
+            "fillet"
+          ],
+          "types": []
+        },
+        {
+          "name": "line",
+          "aliases": [],
+          "meaning": "The line's pattern",
+          "valueKind": "word",
+          "dimension": null,
+          "values": [
+            "solid",
+            "dashed",
+            "dotted",
+            "dashdot"
+          ],
+          "types": []
+        }
+      ]
+    },
+    {
+      "name": "controller",
+      "settings": [
+        {
+          "name": "type",
+          "aliases": [],
+          "meaning": "The control law; absent means PI",
+          "valueKind": "word",
+          "dimension": null,
+          "values": [
+            "P",
+            "PI",
+            "PID",
+            "onoff",
+            "curve"
+          ],
+          "types": []
+        },
+        {
+          "name": "moves",
+          "aliases": [],
+          "meaning": "The actuator: a component, meaning its one actuated parameter, or a qualified parameter",
+          "valueKind": "actuator",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "reads",
+          "aliases": [],
+          "meaning": "What is measured: a sensor, a node's property, a driver, or time",
+          "valueKind": "measurement",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "setpoint",
+          "aliases": [],
+          "meaning": "The target, in the measurement's unit",
+          "valueKind": "value",
+          "dimension": null,
+          "values": [],
+          "types": [
+            "P",
+            "PI",
+            "PID",
+            "onoff"
+          ]
+        },
+        {
+          "name": "band",
+          "aliases": [],
+          "meaning": "The proportional band, in the measurement's unit",
+          "valueKind": "quantity",
+          "dimension": null,
+          "values": [],
+          "types": [
+            "P",
+            "PI",
+            "PID"
+          ]
+        },
+        {
+          "name": "kp",
+          "aliases": [],
+          "meaning": "The gain, as an alternative to band",
+          "valueKind": "quantity",
+          "dimension": null,
+          "values": [],
+          "types": [
+            "P",
+            "PI",
+            "PID"
+          ]
+        },
+        {
+          "name": "ti",
+          "aliases": [],
+          "meaning": "The integral time",
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "values": [],
+          "types": [
+            "PI",
+            "PID"
+          ]
+        },
+        {
+          "name": "td",
+          "aliases": [],
+          "meaning": "The derivative time",
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "values": [],
+          "types": [
+            "PID"
+          ]
+        },
+        {
+          "name": "output",
+          "aliases": [],
+          "meaning": "The output limits, a range in the actuator's unit",
+          "valueKind": "range",
+          "dimension": null,
+          "values": [],
+          "types": []
+        },
+        {
+          "name": "action",
+          "aliases": [],
+          "meaning": "direct or reverse, stated only as a check",
+          "valueKind": "word",
+          "dimension": null,
+          "values": [
+            "direct",
+            "reverse"
+          ],
+          "types": []
+        },
+        {
+          "name": "differential",
+          "aliases": [],
+          "meaning": "The switching differential, in the measurement's unit",
+          "valueKind": "quantity",
+          "dimension": null,
+          "values": [],
+          "types": [
+            "onoff"
+          ]
+        },
+        {
+          "name": "curve",
+          "aliases": [],
+          "meaning": "The characteristic: output as a function of the reading",
+          "valueKind": "curve",
+          "dimension": null,
+          "values": [],
+          "types": [
+            "curve"
+          ]
+        }
+      ]
+    }
+  ],
   "dimensions": [
     {
       "name": "Dimensionless",
@@ -2863,7 +3242,6 @@
         "cm",
         "dm",
         "km",
-        "in",
         "ft"
       ],
       "conversions": [
@@ -2890,11 +3268,6 @@
         {
           "symbol": "km",
           "factor": 1000,
-          "offset": 0
-        },
-        {
-          "symbol": "in",
-          "factor": 0.0254,
           "offset": 0
         },
         {
@@ -3294,8 +3667,7 @@
       "canonicalUnit": "kg",
       "units": [
         "kg",
-        "g",
-        "t"
+        "g"
       ],
       "conversions": [
         {
@@ -3306,11 +3678,6 @@
         {
           "symbol": "g",
           "factor": 0.001,
-          "offset": 0
-        },
-        {
-          "symbol": "t",
-          "factor": 1000,
           "offset": 0
         }
       ]

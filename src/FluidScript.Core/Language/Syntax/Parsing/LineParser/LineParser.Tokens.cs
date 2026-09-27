@@ -3,6 +3,7 @@ using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Lexing;
 
@@ -21,8 +22,9 @@ internal sealed partial class LineParser
         {
             // Language 2 reserves its statement words by position rather than in the lexer (`19`), so a
             // name spelled as one is caught here, where a name belongs. Before an `=` it is a setting's name,
-            // which no statement starts with: a controller's `curve = heating`.
-            case TokenKind.Identifier when IsStatementWord(token.Text)
+            // which no statement starts with: a controller's `curve = heating`. `at` and `over` open a
+            // statement only inside a run, so they are not among them.
+            case TokenKind.Identifier when SettingRegistry.IsStatementWord(token.Text)
                 && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals }:
                 Report(
                     ParserDiagnostics.ReservedWordAsName,
@@ -32,13 +34,6 @@ internal sealed partial class LineParser
 
             case TokenKind.Identifier:
                 return new IdentifierSyntax(Advance());
-
-            case TokenKind.Keyword:
-                Report(
-                    ParserDiagnostics.ReservedWordAsName,
-                    token.Span,
-                    new DiagnosticArgument("word", token.Text));
-                return null;
 
             case TokenKind.QuantityLiteral:
                 // `3K` is three kelvin everywhere, including where that is correct, so only here --
@@ -184,5 +179,5 @@ internal sealed partial class LineParser
     }
 
     private static bool IsNamePart(Token token) =>
-        token.Kind is TokenKind.Identifier or TokenKind.NumberLiteral or TokenKind.Keyword;
+        token.Kind is TokenKind.Identifier or TokenKind.NumberLiteral;
 }

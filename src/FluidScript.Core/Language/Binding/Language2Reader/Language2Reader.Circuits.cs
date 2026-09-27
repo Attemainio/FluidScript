@@ -13,7 +13,6 @@ namespace FluidScript.Core.Language.Binding;
 
 internal sealed partial class Language2Reader
 {
-    private const string CircuitSettings = "fluid, number, role, style";
 
     /// <summary>Records every declared component's kind and every name a chain uses, across all circuits.</summary>
     /// <remarks>Components are named globally (<c>D-41</c>), so a chain in one circuit may name a sensor declared in another.</remarks>
@@ -126,7 +125,7 @@ internal sealed partial class Language2Reader
                         }
                         else
                         {
-                            Unknown("circuit", setting, CircuitSettings);
+                            Unknown("circuit", setting, SettingRegistry.Listed(SettingRegistry.Circuit));
                         }
                     }
 

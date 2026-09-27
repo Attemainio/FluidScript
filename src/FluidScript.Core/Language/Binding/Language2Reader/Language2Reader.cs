@@ -139,8 +139,8 @@ internal sealed class Language2Reading
     /// <summary>Gets what the reading itself reported: ports it could not settle, settings a block does not take.</summary>
     public List<Diagnostic> Diagnostics { get; } = [];
 
-    /// <summary>Gets each project block's title, or <c>project</c> where it has none.</summary>
-    public List<string> Projects { get; } = [];
+    /// <summary>Gets each project block's title, or <see langword="null"/> where it has none (<c>L-85</c>).</summary>
+    public List<string?> Projects { get; } = [];
 
     /// <summary>Gets or sets the drawing's spacing, the last stated.</summary>
     public double? Spacing { get; set; }

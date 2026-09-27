@@ -24,40 +24,55 @@ function roles(line: string, state = initialState()): string {
     .join(' ');
 }
 
-describe('the tokenizer follows 12', () => {
+describe('the tokenizer follows 12 and 19', () => {
   it('reads a word that starts with a digit as a name, and one that ends in a unit as a quantity', () => {
     // 12 rules 3 and 4: 3WV is a name because WV is not a unit; 20C is twenty degrees.
-    expect(roles('3WV three_way_valve kv=20C')).toBe(
-      '3WV:declaration three_way_valve:kind kv:parameter =:operator 20:number C:unit',
+    expect(roles('3WV valve3 kvs = 20C')).toBe(
+      '3WV:declaration valve3:kind kvs:parameter =:operator 20:number C:unit',
     );
   });
 
-  it('joins a spaced unit to its number unless = follows', () => {
-    // Rule 5: `30 K` is one quantity; `30 in.t=20` is a number and a parameter named in.
-    expect(roles('let dT = 30 K')).toBe('let:keyword dT:declaration =:operator 30:number K:unit');
-    expect(roles('HE1 heat_exchanger power=30 in.t=20 in[2].t=85')).toBe(
-      'HE1:declaration heat_exchanger:kind power:parameter =:operator 30:number in:parameter .:operator t:parameter =:operator 20:number in:parameter [:operator 2:number ]:operator .:operator t:parameter =:operator 85:number',
+  it('joins a spaced unit to its number unless = follows, past spaces too', () => {
+    // Rule 5, looking past spaces (19): `30 K` is one quantity; in `flow = 5 h = 2000` the h is the next parameter.
+    expect(roles('let rise = 30 K')).toBe('let:keyword rise:declaration =:operator 30:number K:unit');
+    expect(roles('P1 pump flow = 5 h = 2000')).toBe(
+      'P1:declaration pump:kind flow:parameter =:operator 5:number h:parameter =:operator 2000:number',
     );
+  });
+
+  it('reads no inch and no tonne after a number (19)', () => {
+    expect(lexLine('30 in').map((t) => t.kind)).toEqual(['NumberLiteral', 'Identifier']);
+    expect(lexLine('p = 300 t = 6').map((t) => t.kind)).toEqual([
+      'Identifier',
+      'Punctuation',
+      'NumberLiteral',
+      'Identifier',
+      'Punctuation',
+      'NumberLiteral',
+    ]);
+  });
+
+  it("names every part of a port's state, and the exchanger's sides", () => {
+    expect(roles('HX1 exchanger power = 150 primary.in.t = 40 secondary.out.t = 45 C')).toBe(
+      'HX1:declaration exchanger:kind power:parameter =:operator 150:number primary:parameter .:operator in:parameter .:operator t:parameter =:operator 40:number secondary:parameter .:operator out:parameter .:operator t:parameter =:operator 45:number C:unit',
+    );
+  });
+
+  it('lexes a date and a clock time as one token each', () => {
+    expect(lexLine('2026-01-15 06:00   -18').map((t) => `${t.kind}:${t.text}`)).toEqual([
+      'DateLiteral:2026-01-15 06:00',
+      'Punctuation:-',
+      'NumberLiteral:18',
+    ]);
+    expect(lexLine('06:30').map((t) => t.kind)).toEqual(['DateLiteral']);
   });
 
   it('takes the longest unit and never parses inside it', () => {
     expect(lexLine('let cp = 4.18 kJ/(kg*K)').map((t) => t.kind)).toEqual([
-      'Keyword',
+      'Identifier',
       'Identifier',
       'Punctuation',
       'QuantityLiteral',
-    ]);
-    expect(lexLine('let mdot = Q / (cp * dT)').map((t) => t.kind)).toEqual([
-      'Keyword',
-      'Identifier',
-      'Punctuation',
-      'Identifier',
-      'Punctuation',
-      'Punctuation',
-      'Identifier',
-      'Punctuation',
-      'Identifier',
-      'Punctuation',
     ]);
   });
 
@@ -66,36 +81,56 @@ describe('the tokenizer follows 12', () => {
     expect(lexLine('30.5').map((t) => t.kind)).toEqual(['NumberLiteral']);
   });
 
-  it('classifies by position: a connection, a port, a property reference', () => {
-    const state = initialState();
-    tokenizeLine('connections', state);
-    expect(state.section).toBe('connections');
-    expect(roles('3WV.b - N3 length=25', state)).toBe(
-      '3WV:name .:operator b:port -:operator N3:name length:parameter =:operator 25:number',
+  it('knows a statement word by its place: at the start it opens a statement, before = it names a setting', () => {
+    expect(roles('circuit "Heating": # the name')).toBe(
+      'circuit:keyword "Heating":string ::operator # the name:comment',
     );
-    expect(roles('PU1 pump head=HE1.dp*1.2')).toBe(
-      'PU1:declaration pump:kind head:parameter =:operator HE1:word .:operator dp:reference *:operator 1.2:number',
+    expect(roles('  curve = heating')).toBe('curve:parameter =:operator heating:word');
+  });
+
+  it('classifies a line by what follows its first name: a connection, its ports, its pipe', () => {
+    expect(roles('  HX1.secondary.out - TV1    30 m  DN32')).toBe(
+      'HX1:name .:operator secondary:port .:operator out:port -:operator TV1:name 30:number m:unit DN32:word',
+    );
+    expect(roles('  HX1 - NPR   8 m   roughness = 0.05 mm')).toBe(
+      'HX1:name -:operator NPR:name 8:number m:unit roughness:parameter =:operator 0.05:number mm:unit',
     );
   });
 
-  it('keeps a comment to the end of the line, and a keyword in kind position is a kind', () => {
-    expect(roles('circuit loop # the name')).toBe(
-      'circuit:keyword loop:declaration # the name:comment',
+  it('reads a block by indentation: a declaration block, a curve, a run and its events', () => {
+    const state = initialState();
+    expect(roles('circuit "C":', state)).toBe('circuit:keyword "C":string ::operator');
+    expect(roles('  TC1 controller:', state)).toBe('TC1:declaration controller:kind ::operator');
+    expect(roles('    band = swing', state)).toBe('band:parameter =:operator swing:word');
+    expect(state.blocks.map((b) => b.kind)).toEqual(['circuit', 'declaration']);
+    expect(state.blocks[1]).toMatchObject({ name: 'TC1', writtenKind: 'controller' });
+
+    expect(roles('curve heat_demand: outdoor extrapolated', state)).toBe(
+      'curve:keyword heat_demand:declaration ::operator outdoor:word extrapolated:keyword',
     );
-    expect(roles('S1 inlet t=5')).toBe('S1:declaration inlet:kind t:parameter =:operator 5:number');
+    expect(roles('  -26   150', state)).toBe('-:operator 26:number 150:number');
+
+    tokenizeLine('run "Cold":', state);
+    expect(roles('  at 10 min  RAD.power = 100 kW', state)).toBe(
+      'at:keyword 10:number min:unit RAD:parameter .:operator power:parameter =:operator 100:number kW:unit',
+    );
+    expect(state.blocks.map((b) => b.kind)).toEqual(['run']);
+  });
+
+  it('reads a value: a function, a property through a dot', () => {
+    expect(roles('let swing = max(rise, 15 K) * HX1.dp')).toBe(
+      'let:keyword swing:declaration =:operator max:function (:operator rise:word ,:operator 15:number K:unit ):operator *:operator HX1:word .:operator dp:reference',
+    );
   });
 });
 
 describe('the tokenizer agrees with the lexer', () => {
   // 52's acceptance: the two grammars agree on token classification over the whole sample corpus.
   // Core writes each sample's tokens (TokenGoldenTests); the same files are read here.
-  //
-  // Expected to fail until P6.11 package 8 (U-11): the samples are language 2 since package 7, and this
-  // tokenizer is still language 1's. `fails` turns red the day they agree, so the marker cannot outlive it.
   const files = readdirSync(goldens).filter((f) => f.endsWith('.tokens'));
   expect(files.length).toBeGreaterThan(0);
 
-  it.fails.each(files)('%s', (file) => {
+  it.each(files)('%s', (file) => {
     const script = readFileSync(join(samples, file.replace(/\.tokens$/, '.fluid')), 'utf8');
     const expected = readFileSync(join(goldens, file), 'utf8').trim().split('\n');
     const actual: string[] = [];

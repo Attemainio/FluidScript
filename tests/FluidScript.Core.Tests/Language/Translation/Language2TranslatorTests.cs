@@ -990,7 +990,7 @@ public sealed class Language2TranslatorTests
                 td   = 30 s
             """), "FS1808");
 
-        Assert.Equal("'TC1' is a PI controller, which has no 'td'. A PI controller takes: type, moves, reads, setpoint, output, action, band, kp, ti.", diagnostic.Message);
+        Assert.Equal("'TC1' is a PI controller, which has no 'td'. A PI controller takes: type, moves, reads, setpoint, band, kp, ti, output, action.", diagnostic.Message);
     }
 
     [Fact]

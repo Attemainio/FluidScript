@@ -7,7 +7,7 @@ Every part of the script language, one page each. Start with the
 
 | Page | What it covers |
 |---|---|
-| [The shape of a line](syntax.md) | Comments, names, numbers and units, text, reserved words |
+| [The shape of a line](syntax.md) | Comments, names, numbers and units, text, statement words |
 
 ## Directives
 
@@ -29,6 +29,7 @@ Every part of the script language, one page each. Start with the
 |---|---|
 | [`connections`](connections.md) | A circuit's topology |
 | [`schedule`](schedule.md) | What changes, and when, during a run |
+| [`run`](run.md) | What happens to the plant in time: where it starts, its overrides and its events |
 | [`inlet` and `outlet`](inlet-outlet.md) | Where fluid enters and leaves the model, and where a subcircuit joins its parent |
 | [`control`](control.md) | Which controller drives what, measuring what |
 

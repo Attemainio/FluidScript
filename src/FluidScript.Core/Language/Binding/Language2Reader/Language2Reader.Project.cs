@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
@@ -12,7 +13,6 @@ namespace FluidScript.Core.Language.Binding;
 
 internal sealed partial class Language2Reader
 {
-    private const string ProjectSettings = "cases, catalog, show, scale, spacing, style";
 
     /// <summary>Reads the project block: its title, cases, catalogue and presentation (<c>19</c> §The project block, §Presentation).</summary>
     /// <remarks>
@@ -22,7 +22,8 @@ internal sealed partial class Language2Reader
     private void ReadProject(BlockSyntax block)
     {
         var head = (ProjectHeadSyntax)block.Head;
-        _reading.Projects.Add(Title(head.Title, head.Keyword, "project").Text);
+        // The title is the quoted string, or nothing: a project the script does not name has no name (`L-85`).
+        _reading.Projects.Add(head.Title is { Kind: TokenKind.StringLiteral } title ? title.StringValue : null);
 
         var shows = new List<(int At, ImmutableArray<IdentifierSyntax> Names)>();
         var styles = new List<ImmutableArray<StyleTokenSyntax>>();
@@ -58,7 +59,7 @@ internal sealed partial class Language2Reader
                         }
                         else
                         {
-                            Unknown("project", setting, ProjectSettings);
+                            Unknown("project", setting, SettingRegistry.Listed(SettingRegistry.Project));
                         }
                     }
 
@@ -124,11 +125,11 @@ internal sealed partial class Language2Reader
     private static ImmutableArray<StyleTokenSyntax>? Merged(List<ImmutableArray<StyleTokenSyntax>> styles) =>
         styles.Count == 0 ? null : [.. styles.SelectMany(static style => style)];
 
-    /// <summary>A title as the name language 1 gives the project or a circuit: the quoted text, or a name made up where none is written.</summary>
+    /// <summary>A circuit's title as its name in the model: the quoted text, or <c>circuit 1</c>, <c>circuit 2</c>, … where none is written (<c>19</c>).</summary>
     private IdentifierSyntax Title(Token? title, Token keyword, string fallback) =>
         title is { Kind: TokenKind.StringLiteral }
             ? Identifier(title.StringValue ?? string.Empty, title.Span)
-            : Identifier(fallback == "project" ? fallback : $"{fallback} {++_untitled}", keyword.Span);
+            : Identifier($"{fallback} {++_untitled}", keyword.Span);
 
     private void Cases(ParameterSyntax setting)
     {
@@ -290,7 +291,7 @@ internal sealed partial class Language2Reader
                 : new StyleTokenSyntax(StyleTokenKind.Pattern, [Made(TokenKind.Minus, pattern, token!.Span)]);
         }
 
-        Unknown("style", setting, "colour, width, corner, line");
+        Unknown("style", setting, SettingRegistry.Listed(SettingRegistry.Style));
         return null;
     }
 

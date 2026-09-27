@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 /** The lexicon the Api commits (`LexiconWire`, `52` invariants 2 and 5). */
 export interface Lexicon {
-  readonly reservedWords: readonly string[];
+  readonly statementWords: readonly string[];
+  readonly eventWords: readonly string[];
   readonly unitSymbols: readonly string[];
   readonly resolveThreshold: number;
   readonly ambiguityMargin: number;
@@ -23,17 +24,22 @@ export function renderLexicon(): string {
   return [
     '/* Generated from src/FluidScript.Api/Contracts/Schemas/language.json by npm run types. Do not edit. */',
     '',
-    "/** Every reserved word, in `12`'s order. */",
-    'export const reservedWords: readonly string[] = [',
-    list(lexicon.reservedWords),
+    "/** The words that open a statement at a line's start, in `19`'s order; the lexer reserves none. */",
+    'export const statementWords: readonly string[] = [',
+    list(lexicon.statementWords),
     '];',
     '',
-    '/** Every accepted unit spelling, longest first, as the lexer probes them (maximal munch). */',
+    '/** The words that open an event, inside a run only. */',
+    'export const eventWords: readonly string[] = [',
+    list(lexicon.eventWords),
+    '];',
+    '',
+    '/** Every unit spelling a script may write after a number, longest first, as the lexer probes them (maximal munch). */',
     'export const unitSymbols: readonly string[] = [',
     list(lexicon.unitSymbols),
     '];',
     '',
-    '/** The similarity a written kind or parameter must reach to resolve (`D-15`). */',
+    '/** The similarity at which a misspelled kind or parameter is offered as the fix (`D-15`; since `D-170` it never binds). */',
     `export const resolveThreshold = ${lexicon.resolveThreshold};`,
     '',
     '/** How far clear of the runner-up a match must be, or both are reported. */',

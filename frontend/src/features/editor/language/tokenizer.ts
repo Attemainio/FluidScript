@@ -1,4 +1,4 @@
-import { reservedWords, unitSymbols } from './lexicon.generated.ts';
+import { eventWords, statementWords, unitSymbols } from './lexicon.generated.ts';
 
 /**
  * A token's role, the thing the highlighter colours (`52`'s table). The lexical kinds mirror Core's
@@ -29,10 +29,10 @@ export interface LineToken {
   readonly role: TokenRole;
   /** The lexical kind as Core's lexer names it, for the agreement test. */
   readonly kind:
-    | 'Keyword'
     | 'Identifier'
     | 'NumberLiteral'
     | 'QuantityLiteral'
+    | 'DateLiteral'
     | 'StringLiteral'
     | 'Comment'
     | 'Punctuation'
@@ -40,15 +40,28 @@ export interface LineToken {
   readonly text: string;
 }
 
-/** The section a line is in (`12` Sections): what the first token of a non-directive line means. */
-export type Section = 'declarations' | 'connections' | 'schedule' | 'curve';
+/** A block a line may sit in (`19` §Lines, blocks and names): what its head opened. */
+export type BlockKind = 'project' | 'circuit' | 'run' | 'style' | 'declaration' | 'curve';
 
-/** The state carried from line to line: the section, which is all the grammar needs (`12` invariant: one line, one statement). */
-export interface TokenizerState {
-  section: Section;
+/** An open block: its kind, how deep its head is indented, and for a declaration its name and written kind. */
+export interface OpenBlock {
+  readonly kind: BlockKind;
+  readonly indent: number;
+  readonly name?: string;
+  readonly writtenKind?: string;
 }
 
-const reserved: ReadonlySet<string> = new Set(reservedWords);
+/**
+ * The state carried from line to line: the blocks open at the end of the last line read. A block
+ * holds every following line indented deeper than its head (`19`), so the stack is all the grammar
+ * needs; blank and comment lines leave it alone.
+ */
+export interface TokenizerState {
+  blocks: OpenBlock[];
+}
+
+const statements: ReadonlySet<string> = new Set(statementWords);
+const events: ReadonlySet<string> = new Set(eventWords);
 const units: ReadonlySet<string> = new Set(unitSymbols);
 const longestUnit = unitSymbols.reduce((max, s) => Math.max(max, s.length), 0);
 const functions: ReadonlySet<string> = new Set(['min', 'max', 'sqrt', 'abs', 'clamp']);
@@ -58,35 +71,85 @@ const isLetter = (c: string): boolean => (c >= 'a' && c <= 'z') || (c >= 'A' && 
 const isWordStart = (c: string): boolean => isLetter(c) || c === '_';
 const isWordChar = (c: string): boolean => isWordStart(c) || isDigit(c);
 
-/** The state a document starts in. */
+/** The state a document starts in: no block open. */
 export function initialState(): TokenizerState {
-  return { section: 'declarations' };
+  return { blocks: [] };
+}
+
+/** A copy of a state that the next line may change without changing this one. */
+export function copyState(state: TokenizerState): TokenizerState {
+  return { blocks: [...state.blocks] };
+}
+
+/** The block a line indented `indent` deep sits in, after closing every block it is not deeper than. */
+export function enclosing(state: TokenizerState, indent: number): OpenBlock | null {
+  while (state.blocks.length > 0 && (state.blocks[state.blocks.length - 1]?.indent ?? 0) >= indent) {
+    state.blocks.pop();
+  }
+  return state.blocks[state.blocks.length - 1] ?? null;
+}
+
+/** How deep a line is indented, in characters, as Core counts it (`19`). */
+export function indentOf(line: string): number {
+  let i = 0;
+  while (i < line.length && (line.charAt(i) === ' ' || line.charAt(i) === '\t')) {
+    i++;
+  }
+  return i;
 }
 
 /**
- * Tokenizes one line, mirroring Core's `Lexer` rule for rule (`12` word classification 1--5, the
- * dot rule, maximal munch on the unit table) and then assigning roles by position (`12` statement
- * disambiguation: a reserved first word is that word's statement; otherwise `-` or `.` in second
- * place makes a connection, else a declaration). Updates the section when a header is seen.
+ * Tokenizes one line, mirroring Core's `Lexer` rule for rule (maximal munch on the unit table, `3WV`
+ * as a name, `30 kW` as one quantity, a date as one token, no reserved words) and then assigning
+ * roles the way `LineParser.ClassifyLanguage2` reads a line: a statement word at the start names its
+ * statement; otherwise the qualified name the line starts with is followed by `=` for a setting, `-`
+ * for a connection, and anything else for a declaration. Updates the open blocks.
  */
 export function tokenizeLine(line: string, state: TokenizerState): LineToken[] {
-  const lexical = lexLine(line);
-  const tokens = assignRoles(lexical, state);
-
-  const first = tokens.find((t) => t.kind !== 'Comment');
-  if (first?.kind === 'Keyword') {
-    if (first.text === 'connections') {
-      state.section = 'connections';
-    } else if (first.text === 'schedule') {
-      state.section = 'schedule';
-    } else if (first.text === 'curve') {
-      state.section = 'curve';
-    } else if (first.text === 'circuit') {
-      state.section = 'declarations';
-    }
+  const lexed = lexLine(line);
+  const significant = lexed.filter((t) => t.kind !== 'Comment');
+  if (significant.length === 0) {
+    return lexed.map((t) => ({ ...t, role: 'comment' as const }));
   }
 
-  return tokens;
+  const indent = indentOf(line);
+  const block = enclosing(state, indent);
+  const reading = classify(significant, block);
+  const roles = assignRoles(significant, reading);
+  if (reading.opens !== null) {
+    state.blocks.push({ ...reading.opens, indent });
+  }
+
+  const out: LineToken[] = [];
+  let index = 0;
+  for (const token of lexed) {
+    if (token.kind === 'Comment') {
+      out.push({ ...token, role: 'comment' });
+      continue;
+    }
+    const role = roles[index++] ?? 'word';
+    if (token.kind === 'QuantityLiteral') {
+      const unitFrom = token.unitFrom ?? token.to;
+      const numberTo = token.numberTo ?? unitFrom;
+      out.push({
+        from: token.from,
+        to: numberTo,
+        role: 'number',
+        kind: 'QuantityLiteral',
+        text: token.text.slice(0, numberTo - token.from),
+      });
+      out.push({
+        from: unitFrom,
+        to: token.to,
+        role: 'unit',
+        kind: 'QuantityLiteral',
+        text: token.text.slice(unitFrom - token.from),
+      });
+      continue;
+    }
+    out.push({ from: token.from, to: token.to, role, kind: token.kind, text: token.text });
+  }
+  return out;
 }
 
 /** A lexical token as Core's lexer would cut it, before any role is assigned. */
@@ -107,6 +170,52 @@ export function lexLine(line: string): Lexed[] {
   let i = 0;
   const n = line.length;
   const at = (k: number): string => (k < n ? line.charAt(k) : '');
+  const digits = (k: number, count: number): boolean => {
+    if (k + count > n) {
+      return false;
+    }
+    for (let j = k; j < k + count; j++) {
+      if (!isDigit(at(j))) {
+        return false;
+      }
+    }
+    return true;
+  };
+  const clockEnd = (k: number): number => {
+    if (!(digits(k, 2) && at(k + 2) === ':' && digits(k + 3, 2))) {
+      return 0;
+    }
+    const end = k + 5;
+    return at(end) === ':' && digits(end + 1, 2) ? end + 3 : end;
+  };
+  // `Lexer.ScanDate`: yyyy-MM-dd with an optional clock time after spaces or a `T`, or a clock time alone;
+  // neither may run on into a word character.
+  const dateEnd = (k: number): number => {
+    if (digits(k, 4) && at(k + 4) === '-' && digits(k + 5, 2) && at(k + 7) === '-' && digits(k + 8, 2)) {
+      let position = k + 10;
+      let time = position;
+      if (at(time) === 'T') {
+        time++;
+      } else {
+        while (time < n && (at(time) === ' ' || at(time) === '\t')) {
+          time++;
+        }
+      }
+      const clock = time > position ? clockEnd(time) : 0;
+      if (clock > 0) {
+        position = clock;
+      }
+      return position < n && isWordChar(at(position)) ? 0 : position;
+    }
+    const end = clockEnd(k);
+    return end > 0 && !(end < n && isWordChar(at(end))) ? end : 0;
+  };
+  const equalsAfterSpaces = (k: number): boolean => {
+    while (k < n && (at(k) === ' ' || at(k) === '\t')) {
+      k++;
+    }
+    return at(k) === '=';
+  };
 
   const matchUnit = (start: number, rejectBeforeEquals: boolean): number => {
     const available = Math.min(longestUnit, n - start);
@@ -115,12 +224,15 @@ export function lexLine(line: string): Lexed[] {
       if (end < n && isWordChar(at(end))) {
         continue;
       }
-      // Rule 5's clause, extended by D-120 to a port's state: `30 in.t=` and `30 in[2]` are a
-      // number and a parameter name, not thirty inches.
+      // Rule 5's clause, looking past spaces since language 2 lets `=` stand apart (`19`): `flow = 5 h = 2000`
+      // is five and a parameter named h; `30 in.t=` and `30 in[2]` are a number and a name.
       if (
         rejectBeforeEquals &&
         end < n &&
-        (at(end) === '=' || at(end) === '[' || (at(end) === '.' && isWordStart(at(end + 1))))
+        (at(end) === '=' ||
+          at(end) === '[' ||
+          (at(end) === '.' && isWordStart(at(end + 1))) ||
+          equalsAfterSpaces(end))
       ) {
         continue;
       }
@@ -134,7 +246,8 @@ export function lexLine(line: string): Lexed[] {
   while (i < n) {
     const c = at(i);
 
-    if (c === ' ' || c === '\t') {
+    // A byte-order mark opens a file saved by some Windows editors; it is whitespace (`18`).
+    if (c === ' ' || c === '\t' || (c === '﻿' && i === 0)) {
       i++;
       continue;
     }
@@ -157,6 +270,13 @@ export function lexLine(line: string): Lexed[] {
 
     if (isDigit(c)) {
       const start = i;
+      const date = dateEnd(i);
+      if (date > 0) {
+        out.push({ from: start, to: date, kind: 'DateLiteral', text: line.slice(start, date) });
+        i = date;
+        continue;
+      }
+
       // The number body: digits, a '.' only when a digit follows it, an exponent only with digits.
       while (i < n && isDigit(at(i))) {
         i++;
@@ -234,8 +354,8 @@ export function lexLine(line: string): Lexed[] {
       while (i < n && isWordChar(at(i))) {
         i++;
       }
-      const text = line.slice(start, i);
-      out.push({ from: start, to: i, kind: reserved.has(text) ? 'Keyword' : 'Identifier', text });
+      // The lexer reserves nothing (`19`): a statement word is known by where it stands.
+      out.push({ from: start, to: i, kind: 'Identifier', text: line.slice(start, i) });
       continue;
     }
 
@@ -257,138 +377,134 @@ export function lexLine(line: string): Lexed[] {
   return out;
 }
 
-function assignRoles(lexed: readonly Lexed[], state: TokenizerState): LineToken[] {
-  const out: LineToken[] = [];
-  const significant = lexed.filter((t) => t.kind !== 'Comment');
-  const first = significant[0];
-  const second = significant[1];
+// ---- lines ------------------------------------------------------------------------------------------
 
-  const directive = first?.kind === 'Keyword';
-  const parameterNames = parameterNameTokens(significant);
-  const connection =
-    !directive &&
-    state.section !== 'schedule' &&
-    second?.kind === 'Punctuation' &&
-    (second.text === '-' || second.text === '.');
-  const declaration =
-    !directive && !connection && state.section !== 'schedule' && state.section !== 'curve';
+/** What a line is (`19` §Statements), read from its tokens and the block it sits in. */
+export type LineKind =
+  | 'version'
+  | 'head'
+  | 'let'
+  | 'curve-head'
+  | 'style-head'
+  | 'event'
+  | 'row'
+  | 'setting'
+  | 'connection'
+  | 'declaration';
 
-  let index = 0;
-  for (const token of lexed) {
-    if (token.kind === 'Comment') {
-      out.push({ ...token, role: 'comment' });
+/** A line's reading: what it is, and the block it opens, if any. */
+export interface LineReading {
+  readonly kind: LineKind;
+  readonly opens: Omit<OpenBlock, 'indent'> | null;
+}
+
+const isPunct = (token: Lexed | undefined, text: string): boolean =>
+  token?.kind === 'Punctuation' && token.text === text;
+
+/** Where the qualified name starting at `start` ends: `HX1.secondary.in`, `in[2].t`. */
+export function qualifiedEnd(tokens: readonly Lexed[], start: number): number {
+  let k = start;
+  if (tokens[k]?.kind !== 'Identifier') {
+    return k;
+  }
+  k++;
+  for (;;) {
+    if (isPunct(tokens[k], '[') && tokens[k + 1]?.kind === 'NumberLiteral' && isPunct(tokens[k + 2], ']')) {
+      k += 3;
       continue;
     }
-
-    const previous = significant[index - 1];
-    const next = significant[index + 1];
-    index++;
-
-    let role: TokenRole;
-    switch (token.kind) {
-      case 'Keyword':
-        // A reserved word may stand in kind position (D-64): `S1 inlet t=5` declares a kind spelled with a keyword.
-        role = declaration && index === 2 ? 'kind' : 'keyword';
-        break;
-      case 'NumberLiteral':
-        role = 'number';
-        break;
-      case 'QuantityLiteral': {
-        const unitFrom = token.unitFrom ?? token.to;
-        const numberTo = token.numberTo ?? unitFrom;
-        out.push({
-          from: token.from,
-          to: numberTo,
-          role: 'number',
-          kind: 'QuantityLiteral',
-          text: token.text.slice(0, numberTo - token.from),
-        });
-        out.push({
-          from: unitFrom,
-          to: token.to,
-          role: 'unit',
-          kind: 'QuantityLiteral',
-          text: token.text.slice(unitFrom - token.from),
-        });
-        continue;
-      }
-      case 'StringLiteral':
-        role = 'string';
-        break;
-      case 'Punctuation':
-        role = 'operator';
-        break;
-      case 'Unknown':
-        role = 'unknown';
-        break;
-      case 'Identifier': {
-        const inName = parameterNames.has(index - 1);
-        const afterDot = previous?.kind === 'Punctuation' && previous.text === '.';
-        const beforeEquals = next?.kind === 'Punctuation' && next.text === '=';
-        const beforeParen = next?.kind === 'Punctuation' && next.text === '(';
-        const named =
-          directive &&
-          index === 2 &&
-          (first?.text === 'let' || first?.text === 'circuit' || first?.text === 'project');
-        if (inName) {
-          // Every word of `in[2].t=` is the parameter's name (D-120), the port included.
-          role = 'parameter';
-        } else if (afterDot) {
-          role = connection ? 'port' : 'reference';
-        } else if (named) {
-          role = 'declaration';
-        } else if (beforeEquals) {
-          role = 'parameter';
-        } else if (beforeParen && functions.has(token.text)) {
-          role = 'function';
-        } else if (declaration && index === 1) {
-          role = 'declaration';
-        } else if (declaration && index === 2) {
-          role = 'kind';
-        } else if (
-          connection ||
-          (directive &&
-            (first?.text === 'inlet' || first?.text === 'outlet' || first?.text === 'control'))
-        ) {
-          role = 'name';
-        } else {
-          role = 'word';
-        }
-        break;
-      }
+    if (isPunct(tokens[k], '.') && tokens[k + 1]?.kind === 'Identifier') {
+      k += 2;
+      continue;
     }
+    return k;
+  }
+}
 
-    out.push({ from: token.from, to: token.to, role, kind: token.kind, text: token.text });
+/** Reads a line as `LineParser.ClassifyLanguage2` does, given the block it sits in. */
+export function classify(tokens: readonly Lexed[], block: OpenBlock | null): LineReading {
+  const first = tokens[0];
+  const second = tokens[1];
+  const none = (kind: LineKind): LineReading => ({ kind, opens: null });
+
+  if (block?.kind === 'curve') {
+    return none('row');
+  }
+  if (first === undefined) {
+    return none('setting');
+  }
+  if (
+    first.kind === 'NumberLiteral' ||
+    first.kind === 'DateLiteral' ||
+    (first.kind === 'QuantityLiteral' && second?.kind !== 'Identifier') ||
+    isPunct(first, '-')
+  ) {
+    return none('row');
   }
 
-  return out;
+  if (first.kind === 'Identifier' && statements.has(first.text) && !isPunct(second, '=')) {
+    switch (first.text) {
+      case 'fluidscript':
+        return none('version');
+      case 'project':
+      case 'circuit':
+      case 'run':
+        return { kind: 'head', opens: { kind: first.text } };
+      case 'let':
+        return none('let');
+      case 'curve':
+        return { kind: 'curve-head', opens: { kind: 'curve' } };
+    }
+  }
+  if (first.kind === 'Identifier' && first.text === 'style' && (second === undefined || isPunct(second, ':'))) {
+    return { kind: 'style-head', opens: { kind: 'style' } };
+  }
+  if (first.kind === 'Identifier' && events.has(first.text) && block?.kind === 'run' && second !== undefined) {
+    return none('event');
+  }
+
+  const after = tokens[qualifiedEnd(tokens, 0)];
+  if (isPunct(after, '=')) {
+    return none('setting');
+  }
+  if (isPunct(after, '-')) {
+    return none('connection');
+  }
+  const last = tokens[tokens.length - 1];
+  const opens =
+    isPunct(last, ':') && first.kind === 'Identifier'
+      ? {
+          kind: 'declaration' as const,
+          name: first.text,
+          ...(second?.kind === 'Identifier' ? { writtenKind: second.text } : {}),
+        }
+      : null;
+  return { kind: 'declaration', opens };
 }
 
 /**
- * The indices (into the significant tokens) of every identifier that is part of a name before `=`:
- * `power` in `power=30`, and `in` and `t` in `in.t=20` or `in[2].t=85`. The name is whatever runs
- * back from the `=` without a gap, over words, dots, brackets and the index between them -- the
- * same adjacency the parser demands (`12`, D-120).
+ * The indices of every identifier that is part of a name before `=`: `power` in `power = 30`, and
+ * `primary`, `in` and `t` in `primary.in.t = 45 C`. The name is whatever runs back from the `=`,
+ * spaces allowed before it, over words, dots, brackets and the index between them, which themselves
+ * touch -- the adjacency the parser demands (`12`, `D-120`).
  */
-function parameterNameTokens(significant: readonly Lexed[]): Set<number> {
+export function parameterNameTokens(tokens: readonly Lexed[]): Set<number> {
   const names = new Set<number>();
-  for (let k = 0; k < significant.length; k++) {
-    const token = significant[k];
-    if (token?.kind !== 'Punctuation' || token.text !== '=') {
+  for (let k = 0; k < tokens.length; k++) {
+    if (!isPunct(tokens[k], '=')) {
       continue;
     }
-    let end = token.from;
+    let end: number | null = null;
     for (let j = k - 1; j >= 0; j--) {
-      const part = significant[j];
-      if (part === undefined || part.to !== end) {
+      const part = tokens[j];
+      if (part === undefined || (end !== null && part.to !== end)) {
         break;
       }
       const joins =
         part.kind === 'Identifier' ||
-        part.kind === 'NumberLiteral' ||
-        (part.kind === 'Punctuation' &&
-          (part.text === '.' || part.text === '[' || part.text === ']'));
-      if (!joins) {
+        (end !== null && part.kind === 'NumberLiteral') ||
+        (part.kind === 'Punctuation' && (part.text === '.' || part.text === '[' || part.text === ']'));
+      if (!joins || (end === null && part.kind === 'Punctuation' && part.text !== ']')) {
         break;
       }
       if (part.kind === 'Identifier') {
@@ -398,4 +514,79 @@ function parameterNameTokens(significant: readonly Lexed[]): Set<number> {
     }
   }
   return names;
+}
+
+function assignRoles(tokens: readonly Lexed[], reading: LineReading): TokenRole[] {
+  const names = parameterNameTokens(tokens);
+  const roles: TokenRole[] = [];
+
+  // A value's words: a function before its parenthesis, a property after a dot, a name otherwise.
+  const valueRole = (k: number): TokenRole => {
+    const previous = tokens[k - 1];
+    const next = tokens[k + 1];
+    if (isPunct(next, '(') && functions.has(tokens[k]?.text ?? '')) {
+      return 'function';
+    }
+    return isPunct(previous, '.') ? 'reference' : 'word';
+  };
+
+  // Where a connection's chain ends: the pipe's length, DN and settings follow it (`19` §Connections).
+  let chainEnd = -1;
+  if (reading.kind === 'connection') {
+    let k = qualifiedEnd(tokens, 0);
+    while (isPunct(tokens[k], '-') && tokens[k + 1]?.kind === 'Identifier') {
+      k = qualifiedEnd(tokens, k + 1);
+    }
+    chainEnd = k;
+  }
+
+  for (let k = 0; k < tokens.length; k++) {
+    const token = tokens[k]!;
+    const previous = tokens[k - 1];
+    let role: TokenRole;
+
+    switch (token.kind) {
+      case 'NumberLiteral':
+      case 'QuantityLiteral':
+      case 'DateLiteral':
+        role = 'number';
+        break;
+      case 'StringLiteral':
+        role = 'string';
+        break;
+      case 'Punctuation':
+        role = 'operator';
+        break;
+      case 'Unknown':
+        role = 'unknown';
+        break;
+      case 'Comment':
+        role = 'comment';
+        break;
+      case 'Identifier':
+        if (k === 1 && (reading.kind === 'let' || reading.kind === 'curve-head')) {
+          role = 'declaration';
+        } else if (names.has(k)) {
+          // Every word of `primary.in.t =` is the setting's name (D-120).
+          role = 'parameter';
+        } else if (k === 0 && reading.kind !== 'setting' && reading.kind !== 'connection' && reading.kind !== 'declaration') {
+          role = 'keyword';
+        } else if (reading.kind === 'curve-head' && k > 1 && !isPunct(previous, ':') && !isPunct(tokens[k + 1], '=')) {
+          role = 'keyword';
+        } else if (reading.kind === 'declaration' && k === 0) {
+          role = 'declaration';
+        } else if (reading.kind === 'declaration' && k === 1) {
+          role = 'kind';
+        } else if (reading.kind === 'connection' && k < chainEnd) {
+          role = isPunct(previous, '.') ? 'port' : 'name';
+        } else if (reading.kind === 'event' && isPunct(tokens[k + 1], '.') && !names.has(k)) {
+          role = 'name';
+        } else {
+          role = valueRole(k);
+        }
+        break;
+    }
+    roles.push(role);
+  }
+  return roles;
 }

@@ -1093,6 +1093,18 @@ export interface Metadata {
    */
   kinds: Kind[];
   /**
+   * The words that open a statement at a line's start (19); none is reserved by the lexer.
+   */
+  statementWords: string[];
+  /**
+   * The words that open an event inside a run: a step and a ramp.
+   */
+  eventWords: string[];
+  /**
+   * Each block and the settings it takes: the project, a circuit, a run, a style and a controller (19, since contract 3.1).
+   */
+  blocks: SettingBlock[];
+  /**
    * Every dimension a parameter or property can have, with its units.
    */
   dimensions: Dimension[];
@@ -1375,6 +1387,48 @@ export interface IndexedProperty {
    * What each member of the family is.
    */
   element: PropertyMeta;
+}
+
+export interface SettingBlock {
+  /**
+   * project, circuit, run, style or controller.
+   */
+  name: string;
+  /**
+   * Its settings, in 19's order. A run takes any other name = as an override; a controller's replace the kind's registry parameters.
+   */
+  settings: Setting[];
+}
+
+export interface Setting {
+  /**
+   * The setting as a script writes it before its =.
+   */
+  name: string;
+  /**
+   * Other spellings the reader accepts: color for colour.
+   */
+  aliases: string[];
+  /**
+   * What the setting says, in 19's words.
+   */
+  meaning: string;
+  /**
+   * What its value is: quantity, word, substance, circuitRole, catalog, case, names, circuits, date, range, colour, block, actuator, measurement, value or curve.
+   */
+  valueKind: string;
+  /**
+   * The dimension of a quantity with one fixed dimension, an entry in Dimensions; otherwise null.
+   */
+  dimension: string | null;
+  /**
+   * The words the value is one of, when that set is closed and known to the build: a word's values, the substances, the circuit roles, and each catalogue as id@version. Empty when the value is not chosen from a list, or the list is the script's own (its cases, its circuits, its components).
+   */
+  values: string[];
+  /**
+   * The controller types that take the setting; empty when every type does.
+   */
+  types: string[];
 }
 
 export interface Dimension {

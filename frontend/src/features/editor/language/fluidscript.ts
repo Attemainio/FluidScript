@@ -7,6 +7,7 @@ import {
 import { Tag, tags } from '@lezer/highlight';
 
 import {
+  copyState,
   initialState,
   tokenizeLine,
   type LineToken,
@@ -43,13 +44,13 @@ interface StreamState {
 
 /**
  * The FluidScript language for CodeMirror: `52`'s highlighter as a stream language over
- * `tokenizeLine`. The language is line-granular, so a stream tokenizer with the section as its
+ * `tokenizeLine`. The language is line-granular, so a stream tokenizer with the open blocks as its
  * only state is the incremental parse; nothing here waits on the network (`52` invariant 2).
  */
 export const fluidscriptLanguage = StreamLanguage.define<StreamState>({
   name: 'fluidscript',
   startState: () => ({ tokenizer: initialState(), line: null }),
-  copyState: (state) => ({ tokenizer: { ...state.tokenizer }, line: state.line }),
+  copyState: (state) => ({ tokenizer: copyState(state.tokenizer), line: state.line }),
   token(stream: StringStream, state: StreamState): string | null {
     if (stream.sol()) {
       state.line = tokenizeLine(stream.string, state.tokenizer);

@@ -1,4 +1,5 @@
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
@@ -212,8 +213,8 @@ public sealed class LexerTests
     public void NoWordLexesAsAKeyword()
     {
         // Language 2 reserves its statement words by position, in the parser (`19`): the lexer reads every
-        // word as a name, language 1's reserved words included.
-        foreach (var word in ReservedWords.All)
+        // word as a name, the statement words included.
+        foreach (var word in SettingRegistry.StatementWords.Concat(SettingRegistry.EventWords))
         {
             Assert.Equal(TokenKind.Identifier, Only(word).Kind);
         }
@@ -341,9 +342,8 @@ public sealed class LexerTests
         var tour = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
         var kinds = Lexer.Lex(new SourceText(tour.Text)).Tokens.Select(static token => token.Kind).ToHashSet();
 
-        // The lexer reserves no word, so it never produces a keyword (package 8 retires the kind with the lexicon).
         var missing = Enum.GetValues<TokenKind>()
-            .Where(kind => kind is not (TokenKind.Unknown or TokenKind.Keyword) && !kinds.Contains(kind))
+            .Where(kind => kind is not TokenKind.Unknown && !kinds.Contains(kind))
             .ToArray();
 
         Assert.True(missing.Length == 0, $"The tour never produces: {string.Join(", ", missing)}");
