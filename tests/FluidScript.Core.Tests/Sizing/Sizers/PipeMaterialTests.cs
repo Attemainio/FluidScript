@@ -44,6 +44,41 @@ public sealed class PipeMaterialTests
         Assert.Equal("copper_en1057", Assert.IsType<PipeComponent>(lowered.Graph.Components.Single(static c => c.Name == "P2")).Material);
     }
 
+    /// <summary>A pipe is solved with its own series' roughness, the one it was sized with (<c>C-142</c>).</summary>
+    /// <remarks>
+    /// Before, the bore came from the series and the roughness from the pipe kind's single default, 0.045 mm
+    /// "commercial steel": a copper run was sized at copper's 0.0015 mm and then solved at steel's.
+    /// </remarks>
+    [Fact]
+    public void AnUnstatedRoughnessIsTheSeriesRoughness()
+    {
+        var lowered = GraphFixture.Lower(
+            """
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+
+              HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+              LOAD  heat_exchanger  power = -30  dp = 0
+              PU1  pump
+              P1  pipe  dn = 15  length = 10
+              P2  pipe  dn = 15  length = 10  material = copper_en1057
+              P3  pipe  dn = 15  length = 10  material = copper_en1057  roughness = 0.3 mm
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N5 - P2 - N6 - P3 - N1
+            """);
+
+        PipeComponent Pipe(string name) => Assert.IsType<PipeComponent>(lowered.Graph.Components.Single(c => c.Name == name));
+
+        Assert.Equal(SteelEn10255.Roughness, Pipe("P1").Roughness, 12);
+        Assert.Equal(CopperEn1057.RoughnessBasis.Value, Pipe("P2").Roughness, 12);
+        Assert.Equal(CopperEn1057.RoughnessBasis.Value, Pipe("P2").DefaultParameters["roughness"].SiValue, 12);
+
+        // A stated roughness is a constraint, whatever the series.
+        Assert.Equal(0.3e-3, Pipe("P3").Roughness, 12);
+        Assert.False(Pipe("P3").DefaultParameters.ContainsKey("roughness"));
+    }
+
     [Fact]
     public void ASizedCopperPipeIsChosenFromTheCopperSeries()
     {

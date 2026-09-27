@@ -376,11 +376,26 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
             return null;
         }
 
+        // An unstated roughness is the series' (`C-142`): the bore and the sizer's choice of DN both come from
+        // the series, and the kind's single default is steel's, so a copper run would be sized on copper and
+        // solved on steel.
+        var roughness = Value(symbol, kind, "roughness") ?? 0.045e-3;
+
+        if (!symbol.Parameters.ContainsKey("roughness") && bores.RoughnessFor(material) is { } ofSeries)
+        {
+            roughness = ofSeries;
+
+            if (defaults.TryGetValue("roughness", out var decidedRoughness))
+            {
+                defaults = defaults.SetItem("roughness", Quantity.FromSi(ofSeries, decidedRoughness.Dimension));
+            }
+        }
+
         return new PipeComponent(
             symbol.Name,
             metres,
             bore,
-            Value(symbol, kind, "roughness") ?? 0.045e-3,
+            roughness,
             Value(symbol, kind, "minor_loss") ?? 0)
         {
             Material = material,

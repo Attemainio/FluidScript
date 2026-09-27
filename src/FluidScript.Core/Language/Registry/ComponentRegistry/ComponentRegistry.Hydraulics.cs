@@ -123,7 +123,7 @@ public sealed partial class ComponentRegistry
                 DefaultBasis = "the script's `catalog` line when one is written; otherwise the shipped default, which this is",
                 DisplayPrecision = 0,
             },
-            Defaulted("roughness", Dimension.Length, 1e-6, 5e-3, "0.045 mm", "commercial steel", precision: 4),
+            Defaulted("roughness", Dimension.Length, 1e-6, 5e-3, "0.045 mm", "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)", precision: 4),
             Sized("nodes", Dimension.Dimensionless, 0, 100, precision: 0),
             // No `elevation` here, deliberately: a pipe is the one kind that spans two heights, so
             // its rise is z(out) - z(in) from what it connects, never a number of its own (D-70).

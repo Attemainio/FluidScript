@@ -179,14 +179,26 @@ public static partial class SolveExplanation
             }
 
             report.AppendLine(CultureInfo.InvariantCulture,
-                $"    [{hydraulic.Index}] sources {sourceTotal / 1000:+0.###;-0.###} kW"
+                $"    [{hydraulic.Index}] sources {Kilowatts(sourceTotal)} kW"
                 + $"{(sources.Count > 0 ? $" ({string.Join(", ", sources)})" : string.Empty)}, "
-                + $"loads {loadTotal / 1000:+0.###;-0.###} kW"
+                + $"loads {Kilowatts(loadTotal)} kW"
                 + $"{(loads.Count > 0 ? $" ({string.Join(", ", loads)})" : string.Empty)}, "
-                + $"boundary streams {crossing / 1000:+0.###;-0.###} kW"
+                + $"boundary streams {Kilowatts(crossing)} kW"
                 + $"{(streams.Count > 0 ? $" ({string.Join(", ", streams)})" : string.Empty)}"
-                + $" — net {(sourceTotal + loadTotal + crossing) / 1000:+0.###;-0.###} kW");
+                + $" — net {Kilowatts(sourceTotal + loadTotal + crossing)} kW");
         }
+    }
+
+    /// <summary>Watts as signed kilowatts to three decimals, with a balance that rounds to nothing printed <c>+0</c>.</summary>
+    /// <remarks>
+    /// Rounded before formatting: a two-section format applied to −0.0000004 kW rounds it to zero in the negative
+    /// section and prints <c>-+0</c>, which is what a closed balance on one side of zero looked like.
+    /// </remarks>
+    private static string Kilowatts(double watts)
+    {
+        var kilowatts = Math.Round(watts / 1000, 3);
+
+        return (kilowatts == 0 ? 0 : kilowatts).ToString("+0.###;-0.###", CultureInfo.InvariantCulture);
     }
 
     private static void OperatingPoints(

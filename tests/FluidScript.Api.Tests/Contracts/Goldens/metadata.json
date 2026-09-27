@@ -538,7 +538,7 @@
           "acceptedSymbols": [],
           "omission": "default",
           "default": "0.045 mm",
-          "defaultBasis": "commercial steel",
+          "defaultBasis": "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)",
           "usualRange": {
             "min": 1E-06,
             "max": 0.005

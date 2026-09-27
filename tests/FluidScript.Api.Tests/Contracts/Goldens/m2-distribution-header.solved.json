@@ -543,7 +543,7 @@
           "value": 4.5E-05,
           "unit": "m",
           "source": "default",
-          "basis": "commercial steel"
+          "basis": "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)"
         }
       },
       "state": {
@@ -625,7 +625,7 @@
           "value": 4.5E-05,
           "unit": "m",
           "source": "default",
-          "basis": "commercial steel"
+          "basis": "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)"
         }
       },
       "state": {
@@ -999,7 +999,7 @@
           "value": 4.5E-05,
           "unit": "m",
           "source": "default",
-          "basis": "commercial steel"
+          "basis": "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)"
         }
       },
       "state": {
@@ -1081,7 +1081,7 @@
           "value": 4.5E-05,
           "unit": "m",
           "source": "default",
-          "basis": "commercial steel"
+          "basis": "new pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper (`C-142`)"
         }
       },
       "state": {

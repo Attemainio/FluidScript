@@ -144,14 +144,18 @@ measured, and the setpoint. Lowering resolves each `ControlBindingSymbol`
 the `IController` instance of the controller it came from, before the first timestep.
 
 The direction is one-way and worth stating because the alternative is silently plausible: the binding
-is the source, the interface is the consequence, and nothing writes back. A controller with no
-binding is inert — it holds gains and drives nothing — which is `FS3208`, a warning rather than an
-error, because a half-written script is the normal editing state (`P4`).
+is the source, the interface is the consequence, and nothing writes back. A controller cannot exist
+without its binding: one missing `moves`, `reads` or `setpoint` is `FS1521`, an error on the declaration,
+and the half-written line is still bound as far as it goes (`P4`), so nothing else on the page fails with it.
 
-One declaration is one loop, and two bindings naming one controller would be `FS3209`: a single PI
-instance holds one integral term, so driving two actuators from it would couple them through shared state
-in a way nobody writes on purpose. Reusing a *tuning* across loops is the legitimate case behind that shape, and it is served by
-declaring two controllers with the same gains.
+One declaration is one loop, and there is no way to write a second binding for it: a single PI instance
+holds one integral term, so driving two actuators from it would couple them through shared state in a way
+nobody writes on purpose. Reusing a *tuning* across loops is the legitimate case behind that shape, and it
+is served by declaring two controllers with the same gains.
+
+`FS3208` (a controller with no binding) and `FS3209` (two bindings on one controller) were planned when a
+control line and a controller were separate statements. One declaration makes the first `FS1521` and the
+second unwritable, so neither was allocated (`S-90`, 2026-09-27); the numbers stay unused.
 
 **"Call exactly once per accepted timestep" is the invariant that adaptive stepping breaks.**
 [`33-transient-time-domain`](33-transient-time-domain.md)'s Heun method evaluates derivatives twice per
@@ -273,8 +277,6 @@ discrete-time nature.
 | `FS3205` | Actuator parameter is not settable | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS3206` | Process-gain estimation failed | Warning | `{name}: could not measure a process gain; using conservative defaults.` |
 | `FS3207` | Setpoint outside the measurement's plausible range | Warning | `{name}: a setpoint of {v} is outside the usual range for {dimension}.` |
-| `FS3208` | A declared controller has no binding: it moves or reads nothing | Warning | `{name}` drives nothing; give it 'moves' and 'reads'. |
-| `FS3209` | Two bindings name one controller | Error | `{name}` is used by {n} loops; a controller holds one integral term and drives one actuator. |
 | `FS3210` | The setpoint is not a constraint of the design solve: the actuator is stated, the node states its own temperature, or a neighbouring stated terminal already fixes it | Info | `{controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}.` |
 | `FS3211` | The measurement is not one the design solve can hold at a setpoint — a boundary's temperature, a flow, a pressure, an exchanger's terminal | Info | `{controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands.` |
 

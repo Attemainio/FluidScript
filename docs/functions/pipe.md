@@ -56,7 +56,7 @@ line, where properties written after the last name could not say which link they
 | `length` | m | Length along the run | Sized for a declared pipe; **0** for one written on the connection line |
 | `dn` | — | Nominal-diameter **designation**, not a diameter. DN25 steel pipe has a 27.3 mm bore. On a connection line it is written `DN25` | Sized from velocity |
 | `material` | — | The catalogue `dn` is read in: `steel_en10255`, `steel_en10220` or `copper_en1057` ([`catalog`](catalog.md)) | The project's `catalog` setting, or the shipped default |
-| `roughness` | m | Absolute wall roughness. Usually written `roughness = 0.045 mm` | 0.045 mm, commercial steel |
+| `roughness` | m | Absolute wall roughness. Written when the pipe is not new, `roughness = 0.3 mm` | New pipe of the pipe's series: 0.045 mm for steel, 0.0015 mm for drawn copper ([`catalog`](catalog.md)) |
 | `nodes` | — | Internal discretization count. Transport storage is opt-in: set it to 1 or more to resolve travel time along the pipe. Each cell holds its share of the pipe's volume and is a state a run integrates; more cells give a sharper front and a shorter allowed step ([Discretized pipes and the run in time](../advanced/discretized-pipes.md)) | 0 — no internal nodes |
 | `minor_loss` | — | Sum of fitting loss coefficients K | 0, no fittings stated |
 

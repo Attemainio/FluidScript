@@ -36,18 +36,9 @@ public sealed class CatalogBoreLookup(
     /// </remarks>
     public double? BoreFor(double nominalDiameter, string? material = null)
     {
-        var series = catalog;
-
-        if (material is not null && !string.Equals(material, catalog.Name, StringComparison.Ordinal))
+        if (Series(material) is not { } series)
         {
-            if (available is null
-                || !available.TryGetValue(material, out var other)
-                || !other.Validate().IsEmpty)
-            {
-                return null;
-            }
-
-            series = other;
+            return null;
         }
 
         foreach (var entry in series.Entries)
@@ -59,5 +50,23 @@ public sealed class CatalogBoreLookup(
         }
 
         return null;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>Every row of a series carries the same roughness (<see cref="PipeCatalogBuilder"/>), so the first row's is the series'.</remarks>
+    public double? RoughnessFor(string? material = null) =>
+        Series(material) is { Entries: [var first, ..] } ? first.Spec.Roughness : null;
+
+    /// <summary>The series a pipe is read in: its own <c>material</c> when that names another shipped, verified catalogue, else the script's.</summary>
+    private ICatalog<PipeSpec>? Series(string? material)
+    {
+        if (material is null || string.Equals(material, catalog.Name, StringComparison.Ordinal))
+        {
+            return catalog;
+        }
+
+        return available is not null && available.TryGetValue(material, out var other) && other.Validate().IsEmpty
+            ? other
+            : null;
     }
 }
