@@ -19,12 +19,23 @@ public static partial class ModelContractBuilder
 {
     private static Dictionary<string, ParameterWire> Parameters(
         IComponent component,
+        ComponentSymbol? symbol,
         ComponentKindInfo? kind,
         OuterLoopResult? run,
         SystemLayout? layout,
+        string catalog,
         ImmutableArray<Diagnostic>.Builder raised)
     {
         var parameters = new Dictionary<string, ParameterWire>(StringComparer.Ordinal);
+
+        // The series a pipe's bore and roughness are read in, so the panel can say which (C-147): the one it names --
+        // a cell of a discretized run names its parent's -- or else the script's catalogue.
+        if (component is PipeComponent pipe)
+        {
+            parameters["material"] = pipe.Material is { } material
+                ? new ParameterWire { Value = null, Unit = null, Source = "stated", Text = material }
+                : new ParameterWire { Value = null, Unit = null, Source = "default", Basis = "the script's catalogue", Text = catalog };
+        }
 
         // Stated outranks solved outranks sized outranks default: the factory's own precedence, with
         // the solver's answer above the overlay because a promoted Kv's overlay entry is only its seed.
@@ -85,9 +96,26 @@ public static partial class ModelContractBuilder
             };
         }
 
+        if (symbol is not null)
+        {
+            Words(symbol, parameters);
+        }
+
         return parameters
             .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
             .ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
+    }
+
+    /// <summary>Adds each word the script stated, <c>material = copper_en1057</c>, which no quantity map carries (<c>C-147</c>).</summary>
+    private static void Words(ComponentSymbol symbol, Dictionary<string, ParameterWire> parameters)
+    {
+        foreach (var (name, parameter) in symbol.Parameters)
+        {
+            if (parameter is { Value: null, Symbol: { } word })
+            {
+                parameters[name] = new ParameterWire { Value = null, Unit = null, Source = "stated", Text = word };
+            }
+        }
     }
 
     private static Dictionary<string, ParameterWire> StatedOnly(ComponentSymbol symbol, ImmutableArray<Diagnostic>.Builder raised)
@@ -105,7 +133,11 @@ public static partial class ModelContractBuilder
             parameters[name] = new ParameterWire { Value = value, Unit = unit, Source = "stated" };
         }
 
-        return parameters;
+        Words(symbol, parameters);
+
+        return parameters
+            .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+            .ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
     }
 
     private static ImmutableArray<PortWire> Ports(CircuitGraph graph, int index, IComponent component)

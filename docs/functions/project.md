@@ -73,9 +73,17 @@ with a [`let`](let.md#one-value-per-case) and read wherever it is needed.
 - **Each item is an ordinary value**, so units, expressions and names all work inside one. A unit
   after the closing bracket applies to every item that states none: `t = [85, 70] C`.
 
-**The first case is the operating one.** It sizes nothing more than the others; it is the state the
-canvas draws, the numbers a static export carries, and the case a run starts from unless it says
-otherwise with `from`. To look at another case, put it first.
+**The canvas draws one case at a time, on the plant that covers them all.** Every case is solved and
+every size covers all of them whichever case you look at; what changes between cases is the state —
+temperatures, flows, pressures, valve positions — and the values that case states. The first case is
+the operating one and is drawn by default; a **Case** picker at the canvas's top right draws another
+without editing the script, and a static export carries the case on the canvas and names it. A run
+starts from the first case unless it says otherwise with `from`.
+
+**A case that does not solve stops the sizing**, because a plant that covers every case cannot be
+sized without each of them: [`FS2315`](diagnostics.md) names the case, and that case's own diagnostics
+follow it. A closed loop whose source follows a curve down in a mild case while its load stays fixed
+is the usual cause — the heat has nowhere to go.
 
 **Every case is checked, not only the first.** A case that contradicts itself is reported on its
 line. `HX1 heat_exchanger power = [50, 40] in.t = [35, 12] out.t = [45, 7]` heats the water from 35 to

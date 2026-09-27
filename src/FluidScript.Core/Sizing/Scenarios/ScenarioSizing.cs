@@ -98,7 +98,7 @@ public static class ScenarioSizing
 
                 if (!solved.IsSuccess)
                 {
-                    return Result.Failure<ScenarioSizingResult>(solved.Error);
+                    return Result.Failure<ScenarioSizingResult>(InCase(solved.Error!, scenarios[index]));
                 }
 
                 candidates.Add(new ScenarioEnvelope.Candidate(scenarios[index], solved.Value.Sizes));
@@ -159,7 +159,7 @@ public static class ScenarioSizing
 
             if (!solved.IsSuccess)
             {
-                return Result.Failure<ScenarioSizingResult>(solved.Error);
+                return Result.Failure<ScenarioSizingResult>(InCase(solved.Error!, scenarios[index]));
             }
 
             operating.Add(new ScenarioSolve(scenarios[index], index, solved.Value, clock.Elapsed));
@@ -379,6 +379,14 @@ public static class ScenarioSizing
                 Converged: true,
                 Notes: []))
             : Result.Failure<ScenarioSizingResult>(solved.Error);
+    }
+
+    /// <summary>A case's failure, said to be that case's (<c>FS2315</c>): the other cases may solve, and without the name a
+    /// reader looks for the fault in the one on the canvas.</summary>
+    private static ResultError InCase(ResultError error, string scenario)
+    {
+        var said = ResultError.From(Diagnostics.Descriptors.SizingDiagnostics.CaseDoesNotSolve, ("case", scenario));
+        return said with { Diagnostics = [said.At(null), .. error.Report(null)] };
     }
 
     /// <summary>Names one scenario's model, so a diagnostic says which case it came from.</summary>

@@ -10,4 +10,8 @@ namespace FluidScript.Api.Contracts;
 /// Whether to size and solve after lowering. <see langword="null"/> or <see langword="true"/> solves;
 /// <see langword="false"/> stops after lowering, for a first render of a script still being typed.
 /// </param>
-public sealed record CompileRequest(string? SessionId, string? Script, bool? Solve);
+/// <param name="Case">
+/// The case the canvas draws, by name, for a file that declares cases (<c>D-182</c>, <c>42</c>). Optional: absent, or a
+/// name the file does not declare, draws the operating case, and the response's <c>cases.drawn</c> says which was drawn.
+/// </param>
+public sealed record CompileRequest(string? SessionId, string? Script, bool? Solve, string? Case = null);

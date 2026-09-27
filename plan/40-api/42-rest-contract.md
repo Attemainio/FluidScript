@@ -50,6 +50,11 @@ transient streaming ([`43-realtime-contract`](43-realtime-contract.md)), hosting
 `solve: false` stops after lowering — topology without physics, for a first render while a large script
 is still being typed.
 
+`case` (optional) names the case to draw, for a script that declares cases (`D-182`): the host sizes over
+every case and returns the named one's solve of the merged plant, and the model's `cases.drawn` says which
+case that was. Absent, or a name the script does not declare, draws the operating case — the first — so a
+client that keeps a stale choice after an edit renamed the case gets a picture rather than an error.
+
 `timings` is five integers of milliseconds: `parseMs`, `bindMs`, `sizeMs` (lowering and sizing),
 `solveMs` and `totalMs`. A stage that did not run reports `0`.
 

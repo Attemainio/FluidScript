@@ -39,6 +39,7 @@ export class CompilePipeline {
   private readonly debounceMs: number;
   private readonly validateDelayMs: number;
   private readonly sessions = new Map<string, string>();
+  private readonly cases = new Map<string, string>();
   private pending: Pending | null = null;
   private last: Pending | null = null;
   private debounceHandle: unknown = null;
@@ -120,6 +121,27 @@ export class CompilePipeline {
     }
   }
 
+  /**
+   * Draws `documentId` in the case `name` (`D-182`): remembered for the document's later compiles, and its current
+   * text is compiled again now. The plant is the same in every case, so only the state and the case's own values
+   * change; the answer says which case it drew.
+   */
+  drawCase(documentId: string, name: string): void {
+    this.cases.set(documentId, name);
+    if (this.pending === null && this.last?.documentId === documentId) {
+      this.pending = this.last;
+    }
+    if (this.pending?.documentId === documentId) {
+      this.clearTimers();
+      this.fire('compile');
+    }
+  }
+
+  /** The case `documentId` is drawn in, as last chosen; `undefined` for its operating case. */
+  caseOf(documentId: string): string | undefined {
+    return this.cases.get(documentId);
+  }
+
   /** Cancels everything for `documentId`: the timers, the request in flight (`51` 8b). */
   cancel(documentId: string): void {
     if (this.pending?.documentId === documentId) {
@@ -183,7 +205,12 @@ export class CompilePipeline {
     this.drafts.beginCompile(request.documentId, request.revision);
 
     const started = this.clock.now();
-    const body = { sessionId: this.sessionOf(request.documentId), script: request.script };
+    const drawn = this.cases.get(request.documentId);
+    const body = {
+      sessionId: this.sessionOf(request.documentId),
+      script: request.script,
+      ...(drawn === undefined ? {} : { case: drawn }),
+    };
     const call =
       mode === 'solve'
         ? this.client.solve(body, controller.signal)

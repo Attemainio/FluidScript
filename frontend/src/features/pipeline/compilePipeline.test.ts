@@ -179,6 +179,30 @@ describe('the debounce pipeline', () => {
 
     expect(draftOf(useDraftStore.getState(), doc).fault).toBeNull();
   });
+
+  it('draws a chosen case: the current text is compiled again at once, and every later compile asks for it (D-182)', async () => {
+    pipeline.edit(doc, 'a', 1);
+    await clock.advance(300);
+    expect(client.calls[0]?.request).not.toHaveProperty('case');
+
+    pipeline.drawCase(doc, 'summer');
+    expect(client.calls).toHaveLength(2);
+    expect(client.calls[1]?.request).toEqual({
+      sessionId: `s-${doc}`,
+      script: 'a',
+      case: 'summer',
+    });
+
+    pipeline.edit(doc, 'b', 2);
+    await clock.advance(300);
+    expect(client.calls[2]?.request).toEqual({
+      sessionId: `s-${doc}`,
+      script: 'b',
+      case: 'summer',
+    });
+    expect(pipeline.caseOf(doc)).toBe('summer');
+    expect(pipeline.caseOf('doc-2')).toBeUndefined();
+  });
 });
 
 describe('the validate phase', () => {

@@ -482,6 +482,15 @@ metadata's `diagnostics[].area` is `Blocks` where it was `Language2` (the `FS18x
 by this document's rule: a value is removed, and a consumer that matched the old string would stop matching without
 an error. The frontend reads no `area`, so its only change is `contractMajor`.
 
+### `4.0` → `4.1`: the cases, and a parameter's word
+
+The user's calls on `L-92`, `C-148` and `C-147` (2026-09-27, `D-182`). Additive, so a minor. `cases` (absent for a
+file that declares none) names every declared case and the one `drawn`: the host sizes over all of them and draws the
+merged plant in the case the request chose, else the operating case. A parameter gains an optional `text` for a
+word-valued parameter -- a pipe's `material`, a controller's `type` and `action` -- whose `value` and `unit` are
+`null` beside it; every pipe carries its `material`, the series it names or the script's catalogue as a default, since
+that series decides its bore and its roughness (`C-142`). The frontend reads both; `contractMajor` stays 4.
+
 ### `pressureDatum` moved out of the circuit, and that is a correction
 
 It was `circuit.pressureDatum`, which quietly asserted one datum per circuit. That was never true —

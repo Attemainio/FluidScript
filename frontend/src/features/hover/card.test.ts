@@ -36,6 +36,15 @@ describe('the hover card', () => {
     expect(card.state.map((r) => r.label)).toContain('flow');
   });
 
+  it("shows a word-valued parameter's word: a pipe's series (C-147)", () => {
+    const pipe = loop.components.find((c) => c.kind === 'pipe')!;
+    const card = componentCard(loop, pipe.id, loop.diagnostics)!;
+    const material = card.parameters.find((p) => p.label === 'material')!;
+    expect(material.value).toBe('steel_en10255');
+    expect(material.source).toBe('default');
+    expect(material.basis).toBe("the script's catalogue");
+  });
+
   it('says so for an inferred component and shows its warnings', () => {
     const card = componentCard(loop, 'HE1__3WV', [
       {

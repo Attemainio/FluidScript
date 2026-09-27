@@ -19,6 +19,10 @@ export interface ModelContract {
    */
   project?: Project | null;
   /**
+   * The cases the file declares and the one drawn, absent when it declares none (D-182, contract 4.1).
+   */
+  cases?: Cases | null;
+  /**
    * Presentation Core carries and never interprets.
    */
   style: Style;
@@ -103,6 +107,17 @@ export interface Project {
    * The project's title.
    */
   name: string | null;
+}
+
+export interface Cases {
+  /**
+   * Every declared case, in declaration order.
+   */
+  names: string[];
+  /**
+   * The case whose state the model carries: the one the request chose, or the operating case, the first, when it chose none or one the file does not declare.
+   */
+  drawn: string;
 }
 
 export interface Style {
@@ -251,7 +266,7 @@ export interface Span {
 
 export interface Parameter {
   /**
-   * The value in Unit, or null under FS2501.
+   * The value in Unit, or null under FS2501 and for a word-valued parameter.
    */
   value: number | null;
   /**
@@ -266,6 +281,10 @@ export interface Parameter {
    * Why a sized or default value is what it is; absent for a stated one.
    */
   basis?: string | null;
+  /**
+   * A word-valued parameter's word, such as a pipe's material; absent for a number (C-147, contract 4.1).
+   */
+  text?: string | null;
 }
 
 export interface ComponentState {

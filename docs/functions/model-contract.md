@@ -104,6 +104,7 @@ The one serialized shape every consumer receives (`26`).
 | `contractVersion` | string | The contract version the producing Core implements, `major.minor`. |
 | `provenance` | [`Provenance`](#provenance) | What produced this: the source, the language, the catalogue, the property backend. |
 | `project` | [`Project`](#project) or `null` | The `project` line, absent when the script has none (`D-37`). Absent when not applicable. |
+| `cases` | [`Cases`](#cases) or `null` | The cases the file declares and the one drawn, absent when it declares none (`D-182`, contract 4.1). Absent when not applicable. |
 | `style` | [`Style`](#style) | Presentation Core carries and never interprets. |
 | `circuits` | array of [`Circuit`](#circuit) | Every circuit, in declaration order; never empty (`D-33`). |
 | `pressureDatums` | array of string | One pressure datum per hydraulically connected part, not per circuit. |
@@ -135,6 +136,15 @@ The `project` block.
 | Field | Type | Meaning |
 |---|---|---|
 | `name` | string or `null` | The project's title. |
+
+### `Cases`
+
+The cases a file declares, and which one this contract draws (`D-143`, `D-182`).
+
+| Field | Type | Meaning |
+|---|---|---|
+| `names` | array of string | Every declared case, in declaration order. |
+| `drawn` | string | The case whose state the model carries: the one the request chose, or the operating case, the first, when it chose none or one the file does not declare. |
 
 ### `Style`
 
@@ -313,10 +323,11 @@ One design parameter, with where it came from (`D-02`).
 
 | Field | Type | Meaning |
 |---|---|---|
-| `value` | number or `null` | The value in `Unit`, or `null` under `FS2501`. |
+| `value` | number or `null` | The value in `Unit`, or `null` under `FS2501` and for a word-valued parameter. |
 | `unit` | string or `null` | The canonical unit, or `null` for a dimensionless value. |
 | `source` | string | `stated`, `sized` or `default`. |
 | `basis` | string or `null` | Why a sized or default value is what it is; absent for a stated one. Absent when not applicable. |
+| `text` | string or `null` | A word-valued parameter's word, such as a pipe's `material`; absent for a number (`C-147`, contract 4.1). Absent when not applicable. |
 
 ### `ComponentState`
 

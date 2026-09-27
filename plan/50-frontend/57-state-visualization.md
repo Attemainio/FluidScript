@@ -295,6 +295,7 @@ Always visible when a scale is active, bottom-right of the canvas, unobtrusive.
 | Ramp | The active scale, ~180 px |
 | Ticks | 4–6 "nice" values from the rounded domain |
 | Switcher | The other properties from `show`, one click, no recompile |
+| Case | For a file with two or more cases, a picker at the canvas's top right: one click draws that case's state on the merged plant, by one compile with the case named (`D-182`). The script is not edited, and the choice stays with the document for its later compiles |
 | Hover | Hovering the ramp highlights every element within that band on the canvas |
 
 **A gradient with no legend is a decoration.** The legend is what makes it data, which is why it is an

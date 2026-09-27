@@ -11,6 +11,8 @@ using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
 using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Sizing.Scenarios;
 using FluidScript.Core.Solvers.Passes;
 using FluidScript.Core.Topology.Counting;
 using FluidScript.Core.Topology.Hydraulics;
@@ -98,6 +100,15 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
             }
         }
 
+        // A file with cases is drawn in one of them: the one the request chose, else its operating case (D-182).
+        var scenarios = bind.Model.Project.Scenarios;
+        int? drawn = scenarios.IsEmpty
+            ? null
+            : request.Case is { } chosen && scenarios.IndexOf(chosen) is var at and >= 0
+                ? at
+                : Math.Max(0, bind.Model.Project.DesignScenarioIndex);
+        var drawnModel = drawn is { } index ? ScenarioProjection.Project(bind.Model, index) : bind.Model;
+
         var catalog = Catalog(compatibility.Catalog, diagnostics);
         var substance = CircuitFluids.Choose(bind.Model, SubstanceRegistry.Default, diagnostics);
         var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog, PipeCatalogs.All), OuterLoop.Rules(catalog.Catalog, available: PipeCatalogs.All));
@@ -105,10 +116,10 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         cancellationToken.ThrowIfCancellationRequested();
 
         var sizeStarted = Stopwatch.GetTimestamp();
-        var prepared = loop.Prepare(bind.Model, substance);
+        var prepared = loop.Prepare(drawnModel, substance);
         var sizeMs = Elapsed(sizeStarted);
         var graph = prepared.Lowered.Graph;
-        CircuitFluids.ReportUnstated(bind.Model, graph, substance, diagnostics);
+        CircuitFluids.ReportUnstated(drawnModel, graph, substance, diagnostics);
 
         if (prepared.Lowered.Unresolved.IsEmpty
             && limits.CheckUnknowns(WellPosedness.Check(graph).Counting.Unknowns) is { } overLimit)
@@ -122,9 +133,12 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         if (request.Solve && !diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
         {
             var solveStarted = Stopwatch.GetTimestamp();
-            // The model was prepared above for the unknown count; the loop runs from that (A-1).
-            var result = await loop.RunAsync(prepared, bind.Model, substance, request.WarmStart, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            // The model was prepared above for the unknown count; the loop runs from that (A-1). A file with cases is
+            // sized over all of them and drawn as the merged plant in the chosen case (D-143 step 4, C-148).
+            var result = drawn is { } solvedCase
+                ? await MergedAsync(loop, bind.Model, substance, solvedCase, diagnostics, cancellationToken).ConfigureAwait(false)
+                : await loop.RunAsync(prepared, bind.Model, substance, request.WarmStart, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
             solveMs = Elapsed(solveStarted);
 
             // The Newton solver answers cancellation with a result that says so rather than by throwing;
@@ -148,12 +162,13 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         {
             Source = source,
             Root = parse.Root,
-            Model = bind.Model,
+            Model = drawnModel,
             Graph = graph,
             Run = run,
             Diagnostics = diagnostics.ToImmutable(),
             Catalog = catalog.Catalog,
             ElapsedMs = run is null ? null : solveMs,
+            Case = drawn,
         };
 
         var model = ModelContractJson.Build(input);
@@ -182,6 +197,31 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         // (C-39).
         diagnostics.Add(resolved.Error!.At(null));
         return PipeCatalogs.Resolve(pin: null).Value;
+    }
+
+    /// <summary>Sizes a file over its cases and returns the chosen case's solve of the merged plant.</summary>
+    /// <remarks>
+    /// Every case is solved on every compile (the user's call, 2026-09-27): the canvas always shows the plant that covers
+    /// them all, and switching the case costs one compile rather than a different plant. The merge's own codes --
+    /// <c>FS2314</c>, <c>FS4013</c> -- go with the drawn case's diagnostics.
+    /// </remarks>
+    private static async Task<Result<OuterLoopResult>> MergedAsync(
+        OuterLoop loop,
+        SemanticModel model,
+        ISubstance substance,
+        int drawn,
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        CancellationToken cancellationToken)
+    {
+        var sized = await ScenarioSizing.SizeAsync(loop, model, substance, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        if (!sized.TryGetValue(out var plant))
+        {
+            return Result.Failure<OuterLoopResult>(sized.Error!);
+        }
+
+        diagnostics.AddRange(plant.Said);
+        return Result.Success(plant.Operating[drawn].Result);
     }
 
     private static int Elapsed(long since) => (int)Math.Round(Stopwatch.GetElapsedTime(since).TotalMilliseconds);

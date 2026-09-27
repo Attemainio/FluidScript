@@ -41,4 +41,11 @@ public sealed record ModelContractInput
 
     /// <summary>Wall time the caller measured, ms, or <see langword="null"/>.</summary>
     public int? ElapsedMs { get; init; }
+
+    /// <summary>Gets the position of the case the model draws, among the file's declared cases (<c>D-182</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> for a file that declares no cases, or to name the operating case. The caller has solved the
+    /// case and projected <see cref="Model"/> onto it; this only names it on the wire.
+    /// </value>
+    public int? Case { get; init; }
 }

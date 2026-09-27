@@ -204,6 +204,10 @@ function description(model: ModelContract, scene: PreparedScene, meta: ExportMet
     `property backend: ${p.propertyBackend.id} ${p.propertyBackend.version}`,
     `atmosphere: ${p.atmosphereKPaAbsolute} kPa absolute`,
     `status: ${status}`,
+    // A file with cases is drawn in one of them, and the numbers are that case's (D-182).
+    ...(model.cases === null || model.cases === undefined
+      ? []
+      : [`case: ${model.cases.drawn} of ${model.cases.names.join(', ')}`]),
     `shown: ${shown}`,
     'tags: equipment tags are as of the source hash above; an insertion above a component renumbers it (D-34)',
     `generated: ${meta.generatedAt.toISOString()}`,

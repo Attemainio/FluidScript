@@ -11,6 +11,8 @@ export interface CompileRequest {
   readonly sessionId: string;
   readonly script: string;
   readonly solve?: boolean;
+  /** The case to draw, for a file that declares cases (`D-182`); absent draws the operating case. */
+  readonly case?: string;
 }
 
 /** A non-200 answer: the status and the problem details the host sent (`42` error cases). */

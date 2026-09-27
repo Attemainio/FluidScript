@@ -5,6 +5,7 @@
  */
 export type {
   Binding,
+  Cases,
   Circuit,
   CompileResponse,
   Component,

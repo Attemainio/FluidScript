@@ -99,6 +99,31 @@
             "name"
           ]
         },
+        "cases": {
+          "title": "Cases",
+          "description": "The cases the file declares and the one drawn, absent when it declares none (D-182, contract 4.1).",
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "names": {
+              "description": "Every declared case, in declaration order.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "drawn": {
+              "description": "The case whose state the model carries: the one the request chose, or the operating case, the first, when it chose none or one the file does not declare.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "names",
+            "drawn"
+          ]
+        },
         "style": {
           "title": "Style",
           "description": "Presentation Core carries and never interprets.",
@@ -323,7 +348,7 @@
                   "type": "object",
                   "properties": {
                     "value": {
-                      "description": "The value in Unit, or null under FS2501.",
+                      "description": "The value in Unit, or null under FS2501 and for a word-valued parameter.",
                       "type": [
                         "number",
                         "null"
@@ -342,6 +367,13 @@
                     },
                     "basis": {
                       "description": "Why a sized or default value is what it is; absent for a stated one.",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "text": {
+                      "description": "A word-valued parameter\u0027s word, such as a pipe\u0027s material; absent for a number (C-147, contract 4.1).",
                       "type": [
                         "string",
                         "null"

@@ -1,6 +1,6 @@
 {
   "restMajor": 1,
-  "contractVersion": "4.0",
+  "contractVersion": "4.1",
   "language": {
     "current": 2,
     "supported": [
@@ -6098,6 +6098,15 @@
         "name",
         "count",
         "names"
+      ]
+    },
+    {
+      "code": "FS2315",
+      "severity": "error",
+      "area": "Sizing",
+      "message": "Case '{case}' does not solve, so the plant cannot be sized over its cases. The diagnostics that follow are that case's.",
+      "arguments": [
+        "case"
       ]
     },
     {

@@ -41,7 +41,7 @@ The `<title>` names the circuit. The `<desc>` records what produced the drawing,
 FluidScript diagram
 document: plant_01
 application: 0.4.0
-model contract: 4.0
+model contract: 4.1
 language major: 2
 source hash: sha256:5574…
 catalogue: steel_en10255 2026.1
@@ -52,6 +52,10 @@ shown: temperature (°C), 0 to 60
 tags: equipment tags are as of the source hash above; an insertion above a component renumbers it (D-34)
 generated: 2026-09-19T08:12:04.000Z
 ```
+
+A script with cases adds one line after `status`, naming the case on the canvas when you exported and
+the cases there are: `case: summer of winter, summer`. The sizes are the same in every case; the
+numbers under the symbols are that case's.
 
 The **source hash** is the line worth knowing about. Two exports of the same plant that differ are
 either two designs or two builds, and the hash with the versions under it says which. The script's

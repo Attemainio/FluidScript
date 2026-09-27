@@ -7,4 +7,8 @@ namespace FluidScript.Api.Pipeline;
 /// <param name="Mode">How far to go.</param>
 /// <param name="Solve">Whether to run the solver at all; <see langword="false"/> stops after lowering.</param>
 /// <param name="WarmStart">The session's last solution, offered to the outer loop; <see langword="null"/> for a cold start.</param>
-public sealed record PipelineRequest(string Script, PipelineMode Mode, bool Solve, WarmStart? WarmStart);
+/// <param name="Case">
+/// The case to draw, by name, for a file that declares cases (<c>D-182</c>); <see langword="null"/>, or a name the file does
+/// not declare, draws the operating case.
+/// </param>
+public sealed record PipelineRequest(string Script, PipelineMode Mode, bool Solve, WarmStart? WarmStart, string? Case = null);

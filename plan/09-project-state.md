@@ -1427,14 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 10 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **64** | |
+| | **62** | |
 
+Recounted 2026-09-27 after `L-92`, `C-147` and `C-148` (filed and closed the same day) closed: 62.
 Recounted 2026-09-27 after `C-142`, `S-90` and `L-87` closed and `C-146`, `C-147` opened: 64.
 Recounted 2026-09-27 after the language sweep (`D-180`) filed `L-87`–`L-93`, `C-141`–`C-145` and `S-90`: 65.
 Recounted 2026-09-27 from the files after package 8 step 3 closed nine `L-` rows and `A-7`: 52 (the core-domain
@@ -2152,6 +2153,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     `C-147`: word-valued parameters (`material`) are not on the contract. Core 2602/0/2, Api 81/0, frontend 253/0.
     Next: `L-92`, the canvas's case picker, which the user chose as an interface control, with `C-147` in the same
     contract bump.
+  - **The canvas draws the merged plant, in a case the interface picks (2026-09-27; `D-182`; `L-92`, `C-147`,
+    `C-148` closed).** Planning the picker found that the pipeline never ran `D-143`'s merge: a file with cases was
+    drawn sized for its first case alone, `m5-scenarios`'s pipe at DN50 where summer's flow needs DN65 (`C-148`). The
+    user chose the merge on every compile and a server re-render per case. Every compile of a file with cases now
+    sizes over all of them; the request names a case; the contract (`4.1`) carries `cases` and each parameter's word
+    (`C-147`); the canvas has a Case picker, the export names the case, and `FS2315` names a case that does not solve.
+    Core 2602/0/2, Api 87/0, frontend 257/0. Next: P6.12, or the remaining rows that wait on the user.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

@@ -583,6 +583,28 @@
   border-color: var(--border-strong);
 }
 
+/* The case the canvas draws (D-182), top right -- the table's toggle holds the top left -- in the legend's switcher style. */
+.case-picker {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-label-size);
+  color: var(--text-secondary);
+  background: var(--surface-overlay);
+  border: var(--focus-ring-width) solid var(--border-subtle);
+  border-radius: var(--radius-control);
+}
+
+.case-picker__title {
+  font-weight: var(--text-label-weight);
+  color: var(--text-primary);
+}
+
 /* The export dialog's form (59). */
 .export-form {
   display: flex;

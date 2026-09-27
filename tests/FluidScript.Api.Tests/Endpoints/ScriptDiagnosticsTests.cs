@@ -113,7 +113,7 @@ public sealed class ScriptDiagnosticsTests(ApiFactory factory) : IClassFixture<A
         circuit "loop":
           fluid = water
           HE1  heat_exchanger  power = demand  in.t = 20 C  out.t = 50 C
-          LOAD heat_exchanger  power = -30 kW  dp = 0
+          LOAD load  power = demand  dp = 0
           CV1  valve
           PU1  pump
           N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
@@ -171,6 +171,19 @@ public sealed class ScriptDiagnosticsTests(ApiFactory factory) : IClassFixture<A
         // The design value: the curve at -26 °C, which is the design case in both files.
         var exchanger = model.Components.Single(static c => c.Id == "HE1");
         Assert.Equal(30, exchanger.Parameters["power"].Value!.Value, 6);
+    }
+
+    /// <summary>A case that does not solve is named (<c>FS2315</c>): the mild case's load stays at 30 kW while its source
+    /// follows the curve down to 8.9, and a closed loop cannot hold the other 21.1.</summary>
+    [Fact]
+    public async Task ACaseThatDoesNotSolveIsNamed()
+    {
+        var script = CurveReaders.First().Data.Replace("LOAD load  power = demand", "LOAD heat_exchanger  power = -30 kW", StringComparison.Ordinal);
+        var diagnostics = await CompiledAsync(script);
+
+        var named = Assert.Single(diagnostics, static d => d.Code == "FS2315");
+        Assert.Equal("Case 'mild' does not solve, so the plant cannot be sized over its cases. The diagnostics that follow are that case's.", named.Message);
+        Assert.Contains(diagnostics, static d => d.Code == "FS2203");
     }
 
     // ---- the corpus ------------------------------------------------------------------------

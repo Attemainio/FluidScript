@@ -38,7 +38,7 @@ namespace FluidScript.Core.Model;
 public static partial class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "4.0";
+    public const string ContractVersion = "4.1";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", FluidScript.Core.Physics.Fluids.PropertyBackend.PackageVersion);
@@ -107,7 +107,7 @@ public static partial class ModelContractBuilder
                     ?? symbol?.CircuitName
                     ?? (expansions.TryGetValue(component.Name, out var parent) && symbols.TryGetValue(parent, out var owner) ? owner.CircuitName : model.Circuits[0].Name),
                 Tag = symbol?.Tag,
-                Parameters = Parameters(component, kind, run, layout, raised),
+                Parameters = Parameters(component, symbol, kind, run, layout, input.Catalog.Name, raised),
                 State = ports is null || layout is null || run is null
                     ? null
                     : State(graph, i, component, kind, ports.Value[i], layout, run.Solve.Solution, raised),
@@ -171,6 +171,9 @@ public static partial class ModelContractBuilder
                 AtmosphereKPaAbsolute = UnitTable.StandardAtmosphere / 1000,
             },
             Project = model.Project.Name is null ? null : new ProjectWire(model.Project.Name),
+            Cases = model.Project.Scenarios.IsEmpty
+                ? null
+                : new CasesWire(model.Project.Scenarios, model.Project.Scenarios[input.Case ?? Math.Max(0, model.Project.DesignScenarioIndex)]),
             Style = new StyleWire(model.Style.Spacing, Styles.Resolve(model.Style.Default)),
             Circuits = circuits,
             PressureDatums = [.. HydraulicPartition.Of(graph).Select(static part => part.Datum).Where(static datum => datum.Length > 0)],

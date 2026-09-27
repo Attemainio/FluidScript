@@ -142,8 +142,9 @@ circuit "heating":
 - **A scalar is not a short array.** It is the same value in every scenario.
 - **Any array whose length is not the declared count is an error**, naming the parameter, its length
   and the count. Nothing is padded (`D-143`; `D-60`'s rule against inferring from data).
-- The first case is the **operating** case and sizes nothing: the state the canvas draws, the numbers
-  a static export carries, the inputs a run starts from (`D-175`).
+- The first case is the **operating** case and sizes nothing: the state the canvas draws until the
+  interface chooses another (`D-182`), and the inputs a run starts from (`D-175`). A static export carries
+  whichever case is drawn and names it.
 
 ### The pipeline, and why it is four steps
 
@@ -156,7 +157,10 @@ circuit "heating":
    state of the merged plant — a scenario solved with a DN20 pipe does not describe a plant that
    ended up with DN32. This step produces the operating states and catches a component short
    somewhere; if one is, merge again and repeat.
-4. **Draw the merged plant**, with the operating case supplying the numbers on it.
+4. **Draw the merged plant**, with the operating case supplying the numbers on it -- or the case the
+   interface chooses (`D-182`). Built 2026-09-27: until then the pipeline drew the first case sized
+   alone (`C-148`). Every compile of a file with cases runs all four steps; a case that does not solve
+   stops the merge with `FS2315`, naming it.
 
 Step 3's loop should terminate because sizes grow under a maximum and the catalogue is finite, and
 the outer loop already caps sizing passes; **that is to be measured, not asserted.** A valve whose
@@ -1128,6 +1132,7 @@ public sealed record SizingResult
 | `FS2312` | Auto-sized pump circuit has no explicit resistance | Info | `'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.` |
 | `FS2313` | Parallel-set index branch has no valve | Info | `'{branch}' is the fixed index at {dp} kPa and has no valve; other branches are balanced to it, but no valve-authority target applies here.` |
 | `FS2314` | A duty-carrying component every declared scenario leaves inert (`D-143`) | Warning | `'{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.` |
+| `FS2315` | A declared case has no solution, so the plant cannot be sized over its cases; that case's own diagnostics follow (`D-182`, `C-148`) | Error | `Case '{case}' does not solve, so the plant cannot be sized over its cases. The diagnostics that follow are that case's.` |
 
 **Registered as of 2026-09-19 (`C-74`):** `FS2301`, `FS2304`, `FS2305`, `FS2307`, `FS2310` and
 `FS2312` -- the six a rule detects. Each is raised beside the note that carried it before, with the

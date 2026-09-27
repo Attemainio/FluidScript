@@ -28,6 +28,10 @@ public sealed record ModelContract
     [AbsentWhenNull]
     public ProjectWire? Project { get; init; }
 
+    /// <summary>The cases the file declares and the one drawn, absent when it declares none (<c>D-182</c>, contract 4.1).</summary>
+    [AbsentWhenNull]
+    public CasesWire? Cases { get; init; }
+
     /// <summary>Presentation Core carries and never interprets.</summary>
     public required StyleWire Style { get; init; }
 

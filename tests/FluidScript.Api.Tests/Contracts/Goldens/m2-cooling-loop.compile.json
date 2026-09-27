@@ -1,5 +1,5 @@
 {
-  "contractVersion": "4.0",
+  "contractVersion": "4.1",
   "provenance": {
     "sourceHash": "sha256:fa08d7cb8ad07ffbfe7518030c9ac428892b65affaa3fc84afd1ea70c204f584",
     "languageMajor": 2,
@@ -248,6 +248,13 @@
           "value": 25,
           "unit": "m",
           "source": "stated"
+        },
+        "material": {
+          "value": null,
+          "unit": null,
+          "source": "default",
+          "basis": "the script's catalogue",
+          "text": "steel_en10255"
         },
         "minor_loss": {
           "value": 0,

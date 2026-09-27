@@ -9,6 +9,8 @@ import { selectionOf, useSelectionStore } from '../../state/selectionStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
 import { componentCard, connectionCard, type Card } from '../hover/card.ts';
 import { HoverCard } from '../hover/HoverCard.tsx';
+import { usePipeline } from '../pipeline/pipelineContext.ts';
+import { CasePicker } from './CasePicker.tsx';
 import { prepareScene } from './scene.ts';
 import { detailFor } from './detail.ts';
 import { Legend } from './Legend.tsx';
@@ -45,6 +47,7 @@ export function CanvasPane(): React.ReactNode {
   const diagnostics = useDraftStore((state) => draftOf(state, documentId).diagnostics);
   const shown = useDraftStore((state) => draftOf(state, documentId).shown);
   const setShown = useDraftStore((state) => state.setShown);
+  const pipeline = usePipeline();
   // Stale while a compile of newer text is in flight (57 invariant 7): the colours may not be current.
   const stale = useDraftStore((state) => {
     const draft = draftOf(state, documentId);
@@ -296,6 +299,9 @@ export function CanvasPane(): React.ReactNode {
         <Tooltip at={hover.at} container={size}>
           <HoverCard card={hover.card} />
         </Tooltip>
+      ) : null}
+      {model !== null ? (
+        <CasePicker cases={model.cases} onDraw={(name) => pipeline.drawCase(documentId, name)} />
       ) : null}
       <div className="canvas-pane__zoom" aria-live="polite">
         {Math.round(current.zoom * 100)}%

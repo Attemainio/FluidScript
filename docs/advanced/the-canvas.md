@@ -32,6 +32,12 @@ came from, the solved state with units, and any warning -- the same content as t
 out for a screen reader or for anyone who wants the numbers in one place. It is rebuilt with every
 compile, so it never lags the picture.
 
+**Case.** A script that declares two or more [cases](../functions/project.md#cases) gets a picker at
+the top-right corner. The plant on the canvas is the one sized to cover every case, whichever is
+picked; picking a case draws that case's state on it -- its temperatures, flows, valve positions and
+the values it states -- by one compile, and leaves the script alone. The document remembers the
+choice for the compiles that follow.
+
 A new document opens fitted. After that the view is yours: a recompile redraws the plant but does
 not move your viewpoint, so a component you are watching stays where you left it.
 
@@ -120,7 +126,8 @@ in hover.
 
 **Hover a symbol** and, after a moment, a card shows what the compiler knows about it: every
 parameter with its value and where the value came from, `stated` by you, `sized` by the tool or a
-`default` from the registry, with the reasoning under a sized or defaulted one; then the solved
+`default` from the registry, with the reasoning under a sized or defaulted one (a pipe's `material`
+is there too: the series its bore and roughness come from, yours or the script's catalogue); then the solved
 state, flow, temperatures, pressures; then any warning about it. Hover a pipe for its flow, its
 velocity, its Reynolds number and, for a pipe with a length and a size, its pressure drop; the
 velocity and the Reynolds number are the ones its pressure drop was computed at, on the mean of

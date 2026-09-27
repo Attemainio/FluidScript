@@ -115,7 +115,7 @@ public static class ScriptEndpoints
         try
         {
             var result = await pipeline.RunAsync(
-                new PipelineRequest(request.Script, mode, request.Solve ?? true, session.LastSolution), draft.Token)
+                new PipelineRequest(request.Script, mode, request.Solve ?? true, session.LastSolution, request.Case), draft.Token)
                 .ConfigureAwait(false);
 
             if (result.Run is { Solve.Converged: true } run)

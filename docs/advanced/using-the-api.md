@@ -28,6 +28,10 @@ editor makes as you type.
 - `script` is the whole file, as text.
 - `solve` may be `false` to stop after the topology is built, for a first drawing of a script you are
   still writing.
+- `case` names the case to draw, for a script that declares [cases](../functions/project.md#cases).
+  Every case is solved and the plant is sized for all of them; the answer carries the named case's
+  state, and `cases.drawn` in the model says which case that was. Leave it out, or name a case the
+  script no longer has, and you get the first.
 
 The answer is always `200`, even when the script is wrong -- the request succeeded, it was asked to
 compile a script and it did. What it found is inside:

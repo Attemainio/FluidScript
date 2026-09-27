@@ -293,7 +293,7 @@ negative `dt`) is reported once.
 
 **No case is marked as the design case.** Sizing already covers every case (`D-143`: each size is taken
 from the case that demands most, and every case is checked against it); which case the canvas shows is
-chosen in the interface; which case a run starts from is the run's `from`.
+chosen in the interface, on the merged plant (`D-182`); which case a run starts from is the run's `from`.
 
 ### Circuits
 

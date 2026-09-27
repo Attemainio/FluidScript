@@ -1,5 +1,5 @@
 {
-  "contractVersion": "4.0",
+  "contractVersion": "4.1",
   "provenance": {
     "sourceHash": "sha256:7140dcda8b7a3b2e0ac6f7323f6d97d9df9bf5d01e32c0d69bd7aa4ccb957d4c",
     "languageMajor": 2,
@@ -388,6 +388,13 @@
           "unit": "m",
           "source": "stated"
         },
+        "material": {
+          "value": null,
+          "unit": null,
+          "source": "default",
+          "basis": "the script's catalogue",
+          "text": "steel_en10255"
+        },
         "minor_loss": {
           "value": 0,
           "unit": null,
@@ -436,6 +443,13 @@
           "value": 12,
           "unit": "m",
           "source": "stated"
+        },
+        "material": {
+          "value": null,
+          "unit": null,
+          "source": "default",
+          "basis": "the script's catalogue",
+          "text": "steel_en10255"
         },
         "minor_loss": {
           "value": 0,
@@ -671,6 +685,13 @@
           "unit": "m",
           "source": "stated"
         },
+        "material": {
+          "value": null,
+          "unit": null,
+          "source": "default",
+          "basis": "the script's catalogue",
+          "text": "steel_en10255"
+        },
         "minor_loss": {
           "value": 0,
           "unit": null,
@@ -719,6 +740,13 @@
           "value": 18,
           "unit": "m",
           "source": "stated"
+        },
+        "material": {
+          "value": null,
+          "unit": null,
+          "source": "default",
+          "basis": "the script's catalogue",
+          "text": "steel_en10255"
         },
         "minor_loss": {
           "value": 0,

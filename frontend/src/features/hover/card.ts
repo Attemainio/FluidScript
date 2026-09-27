@@ -75,7 +75,8 @@ export function componentCard(
       : [
           {
             label: name,
-            value: formatValue(p.value),
+            // A word-valued parameter -- a pipe's series -- carries its word, not a number (C-147).
+            value: p.text ?? formatValue(p.value),
             unit: p.unit ?? '',
             source: p.source,
             ...(p.basis !== null && p.basis !== undefined && p.source !== 'stated'

@@ -113,10 +113,23 @@ public static class SizingDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.");
 
+    /// <summary>A case with no solution, which stops the plant being sized over its cases (<c>D-182</c>, <c>C-148</c>).</summary>
+    /// <value><c>FS2315</c>, an error.</value>
+    /// <remarks>
+    /// Every case is solved to size the plant, so one that cannot be solved -- a closed loop whose duties balance in winter
+    /// and not in the mild case -- leaves nothing to draw. Its own diagnostics follow this one; without the case's name
+    /// they read as faults of the case on the canvas, which may be sound.
+    /// </remarks>
+    public static DiagnosticDescriptor CaseDoesNotSolve { get; } = new(
+        "FS2315",
+        DiagnosticSeverity.Error,
+        "Case '{case}' does not solve, so the plant cannot be sized over its cases. The diagnostics that follow are that case's.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InertInEveryScenario,
+        CaseDoesNotSolve,
         NotSettled,
         NothingToSizeAgainst,
         OutsideCatalogue,

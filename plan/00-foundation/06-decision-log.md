@@ -224,6 +224,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-179` | Accepted | 2026-09-26 | Values are read as language 2 writes them; an exchanger's ports keep their registry id and gain their language spelling |
 | `D-180` | Accepted | 2026-09-27 | One language, so nothing is numbered after it: the spec, the code and `docs/` describe language 2 alone |
 | `D-181` | Accepted | 2026-09-27 | A circuit that states no fluid carries the file's fluid, water by default, and is told so |
+| `D-182` | Accepted | 2026-09-27 | The canvas draws the merged plant, in the case the interface chooses |
 <!-- index:end -->
 
 ---
@@ -8197,3 +8198,42 @@ that probably does not say what was meant (`16`).
 
 **Constrains.** `19` §Circuits (the setting is optional), `21` (the registry section and `FS2008`/`FS2009`), the
 docs pages for `fluid` and `circuit`, and `CircuitFluids`, which the pipeline calls in place of its own choice.
+
+## D-182 · The canvas draws the merged plant, in the case the interface chooses
+
+**Accepted · 2026-09-27** (the user's calls on `L-92` and `C-148`: "we should be able to define which case the canvas
+shows", as an interface picker; the merge on every compile; the server re-renders the chosen case) · completes
+`D-143` step 4 · extends `D-175` · constrains [`24`](../20-core-domain/24-auto-sizing.md) §Scenarios,
+[`19`](../10-language/19-fluidscript-2.md) §Drivers and cases, [`26`](../20-core-domain/26-model-contract.md),
+[`42`](../40-api/42-rest-contract.md), [`57`](../50-frontend/57-state-visualization.md), `docs/functions/project.md`
+
+**What was wrong.** `D-143`'s fourth step -- draw the merged plant -- was never wired: the pipeline solved the file's
+first case alone, so a file with cases was drawn sized for that case (`C-148`, measured on `m5-scenarios`: DN50 where
+the plant that covers summer's flow needs DN65). And `19` said the interface chooses the case the canvas shows while
+`24` and the frontend showed the first, with nothing to choose with (`L-92`).
+
+**The rule.**
+
+1. **Every compile of a file with cases sizes over all of them** (`ScenarioSizing`, `D-143` steps 1–3) and draws the
+   merged plant. No compile draws a plant sized for one case.
+2. **The case drawn is chosen in the interface**, never in the script: a picker on the canvas, shown for two or more
+   cases, sends the case's name with the compile (`42`), and the host returns that case's solve of the merged plant.
+   The operating case, the first, is drawn when none is chosen or the chosen name is no longer declared. The script is
+   not edited, as the property the colours follow is not (`57`).
+3. **The contract says which** (`26`, `4.1`, additive): `cases` names every declared case and the one `drawn`. Sizes
+   are the same whichever is drawn; the state and the values a case states are that case's. A static export carries the
+   drawn case and names it in its provenance.
+4. **A case that does not solve is named** (`FS2315`, an error): the plant cannot be sized over its cases, and that
+   case's own diagnostics follow. The merge's codes, `FS2314` and `FS4013`, go out with the drawn case's diagnostics.
+
+**Why.** A plant is one plant: the pipe that carries summer's flow is in the pipework in winter too, so a picture of
+winter's state on winter's sizes is a picture of a plant nobody will build. Re-rendering on the server keeps the payload
+one case wide (`07`'s 512 KiB) and the frontend free of physics; the merge costs about 50 ms warm on `m5-scenarios`.
+
+**Rejected.** *Merge on the Solve button only*: the everyday picture would be the wrong plant, which is `C-148` itself.
+*A merge cached on the sizing inputs*: fast, and a cache keyed on a model is new machinery for a cost not yet measured
+as a problem. *Every case in one response*: switching is instant, the payload grows with the number of cases. *A
+`design` line in the script*: the case on the canvas is a view, and a view written into the file changes the file.
+
+**Constrains.** `24` §Scenarios (step 4 built; the first case is drawn unless another is chosen), `19` §Drivers and
+cases, `26` (`4.1`), `42` (`case` on the request), `57` (the picker), `docs/functions/project.md`.

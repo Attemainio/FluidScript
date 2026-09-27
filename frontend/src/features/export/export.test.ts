@@ -89,7 +89,7 @@ describe('the SVG export (59)', () => {
     const svg = render(loop);
     const desc = /<desc id="export-desc">([\s\S]*?)<\/desc>/.exec(svg)![1]!;
     expect(desc).toContain('application: 0.0.0-test');
-    expect(desc).toContain('model contract: 4.0');
+    expect(desc).toContain('model contract: 4.1');
     expect(desc).toContain('language major: 2');
     expect(desc).toContain(`source hash: ${loop.provenance.sourceHash}`);
     expect(desc).toContain('catalogue: steel_en10255 2026.1');
@@ -98,6 +98,10 @@ describe('the SVG export (59)', () => {
     // The count is the solver's, not the export's: it moves whenever the seed does (S-47).
     expect(desc).toContain(`status: solved in ${loop.solve!.iterations} iterations`);
     expect(desc).toContain('shown: temperature (°C), 0 to 60');
+    // No case line for a file without cases; one naming the drawn case for a file with them (D-182).
+    expect(desc).not.toContain('case:');
+    const winter = render({ ...loop, cases: { names: ['winter', 'summer'], drawn: 'summer' } });
+    expect(winter).toContain('case: summer of winter, summer');
     expect(desc).toContain('tags: equipment tags are as of the source hash above');
     expect(desc).toContain('generated: 2026-09-19T00:00:00.000Z');
     expect(desc).not.toContain('fluidscript 2'); // never the source text
