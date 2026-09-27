@@ -386,6 +386,7 @@ an assignment.
 | `FS2004` | Property backend returned a non-finite value | Error | `Could not evaluate {property} for {name} at {state}.` |
 | `FS2005` | Glycol concentration outside 0–60 % | Error | `Glycol concentration must be between 0 and 60 %.` |
 | `FS2006` | Relative humidity outside 0–100 % | Error | `Relative humidity must be between 0 and 100 %.` |
+| `FS2007` | A fluid written with arguments, `water(30 %)`: a mixture, which v1 does not have (`L-73`) | Error | `'{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid.` |
 
 ## Worked example
 

@@ -68,8 +68,21 @@ public static class FluidDiagnostics
         DiagnosticSeverity.Error,
         "Relative humidity must be between 0 and 100 %.");
 
+    /// <summary>A <c>fluid</c> written with arguments, <c>water(30 %)</c>: a mixture, which this version does not have.</summary>
+    /// <value><c>FS2007</c>, an error.</value>
+    /// <remarks>
+    /// Glycol and other mixtures are post-v1 (<c>21</c>): accepting a concentration before a mixture's properties
+    /// and freezing basis are validated would overstate the physics. Reading the name and dropping the argument,
+    /// as the reader did (<c>L-73</c>), is worse -- a 30 % glycol loop solved as water, its heat capacity and
+    /// viscosity several percent off and the pump's head with them, and nothing said.
+    /// </remarks>
+    public static DiagnosticDescriptor MixtureNotSupported { get; } = new(
+        "FS2007",
+        DiagnosticSeverity.Error,
+        "'{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid.");
+
     /// <summary>Gets every code the substance layer emits, for the registry to collect.</summary>
-    /// <value>Five descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Six descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         UnknownSubstance,
@@ -77,5 +90,6 @@ public static class FluidDiagnostics
         StateOutsideValidRange,
         PropertyNotEvaluable,
         RelativeHumidityOutOfRange,
+        MixtureNotSupported,
     ];
 }

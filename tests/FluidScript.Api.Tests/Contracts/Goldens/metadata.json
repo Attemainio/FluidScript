@@ -4964,7 +4964,7 @@
       "code": "FS1406",
       "severity": "error",
       "area": "Expressions",
-      "message": "A {kind} has no '{property}'. It has: {available}.",
+      "message": "The {kind} has no '{property}'. It has: {available}.",
       "arguments": [
         "kind",
         "property",
@@ -5048,7 +5048,7 @@
       "code": "FS1503",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind} has no '{parameter}'. It accepts: {available}.",
+      "message": "The {kind} has no '{parameter}'. It accepts: {available}.",
       "arguments": [
         "kind",
         "parameter",
@@ -5068,7 +5068,7 @@
       "code": "FS1505",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind} has no port '{port}'. Ports: {available}.",
+      "message": "The {kind} has no port '{port}'. Ports: {available}.",
       "arguments": [
         "kind",
         "port",
@@ -5131,7 +5131,7 @@
       "code": "FS1514",
       "severity": "error",
       "area": "Binder",
-      "message": "'{parameter}' accepts {available}; '{written}' is none of them.",
+      "message": "'{parameter}' accepts {available}, not '{written}'.",
       "arguments": [
         "parameter",
         "available",
@@ -5252,7 +5252,7 @@
       "code": "FS1531",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind} has no single {role}. Write it out, such as '{example}'.",
+      "message": "The {kind} has no single {role}. Write it out, such as '{example}'.",
       "arguments": [
         "kind",
         "role",
@@ -5303,7 +5303,7 @@
       "code": "FS1537",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.",
+      "message": "The {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.",
       "arguments": [
         "kind",
         "quantity",
@@ -5314,7 +5314,7 @@
       "code": "FS1538",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.",
+      "message": "The {kind}'s '{port}' has no '{quantity}'. It takes: {available}.",
       "arguments": [
         "kind",
         "port",
@@ -5442,6 +5442,15 @@
       "arguments": [
         "first",
         "second"
+      ]
+    },
+    {
+      "code": "FS1706",
+      "severity": "warning",
+      "area": "Compatibility",
+      "message": "The version is already stated: this line says FluidScript {major} again. Delete it.",
+      "arguments": [
+        "major"
       ]
     },
     {
@@ -5607,6 +5616,17 @@
       ]
     },
     {
+      "code": "FS1817",
+      "severity": "warning",
+      "area": "Language2",
+      "message": "This event starts at {time}, after '{run}' ends at {duration}, so it never happens.",
+      "arguments": [
+        "time",
+        "run",
+        "duration"
+      ]
+    },
+    {
       "code": "FS2001",
       "severity": "error",
       "area": "Substances",
@@ -5655,6 +5675,16 @@
       "area": "Substances",
       "message": "Relative humidity must be between 0 and 100 %.",
       "arguments": []
+    },
+    {
+      "code": "FS2007",
+      "severity": "error",
+      "area": "Substances",
+      "message": "'{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid.",
+      "arguments": [
+        "written",
+        "substance"
+      ]
     },
     {
       "code": "FS2101",

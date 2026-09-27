@@ -19,8 +19,9 @@ fluid dynamic water
 - `fluid <substance>` names the working fluid for the circuit it appears in.
 - `fluid dynamic` solves in time; `fluid static` solves as a steady state. Either overrides the
   default [`project`](project.md) set.
-- Arguments after the substance describe it — a glycol fraction, for instance — and are read in the
-  order the substance defines.
+- A fluid takes no arguments yet. `water(30 %)` would describe a glycol mixture, and mixtures are
+  not in this version: it is refused ([`FS2007`](diagnostics.md)) rather than solved as plain water,
+  whose heat capacity and viscosity would be several percent off.
 - Air-side substances are deliberately not accepted in this version. A fan-and-duct model needs
   humidity balance, condensation, leakage and fan curves; naming an air fluid without them would
   produce a hydronic answer wearing air-side names.

@@ -232,6 +232,25 @@ public sealed class SizingPointTests
             Component(model, "HP1").Parameters["power"].Basis);
     }
 
+    /// <summary>The point is seen through a second <c>let</c>, as it is through a curve (<c>L-74</c>).</summary>
+    /// <remarks>Before, <c>share</c> was read at its case value, the heat pump took the whole 50 kW, and <c>FS1549</c> said
+    /// nothing of <c>HP1</c> read <c>demand</c>.</remarks>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ALetReadThroughAnotherLetIsReadAtThePoint()
+    {
+        var source = new SourceText(Demand
+            .Edited("let demand = [50, 16.3] kW", "let demand = [50, 16.3] kW\nlet share = demand * 1")
+            .Edited("power = demand  sized_at", "power = share  sized_at"));
+        var result = new Binder(ComponentRegistry.Default).Bind(
+            MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default));
+
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1549");
+        Assert.Equal(27_200, Power(result.Model, "HP1", 0), 6);
+        Assert.Equal(16_300, Power(result.Model, "HP1", 1), 6);
+        Assert.Equal(27_200, Component(result.Model, "HP1").Capacities["power"].SiValue, 6);
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void APointNothingReadsIsSaid()

@@ -46,6 +46,12 @@ internal sealed partial class BindingRun
                 return new ScopeLookup.Value(point, IsBare: false, binding.Id);
             }
 
+            // ...and so does a `let` that reads it further down, `share = demand * 1` (`L-74`).
+            if (PointValueThrough(binding.Id) is { } through)
+            {
+                return new ScopeLookup.Value(through, IsBare: false, binding.Id);
+            }
+
             return _pending.TryGetValue(binding.Id, out var pending) && pending.Value is { } value
                 ? new ScopeLookup.Value(value, IsBare: false, binding.Id)
                 : new ScopeLookup.Deferred(binding.Id);
@@ -111,36 +117,56 @@ internal sealed partial class BindingRun
         return known && dimension.IsNamed && dimension.Name != "Dimensionless" ? dimension : known && !dimension.IsNamed ? dimension : null;
     }
 
-    /// <summary>Types a sum or difference of temperatures as the evaluator computes it (<c>13</c>, <see cref="Quantity.TrySubtract"/>).</summary>
+    /// <summary>Types a sum or difference of readings and differences as the evaluator computes it (<c>13</c>, <see cref="Quantity.TrySubtract"/>).</summary>
+    /// <param name="left">The left operand's dimension.</param>
+    /// <param name="right">The right operand's dimension.</param>
+    /// <param name="subtract">Whether the operation is a difference.</param>
+    /// <param name="literal">Whether either operand is a literal, whose pressure spelling says neither which it is.</param>
     /// <returns>
     /// A reading less a reading is a difference, and a reading with its difference -- either order for a sum, the reading
-    /// first for a difference -- is a reading; what the evaluator refuses is unknown. <see langword="null"/> when either
-    /// side is not a temperature, which the general rule types.
+    /// first for a difference -- is a reading; what the evaluator refuses is unknown. <see langword="null"/> when the two
+    /// are not a reading and its difference, which the general rule types.
     /// </returns>
     /// <remarks>
-    /// Temperature alone, because its spellings say which it is (<c>C</c> a reading, <c>dK</c> a difference, language 2's
-    /// <c>K</c> a difference). A pressure literal's <c>kPa</c> is both, read against the other operand, which is what the
-    /// general rule's like-vector case stands for.
+    /// A temperature always, because its spellings say which it is (<c>C</c> a reading, <c>K</c> a difference). A pressure
+    /// only between references (<c>L-71</c>): <c>N1.p - PU1.out.p</c> is two readings and so a difference, but a literal's
+    /// <c>kPa</c> is both, read against where the value goes, which is what the general rule's like-vector case stands for.
     /// </remarks>
-    private static (bool Known, Dimension Dimension)? TemperatureSum(Dimension left, Dimension right, bool subtract)
+    private static (bool Known, Dimension Dimension)? AffineSum(Dimension left, Dimension right, bool subtract, bool literal)
     {
-        if (!IsTemperature(left) || !IsTemperature(right))
+        if (left.Vector != right.Vector
+            || Reading(left) is not { } reading
+            || Reading(right) != reading
+            || (literal && reading != Dimension.Temperature))
         {
             return null;
         }
 
         if (left == right)
         {
-            return left == Dimension.Temperature
-                ? subtract ? (true, Dimension.TemperatureDelta) : (false, default)
+            return left == reading
+                ? subtract ? (true, left.Delta!.Value) : (false, default)
                 : (true, left);
         }
 
-        return left == Dimension.Temperature || !subtract ? (true, Dimension.Temperature) : (false, default);
+        return left == reading || !subtract ? (true, reading) : (false, default);
 
-        static bool IsTemperature(Dimension dimension) =>
-            dimension == Dimension.Temperature || dimension == Dimension.TemperatureDelta;
+        static Dimension? Reading(Dimension dimension) => dimension.Category switch
+        {
+            DimensionCategory.Absolute => dimension,
+            DimensionCategory.Delta => dimension.Absolute,
+            _ => null,
+        };
     }
+
+    /// <summary>Whether an operand is a written number with its unit, a sign or parentheses aside.</summary>
+    private static bool IsLiteral(ExpressionSyntax expression) => expression switch
+    {
+        ParenthesizedExpressionSyntax parenthesized => IsLiteral(parenthesized.Inner),
+        UnaryExpressionSyntax unary => IsLiteral(unary.Operand),
+        QuantityLiteralSyntax or SharedUnitSyntax => true,
+        _ => false,
+    };
 
     /// <summary>The typing behind <see cref="DimensionOf(ExpressionSyntax, HashSet{string})"/>: whether the dimension is known, and what it is when it is.</summary>
     private (bool Known, Dimension Dimension) Type(ExpressionSyntax expression, HashSet<string> visiting)
@@ -194,9 +220,11 @@ internal sealed partial class BindingRun
                             return right;
                         }
 
-                        if (TemperatureSum(left.Dimension, right.Dimension, binary.Operator == BinaryOperator.Subtract) is { } temperature)
+                        var literal = IsLiteral(binary.Left) || IsLiteral(binary.Right);
+
+                        if (AffineSum(left.Dimension, right.Dimension, binary.Operator == BinaryOperator.Subtract, literal) is { } affine)
                         {
-                            return temperature;
+                            return affine;
                         }
 
                         if (left.Dimension == right.Dimension || (right.Dimension.IsNamed && right.Dimension.Name == "Dimensionless"))

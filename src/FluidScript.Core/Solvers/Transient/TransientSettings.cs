@@ -2,10 +2,9 @@ namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>What a run is asked for: how long, how often a frame, and the integrator's bounds (<c>33</c>).</summary>
 /// <remarks>
-/// A run states its horizon and frame interval (<c>D-169</c>), and <see cref="Of"/> reads them. Language 1 took them
-/// from the <c>start</c> message instead (<c>43</c>, a stated exception to P5), which the realtime contract still
-/// describes (<c>A-7</c>). The step bounds default to <c>36</c>'s tolerance table and are exposed for a test that
-/// needs a coarser or finer integrator, never to a user.
+/// A run states its horizon and frame interval (<c>D-169</c>), and <see cref="Of"/> reads them; the realtime
+/// <c>start</c> message names the run and carries neither (<c>43</c>, <c>A-7</c>). The step bounds default to
+/// <c>36</c>'s tolerance table and are exposed for a test that needs a coarser or finer integrator, never to a user.
 /// </remarks>
 public sealed record TransientSettings
 {

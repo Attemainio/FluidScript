@@ -279,7 +279,7 @@ public sealed class Language2TranslatorTests
               N3 - HX1.in[2]
             """, "FS1505");
 
-        Assert.Equal("A heat_exchanger has no port 'in[2]'. Ports: in, out, secondary.in, secondary.out.", port.Message);
+        Assert.Equal("The heat_exchanger has no port 'in[2]'. Ports: in, out, secondary.in, secondary.out.", port.Message);
 
         Assert.Equal("FS1503", Only("""
             fluidscript 2
@@ -367,7 +367,7 @@ public sealed class Language2TranslatorTests
             """;
 
         var unknown = Only(string.Format(CultureInfo.InvariantCulture, Loop, "HX1.power", "HX1.nonsense.t"), "FS1406");
-        Assert.StartsWith("A heat_exchanger has no 'nonsense.t'.", unknown.Message, StringComparison.Ordinal);
+        Assert.StartsWith("The heat_exchanger has no 'nonsense.t'.", unknown.Message, StringComparison.Ordinal);
 
         var moved = Assert.Single(Bind(string.Format(CultureInfo.InvariantCulture, Loop, "HX1.secondary.in.flow", "HX1.primary.out.t")).Model.ControlBindings);
         Assert.Equal(new PropertyReference("HX1", "flow2"), moved.Actuator);
@@ -1151,6 +1151,40 @@ public sealed class Language2TranslatorTests
               at 06:30  RAD.power = 100 kW
             """), "FS1816");
 
+    /// <summary>An event after its run ends never happens, and says so (<c>L-67</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnEventAfterTheRunEndsIsFS1817()
+    {
+        var late = Only(WithRun("""
+            run "r":
+              duration = 1 h
+              at 2 h  RAD.power = 100 kW
+            """), "FS1817");
+
+        Assert.Equal(DiagnosticSeverity.Warning, late.Severity);
+        Assert.Equal("This event starts at 2 h, after 'r' ends at 1 h, so it never happens.", late.Message);
+    }
+
+    /// <summary>A fluid written as a mixture is refused, and the plain fluid is still read (<c>L-73</c>).</summary>
+    /// <remarks>Before, <c>water(30 %)</c> bound as plain water with nothing said.</remarks>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMixtureIsFS2007AndThePlainFluidIsRead()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "c":
+              fluid = water(30 %)
+              HE1 heat_exchanger  power = 30 kW  dt = 20 K
+              N1 - HE1 - N1
+            """);
+
+        var mixture = Assert.Single(result.Diagnostics, static d => d.Code == "FS2007");
+        Assert.Equal(DiagnosticSeverity.Error, mixture.Severity);
+        Assert.Equal("water", Assert.Single(result.Model.Circuits).Substance);
+    }
+
     /// <summary>At −10 °C outside, <c>heat_demand</c> is 150 − 16 × 150/44 = 95.45 kW and the supply 85 − 16 × 20/44 = 77.7 °C.</summary>
     [Fact]
     [Trait("Category", "Unit")]
@@ -1415,6 +1449,37 @@ public sealed class Language2TranslatorTests
         var supply = Assert.Single(result.Model.Bindings, static binding => binding.Name == "supply");
         Assert.Null(supply.Value);
         Assert.Equal(dimension, supply.Dimension?.Name);
+    }
+
+    /// <summary>A pressure less a pressure, both read from the plant, is a difference before the solve too (<c>L-71</c>).</summary>
+    /// <remarks>
+    /// Two references are two readings, so the dimension pass applies <c>13</c>'s rules to them as the evaluator does. A
+    /// literal's <c>kPa</c> is a reading or a difference by where the value goes, so beside one the pass keeps its
+    /// like-vector rule.
+    /// </remarks>
+    [Theory]
+    [InlineData("RAD.in.p - PU1.out.p", "PressureDelta")]
+    [InlineData("PU1.dp + RAD.in.p", "Pressure")]
+    [InlineData("PU1.dp + 5 kPa", "PressureDelta")]
+    [Trait("Category", "Unit")]
+    public void APressureLessAPressureIsADifferenceBeforeTheSolve(string expression, string dimension)
+    {
+        var result = Bind($$"""
+            fluidscript 2
+
+            let e = {{expression}}
+
+            circuit "script":
+              fluid = water
+              PU1  pump
+              RAD  radiator  power = 5
+              PU1 - RAD - PU1
+
+            """);
+
+        var e = Assert.Single(result.Model.Bindings, static binding => binding.Name == "e");
+        Assert.Null(e.Value);
+        Assert.Equal(dimension, e.Dimension?.Name);
     }
 
     /// <summary>The declaration ceiling counts a language 2 file's components inside their circuits (<c>07</c>, <c>L-69</c>).</summary>

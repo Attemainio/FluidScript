@@ -43,8 +43,7 @@ Every message is JSON with a `type` discriminator.
 ### Client → server
 
 ```jsonc
-{ "type": "start", "sessionId": "b3f1…", "script": "…",
-  "settings": { "horizon": 600, "frameInterval": 1.0 } }
+{ "type": "start", "sessionId": "b3f1…", "script": "…", "run": "Cold morning" }
 
 { "type": "stop" }
 
@@ -52,10 +51,13 @@ Every message is JSON with a `type` discriminator.
 { "type": "resume" }
 ```
 
-**A language 2 file names its runs** (`D-169`, bound since P6.11 slice 3e): the start message then names the run
-the user picked — `"run": "Cold morning"` or its position — in place of `settings`, and the server plays
-`RunProjection.Project(model, run)` with `TransientSettings.Of(run)`: the run's own duration, frame, starting case,
-start, steady circuits and events. A language 1 file keeps `settings` as above. To be built with P6.5's worker; the
+**A start names a run, and carries nothing else about it** (`D-169`, `D-174`, `A-7`). The file states its runs,
+each with its duration, frame, starting case, clock start, steady circuits and events; the start message names the
+one the user picked, by its title (`"run": "Cold morning"`) or by its zero-based position among the file's runs
+(`"run": 0`), and the server plays `RunProjection.Project(model, run)` with `TransientSettings.Of(run)`. There is
+no `settings` object: a horizon or frame the message carried would be a second statement of what the file already
+says, and the two would disagree the first time someone edited one. A file with no run, or a name or position that
+matches none, cannot be started: the server answers `FS4503` and starts nothing. To be built with P6.5's worker; the
 interface's run picker is `P6.11` package 5.
 
 `pause` exists because the alternative is unbounded client buffering: a user who pauses playback while
@@ -249,7 +251,7 @@ value that quietly stops updating on the canvas.
 |---|---|---|
 | `FS4501` | `start` while a run is active | `error` message; the existing run continues |
 | `FS4502` | Script does not compile | `error` with the compile diagnostics; no run starts |
-| `FS4503` | Script is not a transient model (`fluid` without `dynamic`) | `error` suggesting `fluid dynamic …` |
+| `FS4503` | The start names no run the file has: the file has none, or no run has that title or position | `error` naming the file's runs, or suggesting a `run` block when it has none; no run starts |
 | `FS4504` | Solver failure mid-run | `error` with the inner code; frames already sent stay valid |
 | `FS4505` | Client lagging beyond the buffer threshold | `lagging`, production paused |
 | `FS4506` | Protocol violation (unknown type, malformed JSON) | `error` and close |
@@ -265,7 +267,7 @@ M4's `D-16` demo — the **demand-step loop** ([`01-vision-and-scope`](../00-fou
 its 30 → 45 kW step — over 600 s at 1 s frames.
 
 ```
-→ start { horizon: 600, frameInterval: 1 }
+→ start { run: "Demand step" }                  (the file's run: duration = 10 min, frame = 1 s)
 ← base  { model: <full, t=0>, runId: "r-7f2a", estimatedFrames: 600 }      38 kB
 
 ← frame { t: 1,  state: {} }                                                24 B   nothing changed
@@ -295,7 +297,7 @@ break invariant 3's no-gaps rule for no meaningful saving.
 - [ ] A second `start` produces `FS4501` without disturbing the running simulation.
 - [ ] A slow client triggers `lagging` and drops no frames.
 - [ ] Every run terminates with exactly one `end` or `error`.
-- [ ] A non-transient script produces `FS4503` with the suggested fix.
+- [ ] A file with no run, and a start naming a run the file does not have, each produce `FS4503` and start nothing.
 - [ ] Wrong snapshot id, sequence, base id, state shape, non-finite value, and checksum each stop the
       run in a fault-injection test without applying the bad frame.
 - [ ] Thread tracing proves the backend worker, frontend Web Worker, and UI DOM commit boundaries.

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
@@ -126,9 +127,8 @@ public sealed class ScriptCompatibilityTests
     [Trait("Category", "Unit")]
     public void TwoDirectivesNamingDifferentMajorsSelectNothing()
     {
-        // The condition only the gate can judge. The parser sees two well-formed statements and
-        // reports the duplicate as FS1112; taking the first would be exactly the silent guess `D-27`
-        // exists to prevent.
+        // The condition only the gate can judge. The parser sees two well-formed statements; taking the first
+        // would be exactly the silent guess `D-27` exists to prevent.
         var result = Inspect("fluidscript 1\nfluidscript 2\n", TwoMajors);
 
         Assert.Equal("FS1705", Assert.Single(result.Diagnostics).Code);
@@ -138,14 +138,18 @@ public sealed class ScriptCompatibilityTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TwoDirectivesNamingTheSameMajorAreAnOrdinaryDuplicate()
+    public void ASecondDirectiveNamingTheSameMajorIsARepeat()
     {
-        // Not FS1705. Nothing is contradictory, so the gate has an answer and the parser's FS1112 is
-        // the whole of the complaint.
+        // Not FS1705: nothing is contradictory, so the gate has an answer. Language 1's parser said FS1112 here;
+        // language 2's says nothing, so the gate names the repeat (L-83), on the second line and not the first.
         var result = Inspect("fluidscript 2\nfluidscript 2\n");
 
         Assert.Equal(CompatibilityDisposition.Current, result.Disposition);
-        Assert.Empty(result.Diagnostics);
+        var repeat = Assert.Single(result.Diagnostics);
+        Assert.Equal("FS1706", repeat.Code);
+        Assert.Equal(DiagnosticSeverity.Warning, repeat.Severity);
+        Assert.Equal(14, repeat.Span?.Start);
+        Assert.Equal("The version is already stated: this line says FluidScript 2 again. Delete it.", repeat.Message);
     }
 
     [Theory]

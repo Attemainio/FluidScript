@@ -162,7 +162,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor UnknownProperty { get; } = new(
         "FS1406",
         DiagnosticSeverity.Error,
-        "A {kind} has no '{property}'. It has: {available}.");
+        "The {kind} has no '{property}'. It has: {available}.");
 
     /// <summary>A call to a function that does not exist.</summary>
     /// <value><c>FS1408</c>, an error.</value>
@@ -203,7 +203,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor UnknownParameter { get; } = new(
         "FS1503",
         DiagnosticSeverity.Error,
-        "A {kind} has no '{parameter}'. It accepts: {available}.");
+        "The {kind} has no '{parameter}'. It accepts: {available}.");
 
     /// <summary>A kind name equally close to two registered kinds.</summary>
     /// <value><c>FS1513</c>, an error.</value>
@@ -217,7 +217,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor UnacceptedSymbol { get; } = new(
         "FS1514",
         DiagnosticSeverity.Error,
-        "'{parameter}' accepts {available}; '{written}' is none of them.");
+        "'{parameter}' accepts {available}, not '{written}'.");
 
     /// <summary>A reference-valued parameter given something that is not a reference.</summary>
     /// <value><c>FS1515</c>, an error.</value>
@@ -279,7 +279,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor UnknownPort { get; } = new(
         "FS1505",
         DiagnosticSeverity.Error,
-        "A {kind} has no port '{port}'. Ports: {available}.");
+        "The {kind} has no port '{port}'. Ports: {available}.");
 
     /// <summary>A second connection to a port that already has one.</summary>
     /// <value><c>FS1506</c>, an error.</value>
@@ -594,7 +594,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor NoSingleEndpoint { get; } = new(
         "FS1531",
         DiagnosticSeverity.Error,
-        "A {kind} has no single {role}. Write it out, such as '{example}'.");
+        "The {kind} has no single {role}. Write it out, such as '{example}'.");
 
     /// <summary>An <c>at</c> clause on a kind that carries flow rather than observing it.</summary>
     /// <value><c>FS1532</c>, an error.</value>
@@ -659,7 +659,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor PortStateOnNode { get; } = new(
         "FS1537",
         DiagnosticSeverity.Error,
-        "A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.");
+        "The {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.");
 
     /// <summary>A port's quantity the kind does not take: <c>PU1 pump in.h=5</c>, <c>HX1 heat_exchanger in.rho=</c> (<c>D-120</c>).</summary>
     /// <value><c>FS1538</c>, an error naming the quantities the port does take.</value>
@@ -673,7 +673,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor UnknownPortQuantity { get; } = new(
         "FS1538",
         DiagnosticSeverity.Error,
-        "A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.");
+        "The {kind}'s '{port}' has no '{quantity}'. It takes: {available}.");
 
     /// <summary>A node's pressure stated twice: once on the node, once as a port pressure of a component touching it (<c>D-124</c>).</summary>
     /// <value><c>FS1539</c>, an error naming both statements.</value>

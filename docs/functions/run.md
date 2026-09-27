@@ -67,7 +67,8 @@ An event starts with `at` or `over`, and only a run has them.
 
 A time is a duration from the start of the run (`10 min`, `1 h`), or, when the run states `start`, a
 clock time (`07:30`) — the next one at or after the start. A clock time without `start` is
-[`FS1816`](diagnostics.md).
+[`FS1816`](diagnostics.md), and an event that starts after the run's `duration` never happens and is
+[`FS1817`](diagnostics.md).
 
 An event replaces whatever drove its target: after `at 10 min RAD.power = 100 kW` the duty no longer
 follows its curve. A controller's `setpoint` is a target too (`TC1.setpoint = 55 C`), read in what the

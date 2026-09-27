@@ -184,8 +184,19 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Error,
         "'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.");
 
+    /// <summary>An event that starts after its run ends.</summary>
+    /// <value><c>FS1817</c>, a warning.</value>
+    /// <remarks>
+    /// The event binds and is in the schedule, and the run stops before it: a user who typed <c>2 h</c> for
+    /// <c>20 min</c>, or shortened the run, is told that what they wrote never happens (<c>L-67</c>).
+    /// </remarks>
+    public static DiagnosticDescriptor EventAfterRun { get; } = new(
+        "FS1817",
+        DiagnosticSeverity.Warning,
+        "This event starts at {time}, after '{run}' ends at {duration}, so it never happens.");
+
     /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
-    /// <value>Sixteen descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Seventeen descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -204,5 +215,6 @@ public static class Language2Diagnostics
         BandAndGain,
         ControllerTypeNotRun,
         ClockTimeWithoutStart,
+        EventAfterRun,
     ];
 }

@@ -593,6 +593,8 @@ duration and frame as the transient's settings. So:
 - A clock time is the next one at or after `start`: `06:30` in a run starting at 06:00 is 30 min in, and in one
   starting at 22:00 it is 8.5 h in. This project's reasoning; with no `start` it is `FS1816`.
 - A run that follows a curve of time with no `start` is `FS1546`, once on the run's head.
+- An event that starts after the run's `duration` never happens, and says so (`FS1817`, a warning): `at 2 h` in a
+  1 h run is a typo or a duration too short, and neither is worth refusing the file over.
 - `TC1.setpoint` is an event target, read in what `TC1` measures.
 - An event replaces what drove its target from its start: the transient writes the clock and then the schedule
   (`33`, fixed here).
@@ -702,6 +704,7 @@ and which raise no code from the third row.
 | `FS1814` | Error | A sensor that sits in a chain and is also placed `at` a node; the chain's placement is kept |
 | `FS1815` | Info | How the rule wired a component where it chose between ports: a three-way valve, an exchanger with two sides, a tank side with more than one stream |
 | `FS1816` | Error | A clock time in a run that states no `start` |
+| `FS1817` | Warning | An event that starts after its run ends, and so never happens (`L-67`) |
 
 ## Invariants
 

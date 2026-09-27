@@ -99,6 +99,16 @@ public static partial class ScriptCompatibility
 
         var major = new LanguageMajor(distinct[0]);
 
+        // Every directive names the same major, so the file is readable; a repeat is still a line that means
+        // nothing, and is said as such (`L-83`).
+        foreach (var repeat in directives.Skip(1))
+        {
+            diagnostics.Add(Diagnostic.Create(
+                CompatibilityDiagnostics.RepeatedMajor,
+                repeat.Span,
+                new DiagnosticArgument("major", major.Value.ToString(CultureInfo.InvariantCulture))));
+        }
+
         if (major == versions.Current)
         {
             return new CompatibilityResult(

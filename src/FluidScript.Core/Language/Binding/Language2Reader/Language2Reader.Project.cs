@@ -8,6 +8,7 @@ using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Binding;
 
@@ -109,8 +110,7 @@ internal sealed partial class Language2Reader
                 ("written", Text(scale.Value)));
         }
 
-        // Only a scale of two plain numbers is read, in the first property's canonical unit (`57`).
-        (double, double)? stated = range is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to } ? (from.Value, to.Value) : null;
+        var stated = range is null || scale is null ? null : Scale(scale, range, shows[0].Names.FirstOrDefault());
 
         _reading.Visualizations.Add(Visualization(shows[0], stated));
         _reading.Visualizations.AddRange(shows.Skip(1).Select(static show => Visualization(show, null)));
@@ -118,6 +118,64 @@ internal sealed partial class Language2Reader
         // A made `show` keyword stands where the setting begins, which a second one is reported against.
         static VisualizationSymbol Visualization((int At, ImmutableArray<IdentifierSyntax> Names) show, (double, double)? scale) =>
             new([.. show.Names.Select(static name => (name.Text, name.Span))], scale, new TextSpan(show.At, 0));
+    }
+
+    /// <summary>
+    /// A scale's two ends in the first shown property's canonical unit, which is how the colour scale reads them (<c>57</c>).
+    /// </summary>
+    /// <remarks>
+    /// A bare number is already in that unit; a unit written on an end, or shared by both (<c>20..90 C</c>, <c>D-179</c>),
+    /// is converted from. Until <c>L-72</c> only two bare numbers were read and a range with a unit was dropped without
+    /// a word. A unit of another dimension -- <c>20..90 K</c> on a temperature, whose <c>K</c> is a difference -- and an
+    /// end that is not a number are refused with <c>FS1514</c>, and the canvas fits the solved values.
+    /// </remarks>
+    private (double, double)? Scale(ParameterSyntax setting, RangeSyntax range, IdentifierSyntax? property)
+    {
+        var dimension = property is null ? null : PropertyTable.Find(property.Text)?.Dimension;
+        var canonical = dimension is { } known ? UnitTable.CanonicalUnitFor(known) : null;
+
+        double? Read(ExpressionSyntax end)
+        {
+            if (End(end) is not { } written)
+            {
+                return null;
+            }
+
+            if (written.Unit is null)
+            {
+                return written.Value;
+            }
+
+            var unit = UnitTable.Resolve(written.Unit, dimension);
+            return unit is null || (dimension is not null && unit.Dimension != dimension)
+                ? null
+                : canonical?.FromSi(unit.ToSi(written.Value)) ?? unit.ToSi(written.Value);
+        }
+
+        if (Read(range.From) is { } from && Read(range.To) is { } to)
+        {
+            return (from, to);
+        }
+
+        Report(
+            BinderDiagnostics.UnacceptedSymbol,
+            setting.Value.Span,
+            ("parameter", "scale"),
+            ("available", canonical is null
+                ? "a range of two numbers, such as 20..90"
+                : $"a range of {property!.Text} in its units, such as 20..90 {canonical.Text}"),
+            ("written", Text(setting.Value)));
+        return null;
+
+        // An end as written: a number and the unit it or the range states, a negation of one, or nothing readable.
+        static (double Value, string? Unit)? End(ExpressionSyntax end) => end switch
+        {
+            NumberLiteralSyntax number => (number.Value, null),
+            QuantityLiteralSyntax quantity => (quantity.Value, quantity.Unit),
+            UnaryExpressionSyntax negated when End(negated.Operand) is { } inner => (-inner.Value, inner.Unit),
+            SharedUnitSyntax shared when End(shared.Operand) is { Unit: null } inner => (inner.Value, shared.Unit),
+            _ => null,
+        };
     }
 
     /// <summary>One list of style tokens for a block's <c>style:</c> blocks, so a key stated twice is <c>FS1202</c> as a repeated token on one line is.</summary>

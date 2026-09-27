@@ -99,6 +99,17 @@ internal sealed partial class BindingRun
             if (Disturbance(ChangeLine.Of(change), circuit, range => EventTimes(range, start, run.Title)) is { } bound)
             {
                 events.Add(bound);
+
+                // Bound and scheduled, and the run stops before it (`L-67`).
+                if (bound.From is { } at && at.SiValue > run.Duration)
+                {
+                    Report(
+                        Language2Diagnostics.EventAfterRun,
+                        change.Span,
+                        ("time", Elapsed(at.SiValue)),
+                        ("run", run.Title),
+                        ("duration", Elapsed(run.Duration)));
+                }
             }
         }
 
@@ -425,6 +436,12 @@ internal sealed partial class BindingRun
     }
 
     /// <summary>Reports a run that follows the clock with no start to read it at (<c>FS1546</c>).</summary>
+    /// <summary>A time from a run's start as an engineer writes it: <c>2 h</c>, <c>90 min</c>, <c>45 s</c>.</summary>
+    private static string Elapsed(double seconds) =>
+        seconds % 3600 == 0 ? $"{(seconds / 3600).ToString(CultureInfo.InvariantCulture)} h"
+        : seconds % 60 == 0 ? $"{(seconds / 60).ToString(CultureInfo.InvariantCulture)} min"
+        : $"{seconds.ToString("0.###", CultureInfo.InvariantCulture)} s";
+
     private void ReviewRunClock(RunSymbol run)
     {
         if (run.Start is not null)

@@ -73,7 +73,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1403` | Error | Expressions | Dividing by zero here. '{expression}' is zero. |
 | `FS1404` | Error | Expressions | Nothing named '{name}'. |
 | `FS1405` | Error | Expressions | '{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly. |
-| `FS1406` | Error | Expressions | A {kind} has no '{property}'. It has: {available}. |
+| `FS1406` | Error | Expressions | The {kind} has no '{property}'. It has: {available}. |
 | `FS1408` | Error | Expressions | No function '{name}'. Available: {available}. |
 | `FS1409` | Error | Expressions | '{function}' takes {expected} arguments. |
 | `FS1410` | Warning | Expressions | '{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly. |
@@ -81,15 +81,15 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1412` | Warning | Expressions | '{target} = {expr}' was still waiting on {waited} when pass {pass} failed, so the circuit was solved without it. State it directly, or from a value the seed can supply. |
 | `FS1501` | Error | Binder | '{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits. |
 | `FS1502` | Error | Binder | There is no '{kind}'. |
-| `FS1503` | Error | Binder | A {kind} has no '{parameter}'. It accepts: {available}. |
+| `FS1503` | Error | Binder | The {kind} has no '{parameter}'. It accepts: {available}. |
 | `FS1504` | Error | Binder | '{name}' is a value, not a component. |
-| `FS1505` | Error | Binder | A {kind} has no port '{port}'. Ports: {available}. |
+| `FS1505` | Error | Binder | The {kind} has no port '{port}'. Ports: {available}. |
 | `FS1506` | Error | Binder | Port '{port}' of '{name}' is already connected at line {line}. |
 | `FS1507` | Warning | Binder | '{name}' is not connected to anything. |
 | `FS1510` | Info | Binder | Added {kind} '{name}' ({rule}). |
 | `FS1511` | Warning | Binder | '{name}' and {count} others are not connected to the rest of the circuit. |
 | `FS1513` | Error | Binder | '{written}' could be '{first}' or '{second}'. Write one of them. |
-| `FS1514` | Error | Binder | '{parameter}' accepts {available}; '{written}' is none of them. |
+| `FS1514` | Error | Binder | '{parameter}' accepts {available}, not '{written}'. |
 | `FS1515` | Error | Binder | '{parameter}' names a component property, like 'N2.t'. |
 | `FS1516` | Error | Binder | '{written}' is outside {kind}'s supported {min}…{max} range. |
 | `FS1519` | Info | Binder | '{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}. |
@@ -101,13 +101,13 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1528` | Error | Binder | '{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time. |
 | `FS1529` | Info | Binder | '{curve}' has two rows at {x}; the later one is used. |
 | `FS1530` | Error | Binder | '{curve}' needs at least two rows to interpolate between. |
-| `FS1531` | Error | Binder | A {kind} has no single {role}. Write it out, such as '{example}'. |
+| `FS1531` | Error | Binder | The {kind} has no single {role}. Write it out, such as '{example}'. |
 | `FS1532` | Error | Binder | '{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead. |
 | `FS1533` | Warning | Binder | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
 | `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
 | `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
-| `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
-| `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
+| `FS1537` | Error | Binder | The {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
+| `FS1538` | Error | Binder | The {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
 | `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
 | `FS1540` | Error | Binder | '{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them. |
 | `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block. |
@@ -120,6 +120,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
+| `FS1706` | Warning | Compatibility | The version is already stated: this line says FluidScript {major} again. Delete it. |
 | `FS1801` | Error | Language2 | This line is indented unlike the rest of its block. Indent it as the line above it is. |
 | `FS1802` | Error | Language2 | {statement} belongs {place}. |
 | `FS1803` | Error | Language2 | A pipe's length and size describe one link, and this line has {links}. Put the pipe on a line of its own: '{first} - {second} {properties}'. |
@@ -136,11 +137,13 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1814` | Error | Language2 | '{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits. |
 | `FS1815` | Info | Language2 | '{component}' is wired as {wiring}. |
 | `FS1816` | Error | Language2 | '{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'. |
+| `FS1817` | Warning | Language2 | This event starts at {time}, after '{run}' ends at {duration}, so it never happens. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |
 | `FS2004` | Error | Substances | Could not evaluate {property} for {name} at {state}. |
 | `FS2006` | Error | Substances | Relative humidity must be between 0 and 100 %. |
+| `FS2007` | Error | Substances | '{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid. |
 | `FS2101` | Error | Components | '{name}': {parameters} cannot all be set. Any {count} of them fix the rest. |
 | `FS2103` | Warning | Components | '{name}': using kv={kv}; dp is implied by it. |
 | `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |

@@ -230,6 +230,47 @@ internal sealed partial class BindingRun
                 : value;
     }
 
+    /// <summary>A <c>let</c> that reads a component's own point further down its chain, evaluated again under the point (<c>L-74</c>).</summary>
+    /// <param name="let">The <c>let</c> read.</param>
+    /// <returns>
+    /// Its value at the point, or <see langword="null"/> outside a capacity read and for a <c>let</c> whose chain reads
+    /// neither a named <c>let</c> nor a curve, whose value in the case is already the value at the point.
+    /// </returns>
+    /// <remarks>
+    /// <c>let share = demand * 1</c> is <c>demand</c>'s case value times one when stored; a heat pump whose
+    /// <c>power = share  sized_at.demand = 27.2 kW</c> has to see 27.2 kW through it, as it does when it reads
+    /// <c>demand</c> directly. The component being read is still <see cref="_evaluating"/>, so the <c>let</c> named by the
+    /// point and every curve down the chain are read at the point, as for the parameter's own expression.
+    /// </remarks>
+    private Quantity? PointValueThrough(ValueId let)
+    {
+        if (!_atSizingPoint
+            || _evaluating is not ValueId.ComponentParameter parameter
+            || !_sizingPoints.TryGetValue(parameter.Component, out var point)
+            || !_pending.TryGetValue(let, out var pending)
+            || !ReachesPoint(pending, point, depth: 0))
+        {
+            return null;
+        }
+
+        var expression = _caseExpressions.TryGetValue(let, out var cases) ? cases[_case ?? DesignCase] : pending.Expression;
+        var evaluator = new ExpressionEvaluator(this, parse.Source, ImmutableArray.CreateBuilder<Diagnostic>());
+
+        return evaluator.Evaluate(expression) is EvaluationResult.Value value ? value.Quantity : null;
+    }
+
+    /// <summary>Whether a value reads a <c>let</c> the point names, or a curve, directly or through other <c>let</c>s.</summary>
+    private bool ReachesPoint(PendingValue pending, Dictionary<string, DesignValue> point, int depth) =>
+        // A cycle is already `FS1402`; the depth only has to stop one.
+        depth <= _pending.Count
+        && pending.Dependencies.Any(dependency => dependency switch
+        {
+            ValueId.Let { Name: var name } when point.ContainsKey(name) => true,
+            ValueId.Curve => true,
+            ValueId.Let other => _pending.TryGetValue(other, out var next) && ReachesPoint(next, point, depth + 1),
+            _ => false,
+        });
+
     /// <summary>The number a point is reported at: in the unit its <c>let</c> is written in.</summary>
     private double? PointNumber(string component, string key)
     {

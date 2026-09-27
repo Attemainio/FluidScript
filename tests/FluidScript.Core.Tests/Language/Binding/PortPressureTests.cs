@@ -162,7 +162,7 @@ public sealed class PortPressureTests
         var error = Assert.Single(result.Diagnostics, static d => d.Code == "FS1538");
 
         Assert.Equal(DiagnosticSeverity.Error, error.Severity);
-        Assert.Equal($"A {kind}'s '{port}' has no '{quantity}'. It takes: {takes}.", error.Message);
+        Assert.Equal($"The {kind}'s '{port}' has no '{quantity}'. It takes: {takes}.", error.Message);
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1512");
     }
 

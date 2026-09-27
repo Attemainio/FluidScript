@@ -47,22 +47,34 @@ public static class CompatibilityDiagnostics
     /// <summary>Two version directives naming different majors.</summary>
     /// <value><c>FS1705</c>, an error.</value>
     /// <remarks>
-    /// The parser sees two well-formed statements and reports the duplicate as <c>FS1112</c>. Only the
-    /// gate can say that no semantics can be selected from the pair, and taking the first would be
-    /// exactly the silent guess <c>D-27</c> exists to prevent. Two directives naming the <em>same</em>
-    /// major is an ordinary duplicate and stays <c>FS1112</c>.
+    /// The parser sees two well-formed statements. Only the gate can say that no semantics can be selected from the
+    /// pair, and taking the first would be exactly the silent guess <c>D-27</c> exists to prevent. Two directives
+    /// naming the <em>same</em> major are <see cref="RepeatedMajor"/>.
     /// </remarks>
     public static DiagnosticDescriptor ContradictoryMajor { get; } = new(
         "FS1705",
         DiagnosticSeverity.Error,
         "This file says it is FluidScript {first} and also {second}. Delete the line that is wrong.");
 
+    /// <summary>A version directive repeating the major an earlier one states.</summary>
+    /// <value><c>FS1706</c>, a warning.</value>
+    /// <remarks>
+    /// Harmless to the model -- the major is the same -- but the line means nothing, and <c>18</c> promised a
+    /// diagnostic for it that language 1's duplicate-directive code (<c>FS1112</c>) gave and language 2 lost
+    /// (<c>L-83</c>). Reported on each repeat, so the first line, the one that counts, stays unmarked.
+    /// </remarks>
+    public static DiagnosticDescriptor RepeatedMajor { get; } = new(
+        "FS1706",
+        DiagnosticSeverity.Warning,
+        "The version is already stated: this line says FluidScript {major} again. Delete it.");
+
     /// <summary>Gets every code the compatibility gate emits, for the registry to collect.</summary>
-    /// <value>Three descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Four descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         UnversionedDraft,
         UnsupportedMajor,
         ContradictoryMajor,
+        RepeatedMajor,
     ];
 }

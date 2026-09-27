@@ -300,7 +300,7 @@ hangs.
 | `FS1403` | Division by zero | Error | `Dividing by zero here. '{expression}' is zero.` |
 | `FS1404` | Reference to an unknown name | Error | `Nothing named '{name}'.` |
 | `FS1405` | Fixed point did not converge | Error | `'{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly.` |
-| `FS1406` | Reference to a property the component does not have | Error | `A {kind} has no '{property}'. It has: {available}.` |
+| `FS1406` | Reference to a property the component does not have | Error | `The {kind} has no '{property}'. It has: {available}.` |
 | `FS1407` | Reference to a solved value in a context evaluated before the solve | Error | `'{ref}' is only known after solving; it cannot set '{target}'.` |
 | `FS1408` | Unknown function | Error | `No function '{name}'. Available: {available}.` |
 | `FS1409` | Wrong argument count | Error | `'{function}' takes {expected} arguments.` |

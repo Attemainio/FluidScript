@@ -1427,15 +1427,16 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 23 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **56** | |
+| | **52** | |
 
-Recounted 2026-09-26 after the package 6 audit filed `L-72`–`L-75` (found during the package, not logged at the
+Recounted 2026-09-27 from the files after package 8 step 3 closed nine `L-` rows and `A-7`: 52 (the core-domain
+row had read 20 against the register's 23). Recounted 2026-09-26 after the package 6 audit filed `L-72`–`L-75` (found during the package, not logged at the
 time): 56. After 6d closed `L-69` and `L-70` and opened `L-71`: 52. After `L-69` (package 6b) and `L-70`
 (6c) opened: 53. Recounted 2026-09-25 after `S-89` and `L-68`
 (P6.11 package 5) closed: 51.
@@ -2107,6 +2108,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     words, so `run` had no page (`T-7`, now written); `33` still put events in language 1's `schedule` section.
     `FS1808` lists a type's settings in `19`'s order. Core 2625/0/2, Api 79/0, frontend 253/0 -- no expected
     failures left. Next: `A-7` (`43`'s `start` settings) before P6.5; then package 9, `docs/` for language 2.
+  - **Package 8, step 3: the small rows that needed no decision (2026-09-27; `L-65`, `L-67`, `L-71`, `L-72`, `L-73`,
+    `L-74`, `L-81`, `L-82`, `L-83`, `A-7` closed; `S-88` tried and withdrawn).** The user asked for every small open
+    row that needed no opinion. Binding: a sizing point is seen through a second `let` (`L-74`: a heat pump reading
+    `share = demand * 1` took 50 kW where its point gives 27.2), a pressure less a pressure read from the plant types
+    as a difference before the solve (`L-71`), and a colour scale's range with a unit is read in it (`L-72`). New codes:
+    `FS1706` for a repeated version line (`L-83`), `FS1817` for an event after its run ends (`L-67`), `FS2007` for a
+    fluid written as a mixture, which still binds the plain fluid (`L-73`). Six templates say "The {kind}" and `FS1514`
+    reads for one form (`L-81`, `L-82`). `43`'s `start` names a run and carries no `settings`; a file with none is
+    `FS4503` (`A-7`). `L-65` closed at the switch with nothing to change. `S-88`'s rule gave the physical seed on 8c
+    (ring 0.239 kg/s) and a worse solve (seed residual 0.185 → 0.574, cap at 2.02 instead of 0.148), because the rest
+    of 8c's seed is consistent with the wrong flow; it was reverted and now waits on `S-69`'s sizing half. Core
+    2636/0/2, Api 79/0, frontend 253/0. Next: package 9, `docs/` for language 2; `L-66`'s remainder and the rows
+    needing the user are listed in their registers.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

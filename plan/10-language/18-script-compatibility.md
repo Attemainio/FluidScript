@@ -183,6 +183,7 @@ without changing existing binding remains backward compatible.
 | `FS1703` | Pinned catalogue is absent or unsupported | Error; no sizing or solve |
 | `FS1704` | Source changed after migration preview | Error; discard preview and recompute |
 | `FS1705` | The file states more than one language **major** | Error; disposition is unsupported, and only `SaveAsBytes` is allowed |
+| `FS1706` | A version line repeats the major an earlier one states | Warning on each repeat; the file reads as its one major (`L-83`, 2026-09-27) |
 
 **`FS1705` was two codes for one trigger, and is now narrower.** It was specified as "version or
 catalogue directive is misplaced or duplicated" — which is exactly [`12-grammar`](12-grammar.md)'s
@@ -192,7 +193,8 @@ and already firing. A misplaced line is a *grammar* error: the statement is in t
 whose directives name **different majors** — the parser sees two well-formed statements, and the gate
 cannot select semantics from them. That is `FS1705`'s trigger. Two directives naming the *same* major
 was an ordinary duplicate, `FS1112` -- retired with language 1's global directives, and measured
-2026-09-26 to raise nothing in language 2 (`L-83`).
+2026-09-26 to raise nothing in language 2 (`L-83`). Since 2026-09-27 the gate says it, as `FS1706`: it
+already collects every directive, and a repeat is harmless to the model but a line that means nothing.
 
 The narrowing is not a redefinition of the kind [`16-diagnostics`](16-diagnostics.md)'s invariant 7
 forbids: `FS1705` had never been registered or raised, and this table was its only reference.

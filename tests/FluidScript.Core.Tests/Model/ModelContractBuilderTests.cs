@@ -328,6 +328,36 @@ public sealed class ModelContractBuilderTests
         Assert.Equal(["pressure", "temperature", "flow"], contract.Visualization.Available);
     }
 
+    /// <summary>A range with a unit is read in it and carried in the property's own units (<c>L-72</c>).</summary>
+    /// <remarks>Before, the ends were taken as bare numbers, so <c>1..4 bar</c> coloured 1 to 4 kPa.</remarks>
+    [Theory]
+    [InlineData("temperature", "20..90 C", 20, 90)]
+    [InlineData("temperature", "-10..40 C", -10, 40)]
+    [InlineData("pressure", "1..4 bar", 100, 400)]
+    [InlineData("pressure", "0..400", 0, 400)]
+    public void ARangeWithAUnitIsReadInIt(string property, string range, double min, double max)
+    {
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Edited("show = temperature", $"show = {property}\n  scale = {range}");
+        var input = ContractFixture.Compile(source);
+        var contract = ModelContractBuilder.Build(input);
+
+        Assert.DoesNotContain(input.Diagnostics, static d => d.Code == "FS1514");
+        var domain = Assert.IsType<DomainWire>(contract.Visualization.Scale.Domain);
+        Assert.Equal(min, domain.Min, 9);
+        Assert.Equal(max, domain.Max, 9);
+    }
+
+    /// <summary>A range in another dimension than the property is refused, not coloured (<c>L-72</c>).</summary>
+    [Fact]
+    public void ARangeInTheWrongDimensionIsRefused()
+    {
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Edited("show = temperature", "show = temperature\n  scale = 20..90 kPa");
+        var input = ContractFixture.Compile(source);
+
+        var refused = Assert.Single(input.Diagnostics, static d => d.Code == "FS1514");
+        Assert.Equal("'scale' accepts a range of temperature in its units, such as 20..90 °C, not '20..90 kPa'.", refused.Message);
+    }
+
     // ---- style and bindings ---------------------------------------------------------------------------------------------
 
     [Fact]

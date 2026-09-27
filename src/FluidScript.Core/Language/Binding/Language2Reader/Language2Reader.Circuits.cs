@@ -206,12 +206,28 @@ internal sealed partial class Language2Reader
         {
             ReferenceSyntax { Parts.IsDefaultOrEmpty: true } named =>
                 new BindingRun.CircuitFluid(named.Head.Token.Text, TextSpan.FromBounds(start, named.Head.Span.End)),
-            CallSyntax call =>
-                new BindingRun.CircuitFluid(
-                    call.Name.Token.Text,
-                    TextSpan.FromBounds(start, call.Arguments.IsEmpty ? call.Name.Span.End : Value(call.Arguments[^1].Value).Span.End)),
+            CallSyntax call => Mixture(setting, call),
             _ => Rejected<BindingRun.CircuitFluid>(setting, "a fluid, such as water"),
         };
+    }
+
+    /// <summary>
+    /// A fluid written as a call: <c>water()</c> is water, and <c>water(30 %)</c> a mixture this version does not have
+    /// (<c>FS2007</c>, <c>L-73</c>). The substance's name still binds, so the circuit is not left without a fluid and
+    /// the one error says what was wrong.
+    /// </summary>
+    private BindingRun.CircuitFluid Mixture(ParameterSyntax setting, CallSyntax call)
+    {
+        if (!call.Arguments.IsEmpty)
+        {
+            Report(
+                FluidDiagnostics.MixtureNotSupported,
+                setting.Value.Span,
+                ("written", Text(setting.Value)),
+                ("substance", call.Name.Token.Text));
+        }
+
+        return new BindingRun.CircuitFluid(call.Name.Token.Text, TextSpan.FromBounds(setting.Span.Start, call.Name.Span.End));
     }
 
     private T? Rejected<T>(ParameterSyntax setting, string available)

@@ -1012,9 +1012,9 @@ above, never to a `let`.
 | `FS1501` | Duplicate component name anywhere in the script | Error | `'{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits.` |
 | `FS1502` | Unknown component kind, closest candidate above the suggestion floor | Error | `There is no '{kind}'.` |
 | `FS1502` | Unknown component kind, nothing close enough to suggest | Error | `There is no '{kind}'.` |
-| `FS1503` | Unknown parameter for the kind | Error | `A {kind} has no '{parameter}'. It accepts: {available}.` |
+| `FS1503` | Unknown parameter for the kind | Error | `The {kind} has no '{parameter}'. It accepts: {available}.` |
 | `FS1504` | Endpoint names an unknown component | Error | Handled by I1 unless the name is a declared non-component symbol, then: `'{name}' is a value, not a component.` |
-| `FS1505` | Unknown port | Error | `A {kind} has no port '{port}'. Ports: {available}.` |
+| `FS1505` | Unknown port | Error | `The {kind} has no port '{port}'. Ports: {available}.` |
 | `FS1506` | Port connected more than once | Error | `Port '{port}' of '{name}' is already connected at line {line}.` |
 | `FS1507` | Component in no connection | Warning | `'{name}' is not connected to anything.` |
 | `FS1508` | *(retired)* | — | Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174). Retired by P6.11 package 7 step 4c, not reused. |
@@ -1023,7 +1023,7 @@ above, never to a `let`.
 | `FS1511` | Graph is disconnected | Warning | `'{name}' and {count} others are not connected to the rest of the circuit.` |
 | `FS1512` | *(retired)* | — | A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1513` | A kind name is ambiguous within the margin | Error | `'{written}' could be '{first}' or '{second}'. Write one of them.` |
-| `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{parameter}' accepts {available}; '{written}' is none of them.` |
+| `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{parameter}' accepts {available}, not '{written}'.` |
 | `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{parameter}' names a component property, like 'N2.t'.` |
 | `FS1516` | An indexed port or parameter lies outside its declared family | Error | `'{written}' is outside {kind}'s supported {min}…{max} range.` |
 | `FS1517` | *(retired)* | — | Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
@@ -1040,14 +1040,14 @@ above, never to a `let`.
 | `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
 | `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
-| `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role}. Write it out, such as '{example}'.` |
+| `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `The {kind} has no single {role}. Write it out, such as '{example}'.` |
 | `FS1532` | An `at` clause on a kind that carries flow rather than observing it | Error | `'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.` |
 | `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node.` |
 | `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |
 | `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
 | `FS1536` | *(retired)* | — | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79). Retired by P6.11 package 7 step 6, not reused. |
-| `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.` |
-| `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
+| `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `The {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.` |
+| `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `The {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
 | `FS1539` | A node's pressure stated twice: on the node and as a port pressure of a component touching it, or by two ports on one node (`D-124`) | Error | `'{written}' states the pressure of '{node}', which '{other}' already states. State it once.` |
 | `FS1540` | A scenario list whose length is not the declared count (`D-143`). Never padded | Error | `'{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them.` |
 | `FS1541` | A scenario list where no `scenarios` line was written (`D-143`) | Error | `'{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block.` |
