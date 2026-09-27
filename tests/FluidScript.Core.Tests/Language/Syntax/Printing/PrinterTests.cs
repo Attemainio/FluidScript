@@ -82,8 +82,8 @@ public sealed class PrinterTests
         // is stable on its second pass and wrong on its first.
         foreach (var sample in ScriptCorpus.All())
         {
-            var once = SyntaxPrinter.Print(FluidScript2Parser.Parse(new SourceText(sample.Text)));
-            var twice = SyntaxPrinter.Print(FluidScript2Parser.Parse(new SourceText(once)));
+            var once = SyntaxPrinter.Print(FluidScriptParser.Parse(new SourceText(sample.Text)));
+            var twice = SyntaxPrinter.Print(FluidScriptParser.Parse(new SourceText(once)));
 
             Assert.Equal(once, twice);
         }
@@ -103,7 +103,7 @@ public sealed class PrinterTests
             + "  PU2   pump  power =  30 kW   # and spaced from it   \n"
             + "  PU3 pump";
 
-        var result = FluidScript2Parser.Parse(new SourceText(Ugly));
+        var result = FluidScriptParser.Parse(new SourceText(Ugly));
 
         Assert.Empty(result.Diagnostics);
         Assert.Equal(Ugly, SyntaxPrinter.Print(result));
@@ -119,7 +119,7 @@ public sealed class PrinterTests
         // the binder will find it.
         const string Text = "fluidscript 2\ncircuit \"cooling loop\":\n  fluid = water\n";
 
-        var result = FluidScript2Parser.Parse(new SourceText(Text));
+        var result = FluidScriptParser.Parse(new SourceText(Text));
         var circuit = Assert.IsType<BlockSyntax>(result.Root.Statements[1]);
 
         Assert.IsType<CircuitHeadSyntax>(circuit.Head);
@@ -136,7 +136,7 @@ public sealed class PrinterTests
             + "    HE1  load  power = 30   # the load\n"
             + "    PU1  pump\n";
 
-        var result = FluidScript2Parser.Parse(new SourceText(Text));
+        var result = FluidScriptParser.Parse(new SourceText(Text));
         var declaration = Assert.IsType<BlockSyntax>(result.Root.Statements[1]).Body[0];
 
         // Leading indentation and the trailing comment belong to the statement; the line break that
@@ -159,7 +159,7 @@ public sealed class PrinterTests
         // print correctly with two statements claiming the same characters.
         foreach (var sample in ScriptCorpus.Samples())
         {
-            var result = FluidScript2Parser.Parse(new SourceText(sample.Text));
+            var result = FluidScriptParser.Parse(new SourceText(sample.Text));
             var position = 0;
 
             foreach (var statement in result.Root.Statements)
@@ -186,7 +186,7 @@ public sealed class PrinterTests
 
     private static void AssertRoundTrips(string name, string text)
     {
-        var result = FluidScript2Parser.Parse(new SourceText(text));
+        var result = FluidScriptParser.Parse(new SourceText(text));
         var printed = SyntaxPrinter.Print(result);
 
         Assert.True(

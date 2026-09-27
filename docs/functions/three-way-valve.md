@@ -3,7 +3,18 @@
 A valve with three ports, used to mix two streams or to divert one.
 
 ```fluidscript
-TV1 three_way_valve
+circuit "Mixing loop":
+  fluid = water
+  S1   inlet  t = 60  p = 300
+  R1   outlet  p = 280
+  TV1  three_way_valve
+  PU1  pump
+  HE1  load  in.t = 50  out.t = 30  power = 24 kW
+
+  S1 - TV1                      # supply water enters
+  NM - TV1                      # the coil's return recirculates
+  TV1 - PU1 - HE1 - NM
+  NM - R1
 ```
 
 ## Ports
@@ -27,7 +38,8 @@ declaration.** A diverting valve takes one stream in at `ab` and splits it betwe
 mixing valve — the commonest in hydronics — takes two streams in at `a` and `b` and delivers one at
 `ab`. Both are real, both are written the same way, and the port that carries flow toward the valve at
 the design point is its inlet. Note that a valve body is built for one service or the other and they
-are not interchangeable in the field; nothing here checks that yet.
+are not interchangeable in the field; a bare `three_way_valve` is not checked for it, and the two
+spellings that name a service are ([Also written as](#also-written-as)).
 
 **What leaves a mixing valve is the mass-weighted mix of what enters it**:
 `h_ab = (ṁ_a·h_a + ṁ_b·h_b) / (ṁ_a + ṁ_b)`. So 0.19 kg/s of 60 °C water through `a` and 0.10 kg/s of
@@ -36,14 +48,28 @@ is the whole reason a stated inlet on the coil downstream can be answered by thi
 The mix is smooth through a reversal of either inlet, so a leg that turns round mid-solve does not
 put a kink in the energy balance.
 
-Ports are named in a connection with a dot:
+**You need not write the ports: the connections name them.** Two connections flowing in and one
+flowing out make a mixing valve, whose out is `ab` and whose ins are `a` and `b`; one in and two out
+make a diverting valve, whose in is `ab` and whose outs are `a` and `b`. Which switched leg is `a` is
+read from the plant, as [below](#which-leg-varies-for-the-authority-rule-and-the-reported-figure): `a`
+is the control path and `b` the bypass. The compiler says once what it chose, as information
+([`FS1815`](diagnostics.md)) — for the circuit above, *'TV1' is wired as a mixing valve: a from S1, b
+from NM, ab to PU1.* What the connections cannot settle, such as three flowing in, is
+[`FS1804`](diagnostics.md), naming the ports to write.
+
+A port written with a dot always wins:
 
 ```fluidscript
-fluidscript 1
-connections
-N1 - TV1.ab
-TV1.a - N2
-TV1.b - N3
+circuit "Diverting":
+  fluid = water
+  S1   inlet  t = 20  p = 300
+  R1   outlet  p = 280
+  R2   outlet  p = 280
+  TV1  three_way_valve
+
+  S1 - TV1.ab
+  TV1.a - R1
+  TV1.b - R2
 ```
 
 ## Parameters
@@ -55,7 +81,7 @@ The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authorit
 One default differs. A three-way valve's `characteristic` is **`linear`** where a two-way valve's is
 `equal_percentage`: its two legs open complementarily, so a linear pair keeps the total flow through
 the valve constant over the stroke — which is what a mixing valve is for — while an equal-percentage
-pair passes only 28 % of it at mid-travel. Write `characteristic=equal_percentage` for a valve built
+pair passes only 28 % of it at mid-travel. Write `characteristic = equal_percentage` for a valve built
 that way.
 
 ### A shut leg still leaks, and how much is the body's
@@ -65,12 +91,12 @@ Belimo's characterised three-way valves rate the bypass B–AB at leakage class 
 1349 / IEC 60534-4), with the control path bubble-tight; ESBE's VRG130 rotary mixing valves are
 under 0.05 % mixing and 0.02 % diverting. `leakage` is that figure, as a fraction of `kv`, and both
 legs pass it at their stops. **The default is 2 %**, the leakier published body; a rotary valve is
-written `leakage=0.05%`. It is a small number with a visible effect only where a leg is shut: a
+written `leakage = 0.05%`. It is a small number with a visible effect only where a leg is shut: a
 consumer that is off passes its trickle through the valve, 0.0062 kg/s at the default and 0.0002 at a
 rotary body's rating, and the position the solve reports at the stop does not change.
 
 Below 0.01 % — FCI 70-2 class IV, the tightest a metal seat is ordinarily built to — the model
-holds the trickle at 0.01 % whatever you state, `leakage=0` included. A stopped branch has no flow
+holds the trickle at 0.01 % whatever you state, `leakage = 0` included. A stopped branch has no flow
 but its water still has a temperature, and the trickle is how the model finds it: at zero the
 solve is singular with nothing determining that branch's temperatures.
 
@@ -110,7 +136,7 @@ feeds it and its own return runs *at* the mixing point at design — 60 and 40 t
 actually sits at: on one series header the authority rule chose Kv 1.6 and the pump was asked for
 15 bar. The band rule chose 6.3, and the pump for 5.7 m.
 
-**If you want the authority rule, ask for it.** Stating `authority=0.5` sizes the valve as a
+**If you want the authority rule, ask for it.** Stating `authority = 0.5` sizes the valve as a
 [`valve`](valve.md) is sized, on the leg that varies. Then everything below about which leg that is
 applies.
 
@@ -118,20 +144,18 @@ applies.
 
 **Name the ports and you have said which leg that is.** `a` is the control path and `b` the bypass —
 the A–AB and B–AB of the valve body — and that is also how the equations read them, so writing
-`TV1.a - P1` and `TV1.b - N2` settles the question outright. This is the recommended way to write a
-three-port valve you want sized.
+`TV1.a - P1` and `TV1.b - N2` settles the question outright.
 
-**Leave them unnamed and the rule works it out from the shape**, because an unwritten letter is only
-connection order. Ports take connections in the order you write them, so a bare `TV1 - N2` before
-`TV1 - P1` makes `a` the *recirculation* leg — the opposite of what the letter means. The rule ignores
-an inferred letter for exactly that reason and asks the circuit instead: the bypass is the leg that gets
-back to where the common leg lands in the fewest components, since closing the valve's own loop is what
-a bypass does, and the other leg is the one that varies.
+**Leave them unnamed and the plant names them**: the bypass is the leg that gets back to where the
+common leg lands in the fewest components, the valve itself barred, since closing the valve's own loop
+is what a bypass does, and the other leg is `a`, the one that varies. The letter the equations open
+with the position and the leg the sizing measures are therefore the same leg, and `FS1815` says which
+leg took which letter.
 
 That reading is right on every shape in the corpus, but it is a reading rather than a statement, and it
 has two blind spots: a short tap off a header feeding a long secondary looks inverted to it, and an
-injection circuit whose two switched legs land on the same header looks symmetric. Naming the ports is
-the answer to both.
+injection circuit whose two switched legs land on the same header is symmetric to it, so the order you
+wrote them decides, the first `a`. Naming the ports is the answer to both.
 
 **Under the authority rule, whether the drop is chosen or determined depends on what drives the
 circuit.** With a pump on the path whose head you have not stated, the driving pressure is free, the
@@ -162,10 +186,20 @@ is set for you: each pass sets it to the drop that brings the bypass level with 
 and the three-way valve then sits at the position its ratio implies. Write it as any other component
 on the connection:
 
-```
-BV_RAD  valve
-connections
-NM_RAD - BV_RAD - TV_RAD.b
+```fluidscript
+circuit "radiators":
+  fluid = water
+  N4      inlet  t = 60  p = 300       # the header's supply and return, as boundaries here
+  N6      outlet  p = 280
+  HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
+  BV_RAD  valve
+
+  N4 - TV_RAD   18 m  DN25
+  NM_RAD - BV_RAD - TV_RAD.b
+  TV_RAD - PU_RAD - HE_RAD - NM_RAD
+  NM_RAD - N6   18 m  DN25
 ```
 
 **The solve tells you when it is missing.** A three-way valve's two legs share one `position`, so
@@ -204,7 +238,7 @@ cooling loop's `3WV` with a valve on its return leg sits at 0.31, its recirculat
 
 ### A consumer that is off still passes a trickle
 
-A consumer at `power=0` does not shut its valve. Both header legs stay open at the position the solve
+A consumer at `power = 0` does not shut its valve. Both header legs stay open at the position the solve
 finds, so the supply-to-return differential drives a small flow in at `a` and out through `b` across
 the chamber while the common port carries next to nothing. The report shows it as the two legs equal
 and opposite. That is a three-port body doing what its geometry allows, not a leak in the model; a
@@ -212,14 +246,9 @@ consumer that must be isolated needs a shut-off valve of its own.
 
 ### When it cannot be sized
 
-If the connections name no ports **and** the two switched legs are the same distance from the leg they
-split, nothing says which of them recirculates and which varies when the valve strokes, and the rule
-declines rather than guessing. Naming them — `a` for the leg it controls, `b` for the bypass — is the
-fix, and the message says so.
-
-The same happens when the drop is determined by the boundaries but the circuit does not state exactly
-two pressures, so which pair drives this valve is open. In both cases the valve keeps a placeholder
-`kv`, the report says it was never chosen, and you are asked to state one.
+If the drop is determined by the boundaries but the circuit does not state exactly two pressures,
+which pair drives this valve is open, and the rule declines rather than guessing. The valve keeps a
+placeholder `kv`, the report says it was never chosen, and you are asked to state one.
 
 ## Properties
 
@@ -231,8 +260,10 @@ two pressures, so which pair drives this valve is open. In both cases the valve 
 
 **Two of those spellings say something.** A seat body is built for one service — Siemens' VXG44 is
 "to be used only as a mixing valve" — and which one a plant needs is decided by how the ports are
-wired, not by the valve. `mixing_valve` and `diverting_valve` name the body you intend to buy; the
-solve finds which way the water actually runs (two streams in at `a` and `b` is mixing, one in at
+wired, not by the valve. `mixing_valve` and `diverting_valve` name the body you intend to buy. A body
+whose connections say the other function — two in where `diverting_valve` expects one — is
+[`FS1805`](diagnostics.md) before anything is solved; beyond that, the solve finds which way the water
+actually runs (two streams in at `a` and `b` is mixing, one in at
 `ab` is diverting), and when the two disagree [`FS4012`](diagnostics.md) says so:
 
 ```
@@ -245,7 +276,8 @@ FS4012  '3WV' is written as a mixing valve and the solve runs it diverting: 0.23
 A bare `three_way_valve`, `3_way_valve`, `3wv` or `valve3` claims nothing and is never reported. Rotary
 mixing valves such as ESBE's VRG series serve both functions, and are written bare.
 
-Write `3_way_valve`, not `3-way-valve`: a hyphen subtracts.
+Write `3_way_valve`, not `3-way-valve`: a name cannot contain a hyphen, and `3-way-valve` is
+[`FS1108`](diagnostics.md).
 
 ## Tag
 
@@ -253,4 +285,4 @@ Write `3_way_valve`, not `3-way-valve`: a hyphen subtracts.
 
 ## See also
 
-[`valve`](valve.md) · [`control`](control.md) · [`connections`](connections.md)
+[`valve`](valve.md) · [`controller`](controller.md) · [`circuit`](circuit.md)

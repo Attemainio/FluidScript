@@ -98,19 +98,19 @@ deferred expression. Two loops would interleave unpredictably and could oscillat
 first iterate close to the answer, and where the duty fully determines the flow it *is* the answer —
 the worked example needs two passes for that reason, one to size and one to confirm.
 
-**Every pass of this pipeline runs at one operating case** — and, once `D-143` lands, once per
-declared scenario in turn, each a full run of the pipeline and each component's size the envelope of
-its kind over them (*Sizing over scenarios*, below). Within one case `design` supplies each driver a
+**Every pass of this pipeline runs at one operating case** — and, since `D-143` (P6.8), once per
+declared case in turn, each a full run of the pipeline and each component's size the envelope of
+its kind over them (*Sizing over scenarios*, below). Within one case each driver takes that case's
 value, every curve short-circuits to a constant against it (`D-58`), and the sizes that come out hold
 for the whole run. In a
 static solve the design point is also the operating point and the distinction is invisible. In a
 dynamic one it is not: sizing is **not** re-run per time step and it is not run at t = 0 either, which
 would size the plant for whatever the weather is at midnight on the first of January. **No rule here
-reads `ProjectSettings.Design` directly, and `P3.8` measured that none needs to**: the binder folds
-every curve to its design-point value before lowering, so a `power=heating` under `design tout=-26`
+reads a driver directly, and `P3.8` measured that none needs to**: the binder folds every curve to its
+value in the case before lowering, so a `power = heating` in a case whose `outdoor` is −26 °C
 reaches these rules as a stated 50 kW and is sized against exactly as a typed one. A component that
-should *not* be sized at the peak — the heat pump of a bivalent pair — says so with `sized_at tout=-5`
-on its own declaration (`D-94`), reads the curve there, and the closed-circuit closure in step 1
+should *not* be sized at the peak — the heat pump of a bivalent pair — says so with
+`sized_at.outdoor = -5 C` on its own declaration (`D-175`, amending `D-94`), reads the curve there, and the closed-circuit closure in step 1
 gives its backup the remainder. The fraction of peak that results is reported as the parameter's
 basis, never taken as an input (`C-51`, closed).
 
@@ -126,7 +126,7 @@ driver nobody wrote, and the cases a plant is sized for are the cases an enginee
 
 ### Scenarios
 
-```fluidscript lang=2
+```fluidscript
 project:
   cases = [winter, summer]              # the first case is the design case
 
@@ -143,7 +143,7 @@ circuit "heating":
 - **Any array whose length is not the declared count is an error**, naming the parameter, its length
   and the count. Nothing is padded (`D-143`; `D-60`'s rule against inferring from data).
 - The first case is the **operating** case and sizes nothing: the state the canvas draws, the numbers
-  a static export carries, the inputs a run starts from (`D-175`; language 1 named it with `design`).
+  a static export carries, the inputs a run starts from (`D-175`).
 
 ### The pipeline, and why it is four steps
 
@@ -286,7 +286,7 @@ missing an interior one.
 
 **The range sugar is rejected.** A driver range that generated scenarios into the same list would
 spell one candidate set two ways, and the second spelling is `D-138`'s driver sweep returning under
-another name — the thing `D-143` removed because it made `design` mean two jobs and derived duties
+another name — the thing `D-143` removed because it gave the design point two jobs and derived duties
 from a driver nobody wrote.
 
 The flow trap `D-138` recorded outlives it and is worth stating in its new form: a chilled side at
@@ -1143,7 +1143,7 @@ all connections are ideal, the pump instead sizes to zero head and emits `FS2312
 The **simple loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) — one series
 circuit, one flow, so every step is checkable by hand:
 
-```fluidscript lang=2
+```fluidscript
 circuit "simpleLoop":
   HE1   heat_exchanger  power = 30  in.t = 20  out.t = 50
   LOAD  heat_exchanger  power = -30
@@ -1162,7 +1162,7 @@ at the loop's 35 °C mean density of 994 kg/m³ is **0.241 l/s**.
 closed circuit's duties must sum to zero, so 30 kW entering with no sink is a set of equations with no
 solution rather than a warm loop (`FS2203`), and the count is square either way. It states its duty
 and nothing else: no unknown, no demand, and no stated `dp`, so it adds no pressure drop to size
-against and the head below is unchanged. `HE1 in=20` is then the loop's enthalpy datum (`D-65`) —
+against and the head below is unchanged. `HE1`'s `in.t = 20` is then the loop's enthalpy datum (`D-65`) —
 every thermal relation in a closed circuit is a difference, so one absolute temperature has to be
 stated and this is it.
 
@@ -1295,5 +1295,5 @@ three of those numbers are engineering, and one is a guess.
 
 None. Pump allowance is the explicit `margin` parameter; physical fittings use explicit
 `minor_loss` rather than an invented blanket percentage; and a transient run holds the sizes chosen at
-the `design` point for its whole length — frozen into the immutable snapshot by `D-22`, but *chosen*
+the design condition for its whole length — frozen into the immutable snapshot by `D-22`, but *chosen*
 by `D-58`, which is a design condition and not a clock reading.

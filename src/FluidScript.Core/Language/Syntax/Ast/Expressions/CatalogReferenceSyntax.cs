@@ -5,7 +5,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Syntax.Ast.Expressions;
 
-/// <summary>A language 2 catalogue pin as a value: <c>catalog = steel_en10255@2026.1</c>.</summary>
+/// <summary>A catalogue pin as a value: <c>catalog = steel_en10255@2026.1</c>.</summary>
 /// <param name="Catalog">The catalogue's identifier.</param>
 /// <param name="Version">The <c>@</c> and the version number, touching the identifier.</param>
 /// <remarks>

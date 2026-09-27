@@ -383,7 +383,7 @@ mode of hand-curated data.
 | `FS2603` | Named catalogue does not exist | Error | `No catalogue '{name}'. Available: {list}.` |
 | `FS2604` | Catalogue file failed validation on load | Error | `Catalogue '{name}' is invalid: {reason}.` — a build/startup failure, not a user error |
 | `FS2605` | Entry lacks verified provenance | Error | Startup failure. An unverified row must never reach a user. |
-| `FS2606` | No `catalog` directive; the shipped default was used | Info | `Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it.` |
+| `FS2606` | No `catalog` setting; the shipped default was used | Info | `Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it.` |
 | `FS2607` | A correlation was evaluated outside its fitted range | Warning | `'{name}': the {plate} correlation is fitted for Re {lo}–{hi} and this design runs at {re}. The result is an extrapolation.` |
 
 **Three of these are not registered yet, and each waits for a different thing.** `FS2601` and
@@ -447,7 +447,7 @@ Note DN25's ID is 27.3 mm, not 25 mm. DN is a designation, not a dimension, and 
 
 None. v1 ships three verified pipe series (`steel_en10255`, DN15–DN150 — the range EN 10255 covers;
 `steel_en10220`, DN15–DN300 on the Series 1 diameters, which is where DN200 and above live, `C-42`,
-`C-110`; and `copper_en1057`) and one generic discrete Kv series. `catalog steel_en10255@2026.1` pins exactly one version; `catalog steel_en10255` selects the
+`C-110`; and `copper_en1057`) and one generic discrete Kv series. `catalog = steel_en10255@2026.1` pins exactly one version; `catalog = steel_en10255` selects the
 shipped version of that named catalogue; absence selects the shipped default. Every resolution records
 the exact id and version. M2a cannot exit until two public manufacturer sources support every row and an independent
 review checks the generated table. Pump curves remain user-supplied or the documented generic

@@ -12,10 +12,10 @@ using FluidScript.Core.Language.Syntax.Text;
 
 namespace FluidScript.Core.Language.Binding;
 
-/// <summary>Reads a language 2 tree into the records the binder binds (<c>D-177</c>, <c>D-178</c>). Not reusable, and not shared between threads.</summary>
+/// <summary>Reads a syntax tree into the records the binder binds (<c>D-177</c>, <c>D-178</c>). Not reusable, and not shared between threads.</summary>
 /// <remarks>
 /// <para>
-/// The binder's front end for language 2 (<c>19</c> §Binding directly). It settles what language 2 leaves to the
+/// The binder's front end (<c>19</c> §Reading the tree into the binder). It settles what a script leaves to the
 /// plant -- every unnamed port, by the direction of flow; a sensor written in a chain, on a node of its own; a
 /// controller's line from its <c>moves</c> and <c>reads</c> -- and hands the binder circuits, links, controls, curves,
 /// cases and the project as records, with the declarations, <c>let</c>s and runs as the tree has them and their values
@@ -24,15 +24,15 @@ namespace FluidScript.Core.Language.Binding;
 /// (<c>D-179</c>).
 /// </para>
 /// <para>
-/// It began as the translation into language 1's statements (package 3), and makes the same decisions, which the
-/// frozen corpus holds it to (<c>D-178</c>). A token made here has a span inside the language 2 text it stands for --
+/// The frozen corpus holds its decisions to the models it gave when it was proven (<c>D-178</c>). A token made
+/// here has a span inside the text it stands for --
 /// a zero-length one where it stands for nothing written -- so every diagnostic lands on what the user wrote.
 /// </para>
 /// <para><strong>Never throws on user input</strong> (principle P4): what it cannot place is reported and left out.</para>
 /// </remarks>
-internal sealed partial class Language2Reader(ParseResult source, IComponentRegistry registry)
+internal sealed partial class ScriptReader(ParseResult source, IComponentRegistry registry)
 {
-    private readonly Language2Reading _reading = new();
+    private readonly ScriptReading _reading = new();
 
     private readonly List<LetBindingSyntax> _lets = [];
 
@@ -49,7 +49,7 @@ internal sealed partial class Language2Reader(ParseResult source, IComponentRegi
 
     /// <summary>Reads the tree.</summary>
     /// <returns>What the binder binds, and what the reading itself had to say.</returns>
-    public Language2Reading Execute()
+    public ScriptReading Execute()
     {
         var circuits = new List<BlockSyntax>();
 
@@ -104,7 +104,7 @@ internal sealed partial class Language2Reader(ParseResult source, IComponentRegi
 
     // ---- tokens made here ----------------------------------------------------------------------
 
-    /// <summary>A token standing for something language 2 writes differently or not at all.</summary>
+    /// <summary>A token standing for something the binder reads that the script writes differently or not at all.</summary>
     private static Token Made(TokenKind kind, string text, TextSpan span) =>
         new() { Kind = kind, Text = text, Span = span };
 
@@ -133,8 +133,8 @@ internal sealed partial class Language2Reader(ParseResult source, IComponentRegi
     private string Text(SyntaxNode node) => source.Source.ToString(node.Span);
 }
 
-/// <summary>What <see cref="Language2Reader"/> hands the binder, in the order the binder applies it.</summary>
-internal sealed class Language2Reading
+/// <summary>What <see cref="ScriptReader"/> hands the binder, in the order the binder applies it.</summary>
+internal sealed class ScriptReading
 {
     /// <summary>Gets what the reading itself reported: ports it could not settle, settings a block does not take.</summary>
     public List<Diagnostic> Diagnostics { get; } = [];

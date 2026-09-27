@@ -9,11 +9,10 @@ namespace FluidScript.Core.Tests.Language.Corpus;
 
 /// <summary>A model as text, blind to spans: the frozen corpus's goldens (<c>D-178</c>).</summary>
 /// <remarks>
-/// Written to compare a language 1 file with its language 2 conversion, which is why it leaves out what the two
-/// spelled differently by design: every span; a curve's driver, whose effect is in every parameter that reads the
-/// curve; the lets and design values themselves, whose effect is in every parameter that reads them; a component's
-/// origin. A circuit's mode and the schedule are included only when the file has a run, against the run's
-/// projection. The goldens were taken through it, so it is kept as it was when language 1 was removed.
+/// It leaves out what the model's meaning does not depend on: every span; a curve's driver, whose effect is in every
+/// parameter that reads the curve; the lets and design values themselves, whose effect is in every parameter that
+/// reads them; a component's origin. A circuit's mode and a run's events are included only when the file has a run,
+/// against the run's projection. The goldens were taken through it, so its rendering is frozen with them.
 /// </remarks>
 public static class ModelShape
 {

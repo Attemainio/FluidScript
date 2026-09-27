@@ -1,6 +1,6 @@
 namespace FluidScript.Core.Language.Registry;
 
-/// <summary>What a language 2 setting's value is, which is what an editor offers after its <c>=</c> (<c>19</c>, <c>52</c>).</summary>
+/// <summary>What a setting's value is, which is what an editor offers after its <c>=</c> (<c>19</c>, <c>52</c>).</summary>
 public enum SettingValueKind
 {
     /// <summary>A quantity, in the setting's dimension when it has one fixed dimension: <c>duration = 2 h</c>.</summary>

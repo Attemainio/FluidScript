@@ -31,7 +31,7 @@ public sealed class ScriptCompatibilityTests
         Assert.Equal(CompatibilityDisposition.UnversionedDraft, result.Disposition);
         Assert.Null(result.DetectedMajor);
 
-        // The current major is language 2 (`D-174`), and the fix inserts it.
+        // The current major is 2 (`D-174`), and the fix inserts it.
         var diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal("FS1701", diagnostic.Code);
         Assert.Contains("fluidscript 2", diagnostic.Message, StringComparison.Ordinal);
@@ -82,10 +82,10 @@ public sealed class ScriptCompatibilityTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ALanguage1FileIsReadableAsTextAndNothingElse()
+    public void AFileStatingAnOlderMajorIsReadableAsTextAndNothingElse()
     {
-        // `D-174`: language 1 is dropped, not kept behind a migration. Its file is never compiled, solved or
-        // rewritten, and its bytes can still be saved elsewhere.
+        // `D-174`, `18`: a file that states an older major is not kept behind a migration. It is never compiled,
+        // solved or rewritten, and its bytes can still be saved elsewhere.
         var result = Inspect("fluidscript 1\nHE1 heat_exchanger power=30\n");
 
         Assert.Equal(CompatibilityDisposition.UnsupportedOld, result.Disposition);
@@ -140,8 +140,8 @@ public sealed class ScriptCompatibilityTests
     [Trait("Category", "Unit")]
     public void ASecondDirectiveNamingTheSameMajorIsARepeat()
     {
-        // Not FS1705: nothing is contradictory, so the gate has an answer. Language 1's parser said FS1112 here;
-        // language 2's says nothing, so the gate names the repeat (L-83), on the second line and not the first.
+        // Not FS1705: nothing is contradictory, so the gate has an answer. The parser says nothing about a
+        // repeat, so the gate names it (L-83), on the second line and not the first.
         var result = Inspect("fluidscript 2\nfluidscript 2\n");
 
         Assert.Equal(CompatibilityDisposition.Current, result.Disposition);

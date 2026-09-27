@@ -42,7 +42,7 @@ public static class ScenarioEnvelope
         }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>What one scenario chose, and what it is called.</summary>
-    /// <param name="Name">The scenario's name, as the <c>scenarios</c> line writes it.</param>
+    /// <param name="Name">The scenario's name, as the project's <c>cases</c> writes it.</param>
     /// <param name="Sizes">The sizes that scenario's own solve settled on.</param>
     public readonly record struct Candidate(string Name, SizingOverlay Sizes);
 
@@ -66,7 +66,7 @@ public static class ScenarioEnvelope
     }
 
     /// <summary>Merges each scenario's chosen sizes into one plant's.</summary>
-    /// <param name="candidates">What each scenario chose, in the order the <c>scenarios</c> line declares.</param>
+    /// <param name="candidates">What each scenario chose, in the order the project's <c>cases</c> declares.</param>
     /// <returns>The merged sizes with the case that governed each, or the parameters no rule names.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="candidates"/> is <see langword="null"/>.</exception>
     public static Envelope Merge(IReadOnlyList<Candidate> candidates)

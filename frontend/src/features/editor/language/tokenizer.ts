@@ -40,7 +40,7 @@ export interface LineToken {
   readonly text: string;
 }
 
-/** A block a line may sit in (`19` §Lines, blocks and names): what its head opened. */
+/** A block a line may sit in (`12` §Lines and blocks): what its head opened. */
 export type BlockKind = 'project' | 'circuit' | 'run' | 'style' | 'declaration' | 'curve';
 
 /** An open block: its kind, how deep its head is indented, and for a declaration its name and written kind. */
@@ -101,7 +101,7 @@ export function indentOf(line: string): number {
 /**
  * Tokenizes one line, mirroring Core's `Lexer` rule for rule (maximal munch on the unit table, `3WV`
  * as a name, `30 kW` as one quantity, a date as one token, no reserved words) and then assigning
- * roles the way `LineParser.ClassifyLanguage2` reads a line: a statement word at the start names its
+ * roles the way `LineParser.Classify` reads a line: a statement word at the start names its
  * statement; otherwise the qualified name the line starts with is followed by `=` for a setting, `-`
  * for a connection, and anything else for a declaration. Updates the open blocks.
  */
@@ -224,7 +224,7 @@ export function lexLine(line: string): Lexed[] {
       if (end < n && isWordChar(at(end))) {
         continue;
       }
-      // Rule 5's clause, looking past spaces since language 2 lets `=` stand apart (`19`): `flow = 5 h = 2000`
+      // Rule 5's clause, looking past spaces since the language lets `=` stand apart (`12`): `flow = 5 h = 2000`
       // is five and a parameter named h; `30 in.t=` and `30 in[2]` are a number and a name.
       if (
         rejectBeforeEquals &&
@@ -379,7 +379,7 @@ export function lexLine(line: string): Lexed[] {
 
 // ---- lines ------------------------------------------------------------------------------------------
 
-/** What a line is (`19` §Statements), read from its tokens and the block it sits in. */
+/** What a line is (`12` §Statements), read from its tokens and the block it sits in. */
 export type LineKind =
   | 'version'
   | 'head'
@@ -421,7 +421,7 @@ export function qualifiedEnd(tokens: readonly Lexed[], start: number): number {
   }
 }
 
-/** Reads a line as `LineParser.ClassifyLanguage2` does, given the block it sits in. */
+/** Reads a line as `LineParser.Classify` does, given the block it sits in. */
 export function classify(tokens: readonly Lexed[], block: OpenBlock | null): LineReading {
   const first = tokens[0];
   const second = tokens[1];

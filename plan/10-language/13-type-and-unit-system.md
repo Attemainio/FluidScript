@@ -197,20 +197,15 @@ rules could not see across one, and this document asserted that a space-separate
 identifier — while every `let` example in the tree writes `30 K` and `4.18 kJ/(kg*K)` with a space.
 
 **The rule, in full:** a known unit symbol is recognised when it follows a number token, optionally
-separated by horizontal whitespace, **and is not immediately followed by `=`**.
+separated by horizontal whitespace, **and is not followed by `=`**, with or without spaces between.
 
-The `=` clause is the whole reason the rule can be permissive. `in` is a unit (inch) *and* a parameter
-name in the brief's own line:
-
-```fluidscript lang=1
-HE1 heat_exchanger power=30 in.t=20 out.t=50
-```
-
-Without the clause, `30 in` lexes as thirty inches and the brief's flagship example silently becomes
-nonsense. With it, `in` is followed by `=` so it is a parameter name, and `30` stays a bare number that
-takes `power`'s canonical unit. The same protects `t` (tonne / a node's temperature) in `flow=5 t=6`.
-That is language 1's rule. Language 2 ([`19`](19-fluidscript-2.md)) writes `in.t = 20` with spaces,
-so a spaced `=` also ends a unit there, and `in` and `t` are not unit symbols at all.
+The `=` clause is the whole reason the rule can be permissive. `h` is a unit (hour) *and* a parameter
+name (enthalpy), and a script writes `=` with spaces round it: in `flow = 5  h = 2000`, the `h` is
+followed by `=`, so it is the next parameter's name and `5` stays a bare number that takes `flow`'s
+canonical unit. Without the clause, `5 h` lexes as five hours and the line silently becomes nonsense.
+Two symbols collide with names a script writes too often for the clause to be the only guard, and are
+not units at all: **`in`** (inch), which is every port's name, and **`t`** (tonne), which is every
+temperature's ([`19`](19-fluidscript-2.md)).
 
 One token of lookahead, which [`12-grammar`](12-grammar.md)'s invariant 5 permits (it forbids
 *unbounded* lookahead). The alternative — forbidding the space entirely — is simpler to lex and costs
@@ -221,11 +216,10 @@ quantities; `C` alone, with no number before it, is an identifier.
 
 ### World units are dimensionless, and `spacing` is the reason to say so
 
-`spacing = 20` (`D-37`, the project block's setting in language 2) takes a bare `number`, never a
+`spacing = 20` (`D-37`, `D-171`, a setting of the project block) takes a bare `number`, never a
 `quantity`. World units are the canvas coordinate system ([`02-glossary`](../00-foundation/02-glossary.md));
 they are not metres, not millimetres, and not pixels, so no symbol in the table above denotes one and
-`spacing = 20 mm` is `FS1514` (measured 2026-09-26; language 1's `spacing 20 mm` was `FS1113`, retired with
-it).
+`spacing = 20 mm` is `FS1514` (measured 2026-09-26).
 
 **The temptation is to accept `mm` and treat the canvas as a drawing at some scale**, and it must be
 refused. A P&I diagram is a schematic: the distance between a pump and a valve on the page has no
@@ -392,19 +386,22 @@ generated record equality, which is a trap; `Quantity` therefore overrides `Equa
 
 ## Timestamps
 
-A timestamp is a **line-level** unit, not a quantity, and it exists only inside a `curve` section
-whose driver is `time` (`D-60`). It is **not** a dimension: it never takes part in arithmetic, never
-carries a unit, and converts to seconds on the SI side like everything else. It is not a lexical
-unit either, and cannot be: `2026-01-01` is also a valid subtraction, so no context-free lexer can
-tell the two apart. A curve row keeps its raw tokens and the binder splits the row's *text* at its
-last run of whitespace; the lexer's only part is a `Colon` token, so that a clock time does not raise
-`FS1002` (`L-36`).
+A timestamp is a **line-level** unit, not a quantity: the first column of a `curve` whose driver is
+`time` (`D-60`), a run's `start`, and a clock time in a run's events. It is **not** a dimension: it
+never takes part in arithmetic, never carries a unit, and converts to seconds on the SI side like
+everything else. The lexer reads the shape `2026-01-15`, optionally followed by a clock time, as one
+`DateLiteral` token rather than a subtraction, because no one means 2026 − 1 − 15; a clock time alone,
+`06:30`, is one too ([`19`](19-fluidscript-2.md)). A curve row keeps its raw tokens and the binder
+splits the row's *text* at its last run of whitespace (`L-36`).
 
-Two forms need no declaration — ISO 8601 (`2026-01-01T00:00:00`) and a bare number of Unix seconds.
+Two forms need no declaration — ISO 8601 (`2026-01-15T06:00:00`, or with a space, `2026-01-15 06:00`,
+as the reference script writes it) and a bare number of Unix seconds.
 Anything else is stated on the curve:
 
-```fluidscript lang=1
-curve outdoor time format="dd/MM/yyyy HH:mm:ss"
+```fluidscript
+curve weather: time format = "dd/MM/yyyy HH:mm:ss"
+  15/01/2026 06:00:00   -18
+  15/01/2026 12:00:00    -9
 ```
 
 The format string is .NET's, **and its case carries meaning**: `MM` is the month and `mm` the minute,
@@ -412,9 +409,6 @@ The format string is .NET's, **and its case carries meaning**: `MM` is the month
 from memory — is literally day / minute / year, 12-hour : minute : second, and would parse without
 complaint. The format is therefore validated when the curve binds: a string naming no month, or no
 day, or using `hh` with no designator, is a diagnostic rather than a silent misparse.
-
-That is language 1's form. Language 2 lexes a date unquoted, `2026-01-15 06:00`, and has no `format`
-([`19`](19-fluidscript-2.md)).
 
 Culture-inferred parsing is rejected outright and `D-60` records why with the example that settled it.
 A format that depends on the reader's locale means one file means two things on two machines.
@@ -478,19 +472,19 @@ diagram of a 30 MW plant. Ranges are declared per parameter in
 
 ## Worked example
 
-`let dT = 30 dK` then `HE1 heat_exchanger in=20 out=20C+dT`:
+`let dT = 30 K` then `HE1  heat_exchanger  in.t = 20  out.t = 20 C + dT`:
 
 | Step | Value | Dimension | Note |
 |---|---|---|---|
-| `30 dK` lexed | quantity, `30`, unit `dK` | TemperatureDelta | Explicit delta syntax |
+| `30 K` lexed | quantity, `30`, unit `K` | TemperatureDelta | A whole `K` is a difference (`D-172`) |
 | `dT` bound | `SiValue = 30`, `Dimension = TemperatureDelta` | | |
-| `20` in `in=20` | number, no unit | → Temperature | Bare number takes `in`'s canonical unit, °C |
-| `in` stored | `SiValue = 293.15` | Temperature | 20 + 273.15 |
-| `20C` in the expression | quantity, `20`, unit `C` | Temperature | `SiValue = 293.15` |
-| `20C + dT` | Temperature + TemperatureDelta | Temperature | 293.15 + 30 = **323.15 K** |
-| `out` displayed | `50 °C` | | Converted from SI once, for display |
+| `20` in `in.t = 20` | number, no unit | → Temperature | Bare number takes `in.t`'s canonical unit, °C |
+| `in.t` stored | `SiValue = 293.15` | Temperature | 20 + 273.15 |
+| `20 C` in the expression | quantity, `20`, unit `C` | Temperature | `SiValue = 293.15` |
+| `20 C + dT` | Temperature + TemperatureDelta | Temperature | 293.15 + 30 = **323.15 K** |
+| `out.t` displayed | `50 °C` | | Converted from SI once, for display |
 
-And the failing case, `out=20C+30C`: both operands are `Temperature`, so `FS1302` fires with the
+And the failing case, `out.t = 20 C + 30 C`: both operands are `Temperature`, so `FS1302` fires with the
 message naming the fix. Nothing is computed. A single-dimension design would have returned 596.3 K and
 drawn a diagram.
 
@@ -507,7 +501,7 @@ drawn a diagram.
       base unit — `Temperature`, `Pressure`, `PressureDelta`, `Power`, `VolumeFlow`, `Volume` —
       spelling the five units named here (invariant 8; `DimensionTests`). The test compares factor and offset, not spelling, so the `dK`
       row is correctly excluded: it changes type, not scale.
-- [ ] `power=30 in=20` lexes as two parameters, **not** as thirty inches — the `=`-lookahead clause
+- [ ] `flow = 5  h = 2000` lexes as two parameters, **not** as five hours — the `=`-lookahead clause
       has a test of its own, because it is the whole safety of the whitespace rule.
 - [ ] `let dT = 30 dK` and `let cp = 4.18 kJ/(kg*K)` both lex as one quantity each.
 - [ ] `20C + 30dK` yields 323.15 K; `20C + 30C` yields exactly one `FS1302` and no value.

@@ -3,18 +3,25 @@
 What makes the fluid move. A pump is the only component that adds head to a circuit.
 
 ```fluidscript
-PU1 pump
-PU2 pump head=15
+circuit "simpleLoop":
+  fluid = water
+  HE1   heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30  dp = 0
+  CV1   valve
+  PU1   pump                            # sized; PU1  pump  head = 15  states it
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+  N5 - N1   25 m
 ```
 
 A pump with no parameters is sized: its head comes out equal to the loop's total pressure drop, which
 is the number you would otherwise have computed by hand to choose one.
 
 A stated head is metres of the pumped fluid, and the parameter accepts any value in metres: a bare
-number, `12 m`, or an expression such as `head=1.2*HE1.dp/(998 kg/m3*g)`, which is how a head is
+number, `12 m`, or an expression such as `head = 1.2 * HE1.dp / (998 kg/m3 * g)`, which is how a head is
 written from a pressure drop ([`let`](let.md#constants)). A pressure on its own is refused, because
 head is `dp / (rho * g)` and the density is yours to state. To state the rise itself, write `dp`:
-`PU1 pump dp=30` holds 30 kPa across the pump whatever the fluid or its temperature, and the report
+`PU1 pump dp = 30` holds 30 kPa across the pump whatever the fluid or its temperature, and the report
 prints the head that rise is worth at the solved density, marked `(rise stated)`.
 
 ## How the head is chosen
@@ -32,7 +39,7 @@ with their own pumps feeding consumers with their own — the source pump is siz
 the header sits at no differential, and each consumer's pump develops its own circuit's drop. A pump
 that shares no loop is sized to the worst of the loops through it, as before.
 
-**Two pumps on one ring put the second suction below the first.** With no `p=` anywhere the datum is
+**Two pumps on one ring put the second suction below the first.** With no `p` stated anywhere the datum is
 the first pump's suction at 0 kPa, and a booster further round the ring discharges into it, so the
 booster's own suction sits its head below zero — 29 kPa under atmospheric for a 3 m booster. The circuit
 solves (that is liquid water, just under vacuum), and [`FS2221`](diagnostics.md) names the node and the
@@ -52,7 +59,7 @@ belong in a pipe's `minor_loss`.
 A stated `head` is a constraint, not a starting guess. The circuit still has to carry the flow its
 duty fixes, so the head you wrote and the drop the loop makes must meet somewhere — and the place is
 the first valve on the loop whose `kv` you did not state. That valve is solved rather than sized: it
-closes until it has taken up whatever your pump has to spare. `PU2 pump head=15` on a loop that
+closes until it has taken up whatever your pump has to spare. `PU2 pump head = 15` on a loop that
 needs 5.28 m leaves 9.7 m for the valve, which lands on Kv 0.77 at 0.24 kg/s — reported as a solved
 value, with no catalogue row and no authority, because nothing chose it. A loop with no such valve
 has nothing to give, and you are told the circuit is over-specified rather than handed a head the
@@ -64,7 +71,7 @@ Zero is a real answer, and three different omissions produce it. The reported re
 
 | What you are told | What is missing |
 |---|---|
-| `on no closed circuit` | The pump is declared but never connected into a loop — check your `connections`. |
+| `on no closed circuit` | The pump is declared but never connected into a loop — check the circuit's connection lines. |
 | `Cannot size … no flow is determined` (`FS2304`, an error) | Nothing sets a flow. Give the circuit a duty: an exchanger with a power and two temperatures, or a stated flow. |
 | `no modelled resistance` (`FS2312`, a note) | The loop has flow but nothing that resists it. Add the pipe, valve or exchanger drop you meant to write. |
 
@@ -82,7 +89,7 @@ pump and the log links to it.
 | `head` | m | Head at the duty point | Sized from the circuit |
 | `dp` | kPa | Pressure rise, an alternative to `head`: held exactly across the pump, the head then being that rise at the solved density. Stating both is [`FS2101`](diagnostics.md) | Sized |
 | `flow` | kg/s | Duty flow. With `head` stated too, the two are the point the curve passes through and the circuit decides where on it the pump runs; **without `head`, the pump holds the circuit at this flow** and its head is solved for | Sized |
-| `vflow` | l/s — `vflow=0.3` is 0.3 l/s; `vflow=1.1 m3/h` converts | `flow` as a volume flow. Without `head` it holds the circuit at that volume flow at the pump inlet's solved density; with `head` it is the duty point, taken at 20 °C water as pump curves are published | Sized |
+| `vflow` | l/s — `vflow = 0.3` is 0.3 l/s; `vflow = 1.1 m3/h` converts | `flow` as a volume flow. Without `head` it holds the circuit at that volume flow at the pump inlet's solved density; with `head` it is the duty point, taken at 20 °C water as pump curves are published | Sized |
 | `speed` | — | Relative speed, for variable-speed control | Sized, or driven by a controller |
 | `efficiency` | — | Hydraulic efficiency | 0.7, a typical wet-rotor circulator |
 | `margin` | — | Head multiplier applied only when auto-sizing | 1.0 — size to the computed duty, with no spare |
@@ -115,4 +122,4 @@ real machine could have.
 
 ## See also
 
-[`pipe`](pipe.md) · [`valve`](valve.md) · [Units](units.md)
+[`pipe`](pipe.md) · [`valve`](valve.md) · [`controller`](controller.md) · [Units](units.md)

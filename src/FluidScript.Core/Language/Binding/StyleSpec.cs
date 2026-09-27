@@ -1,6 +1,6 @@
 namespace FluidScript.Core.Language.Binding;
 
-/// <summary>What a <c>style</c> directive stated, category by category; a field is <see langword="null"/> where it said nothing.</summary>
+/// <summary>What a <c>style:</c> block stated, category by category; a field is <see langword="null"/> where it said nothing.</summary>
 /// <param name="Stroke">The stroke colour as <c>#rrggbb</c>.</param>
 /// <param name="StrokeWidth">The stroke width in CSS pixels at scale 1.</param>
 /// <param name="Corner"><c>fillet</c>, <c>round</c> or <c>sharp</c>.</param>

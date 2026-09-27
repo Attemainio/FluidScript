@@ -624,11 +624,11 @@ the return `PA2 → (0.85, −2.1) → N5` one bend with a 0.9 stub. Ten bends, 
 soft 0; the series picture, steps 1–7 and `header-200` unchanged.
 
 **Margin 1 (2026-09-17):** the user, having found nothing visually wrong in steps 1–8 or the
-reached samples, asked for every chart at `spacing 1` to see whether the rules break. None did:
+reached samples, asked for every chart at `spacing = 1` to see whether the rules break. None did:
 every step and every reached sample drew hard 0, soft 0, with the bend count it has at 0.5 --
 lengths 2, 4.5, 9.4, 12.4, 19.6, 11.6, 14.6, 49.7 and 34.7 for steps 1–8b. The rules are stated
 in margins, not in units, and the pictures scale with the margin. The scripts were not changed;
-`spacing 1` was inserted for the run and removed.
+`spacing = 1` was inserted for the run and removed.
 
 **Four in series (2026-09-17):** the user asked for four loops in series like the AHU and the
 radiators: `step-08c-header-series-four.fluid`, the radiators at 50/40 and 20 kW, then AHU, floor
@@ -830,7 +830,7 @@ as `C-93`; the script carries `# does not bind: C-93` on its first line and the 
 refusal until it closes, as it expected `S-63`'s stall. **Accepted (2026-09-17):** "the picture
 looks right now."
 
-`step-11b-tour-two.fluid`: the tour's first two circuits verbatim at its `spacing 0.75` -- the
+`step-11b-tour-two.fluid`: the tour's first two circuits verbatim at its `spacing = 0.75` -- the
 cooling loop (`N1 - N2`, `N2 - HE1`, `HE1 - 3WV`, `3WV - N2`, `3WV - N3`, with `PU1 pump` declared
 and connected to nothing) and the expressions circuit (`NB1 - HE2 - PB1 - NB2`, `TV2.a - NB2`,
 `SB1 - TV2.ab`, `TV2.b - RB1`, the `let` lines that `power=Q` reads). Marked `C-93`.
@@ -898,8 +898,8 @@ loop (`TV3.ab - PU3 - HE3 - NM3`, `NM3 - TV3.b`, `NM3 - PA3`, the return pipe op
 for `return NB2`) and declares `TV4 valve`; C1 reads a component's role from its written kind and
 stated sign; and C18 lays a sourceless loop out as a ring.
 
-`step-11c-tour-loops.fluid`: the tour's `demandStep` and `radiators` verbatim, with `design
-tout=-26` and the two curves the radiator load and the controller's setpoint read. Marked `C-93`.
+`step-11c-tour-loops.fluid`: the tour's `demandStep` and `radiators` verbatim, with the driver
+`tout` at −26 °C and the two curves the radiator load and the controller's setpoint read. Marked `C-93`.
 
 **Drawn (2026-09-17):** C18. Both loops are rings, the load on the right standing (`HE4` at
 `[(4.25, −1.75), (4.75, −0.75)]`), the pump on the top rail, the valve on the top rail's left where
@@ -983,8 +983,8 @@ two roots and only the junction pair aligned. Declared boundaries of one fragmen
 root: `SB1`, `NB1` and `NB2` all at `x = −1.35` from `NJ1`. Hard 0, soft 0, twelve bends, length
 48.15; every other step and sample byte for byte.
 
-**The ladder at `spacing 1` (2026-09-17).** "Do layouts with 1.0 margins": every ladder script and
-sample was drawn once with `spacing 1` in place of its own. Every step and sample reads hard 0,
+**The ladder at `spacing = 1` (2026-09-17).** "Do layouts with 1.0 margins": every ladder script and
+sample was drawn once with `spacing = 1` in place of its own. Every step and sample reads hard 0,
 soft 0 but step 9 and `m4-storage-header`, where the tank's inlet ports are 0.96 apart and the
 second supply's level pipe runs 0.14 inside the first supply's clearance (soft 2, `C-96`): the one
 rule that assumed the margin smaller than a port pitch. The tour's terminals stay on one vertical

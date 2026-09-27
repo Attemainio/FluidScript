@@ -966,14 +966,12 @@ public sealed class WellPosednessTests
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // Not a solvable circuit by design, and its own header says so: PU1 appears in no
-                // connection, so nothing is left to absorb `HE1 out.t=50`. That made it 1 while its
-                // `fluid dynamic` made the graph transient; language 2 keeps the mode on a run (`D-169`), so
-                // the sweep counts the steady design graph, where `D-90` drops two energy balances for the
-                // enthalpy levels the transient count kept: 1 - 2.
+                // connection, so nothing is left to absorb `HE1 out.t = 50`: 1 on the transient graph. The
+                // mode is a run's (`D-169`), so the sweep counts the steady design graph, where `D-90` drops
+                // two energy balances for the enthalpy levels the transient count kept: 1 - 2.
                 ["m1-syntax-reference.fluid"] = "-1",
 
-                // Language 1's tour was a tour of productions and never balanced (4 at the end). The language 2
-                // tour is also a plant, and its header says it binds with nothing to report: square.
+                // The tour is also a plant, and its header says it binds with nothing to report: square.
                 ["v2-syntax-tour.fluid"] = "0",
 
                 ["m2-cooling-loop.fluid"] = "0",
@@ -984,7 +982,7 @@ public sealed class WellPosednessTests
                 ["m2-distribution-header.fluid"] = "0",
                 ["m2-substation.fluid"] = "0",
                 ["m4-storage-header.fluid"] = "0",
-                // Square, and not solvable as written: the control line's setpoint is not yet a
+                // Square, and not solvable as written: the controller's setpoint is not yet a
                 // constraint, so the valve defaults to fully open and `HE1.out.t`'s promotion runs the
                 // pump away (S-75, D-141). Counting is right; the constraint source is what P6.0 adds.
                 ["m4-demand-step.fluid"] = "0",

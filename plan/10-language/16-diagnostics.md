@@ -41,13 +41,13 @@ plausibility warning is raised by whichever computation ran last.
 |---|---|---|
 | `FS10xx` | Lexer | [`12-grammar`](12-grammar.md) |
 | `FS11xx` | Parser | [`12-grammar`](12-grammar.md) |
-| `FS12xx` | Style directive | [`12-grammar`](12-grammar.md) |
+| `FS12xx` | Style block settings | [`12-grammar`](12-grammar.md) |
 | `FS13xx` | Units and dimensions | [`13-type-and-unit-system`](13-type-and-unit-system.md) |
 | `FS14xx` | Expressions and references | [`14-expressions-and-references`](14-expressions-and-references.md) |
 | `FS15xx` | Binder and inference | [`15-semantic-model`](15-semantic-model.md) |
 | `FS16xx` | Printer and write-back | [`17-formatting-and-round-trip`](17-formatting-and-round-trip.md) |
 | `FS17xx` | File compatibility and migration | [`18-script-compatibility`](18-script-compatibility.md) |
-| `FS18xx` | Language 2 syntax and its translation to the binder | [`19-fluidscript-2`](19-fluidscript-2.md) |
+| `FS18xx` | Blocks, runs and events | [`19-fluidscript-2`](19-fluidscript-2.md) |
 | `FS20xx` | Substances and properties | [`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md) |
 | `FS21xx` | Components | [`22-component-model`](../20-core-domain/22-component-model.md) |
 | `FS22xx` | Topology | [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) |
@@ -199,14 +199,9 @@ sentence cannot silently swap two values, and a placeholder with no argument ren
 Values arrive already formatted, because only the emit site knows the unit the user actually wrote
 (rule 8 below).
 
-**A second wording, for language 2** (`P6.11` package 4). A descriptor may carry a `Language2Template`
-beside its template, naming only placeholders the first names, and a diagnostic keeps the arguments it was
-rendered from. A language 2 file's diagnostics are rendered again from those arguments with the second
-template, so one emit site serves both languages and the second wording is in the registry, where `/docs`
-and the style tests see it. It was transitional, and it is gone: at `P6.11`'s switch (package 7 step 5,
-2026-09-26) each code's language 2 wording became its one template (23 codes) and `Language2Template` went
-(`D-174`). What remains of the pass respells *arguments* the binder writes in its internal form (`in[2]` for an
-exchanger's second side, `dK`), which is `L-75`'s question.
+**Each code has one template.** The stage that raises a diagnostic writes its arguments in the script's
+own spelling -- an exchanger's second side as `secondary.in`, a difference in `K` -- so nothing
+re-renders a message on its way out (`D-174`, `D-179`).
 
 ## Message style rules
 
@@ -326,7 +321,7 @@ the three codes.
 ## Worked example
 
 A user writes `HE1  heat_exchanger  pwer = 30 kW  in.t = 20 C  out.t = 20 C + 30 C` on line 4 of a
-language 2 file. Two problems on one line. `pwer` scores 0.80 against `power`, and under `D-170` a near
+file. Two problems on one line. `pwer` scores 0.80 against `power`, and under `D-170` a near
 spelling binds nothing: it is an unknown parameter whose nearest name is the one-click fix. Measured
 2026-09-26 (P6.11 package 7 step 6):
 

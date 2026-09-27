@@ -18,7 +18,7 @@ what the solver found, the diagram's placements and routes, and the diagnostics.
 editor makes as you type.
 
 ```json
-{ "sessionId": "my-notebook", "script": "fluidscript 1\ncircuit loop\n...", "solve": true }
+{ "sessionId": "my-notebook", "script": "fluidscript 2\n\ncircuit \"loop\":\n  fluid = water\n...", "solve": true }
 ```
 
 - `sessionId` is any string you choose. Send the same one on every call from the same place: the host
@@ -35,7 +35,7 @@ compile a script and it did. What it found is inside:
 ```json
 {
   "model": {
-    "contractVersion": "2.0",
+    "contractVersion": "4.0",
     "circuits": [ { "name": "loop", "solved": true, "...": "..." } ],
     "components": [ "..." ],
     "solve": { "converged": true, "iterations": 3, "...": "..." },
@@ -52,7 +52,8 @@ compile a script and it did. What it found is inside:
 and the diagnostics say why; the components and the drawing are still there, which is usually the
 fastest way to see what is wrong.
 
-**A script this build cannot read** -- a `fluidscript 2` line, say -- comes back with `model: null` and
+**A script this build cannot read** -- one whose version line names another major, `fluidscript 3`
+say -- comes back with `model: null` and
 the diagnostics beside it in `diagnostics`. That is the one shape where the envelope carries them.
 
 ## Ask for an answer
@@ -69,7 +70,7 @@ pump that is not in the loop would be a wrong one.
 milliseconds, with no model and no physics:
 
 ```json
-{ "contractVersion": "2.0", "languageMajor": 1, "diagnostics": [ "..." ], "timings": { "parseMs": 1, "bindMs": 2, "sizeMs": 0, "solveMs": 0, "totalMs": 4 } }
+{ "contractVersion": "4.0", "languageMajor": 2, "diagnostics": [ "..." ], "timings": { "parseMs": 1, "bindMs": 2, "sizeMs": 0, "solveMs": 0, "totalMs": 4 } }
 ```
 
 Use it for fast feedback on a large script, or in a loop that fixes what it wrote until the list is

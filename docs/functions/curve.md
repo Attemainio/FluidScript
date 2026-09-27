@@ -1,12 +1,19 @@
 # curve
 
-A named table of values, interpolated between its rows.
+A named table of values, read against its driver and interpolated between its rows.
 
 ```fluidscript
-curve heating tout
--26  50
--10  40
- 20   0
+fluidscript 2
+
+project "Heating plant":
+  cases = [winter, mild]
+
+let outdoor = [-26, 5] C
+
+curve heating: outdoor
+  -26   50
+  -10   40
+   20    0
 ```
 
 Read this as: at −26 outside, 50; at −10, 40; at 20, nothing. Between the rows the value moves in a
@@ -15,43 +22,96 @@ straight line — at −18 it is 45.
 A curve is what an engineer draws as a heating curve or a compensation curve, and it is how a plant
 says "when it is cold outside, run hotter" without anyone writing that rule out.
 
-## The three words
+## The header
 
 ```fluidscript
-curve heating tout extrapolated
+fluidscript 2
+
+let outdoor = -26 C
+
+curve heating: outdoor extrapolated
+  -26   50
+   20    0
 ```
 
-- `curve` — the keyword.
+- `curve` — the statement word, at the top level of the file.
 - `heating` — the name. You use it wherever a value goes.
-- `tout` — **what it depends on**. Another curve, a known driver such as `tout` (outdoor
-  temperature), or `time`.
+- `outdoor` — after the colon, **what it depends on**: a [`let`](let.md), or `time`.
 
-Anything after those is a setting, and there is only one: `extrapolated`.
+Anything after those is a setting: `extrapolated`, and for a curve of time, `format="…"`.
 
 The two names are not interchangeable, which is what protects you from writing them the wrong way
-round. The second must be **new**; the third must be something that already exists. So
-`curve outdoor heating` when you meant `curve heating outdoor` is reported rather than bound.
+round. The name before the colon is new; the one after it must already be a `let`. So
+`curve outdoor: heating` when you meant `curve heating: outdoor` is [`FS1811`](diagnostics.md), not a
+curve bound backwards. A curve cannot be driven by another curve: give the value it follows a `let`.
 
-## Known drivers
+## The rows
 
-A driver name is matched the same forgiving way a component kind is: `tout`, `t_out`, `outdoor` and
-`outdoorTemperature` are all the outdoor temperature, and all reach the same `design tout=-26`.
+Each row is indented under the header and holds two bare numbers, and the rows end at the first line
+that is not indented under it. A row needs only to sit deeper than the header, so align the columns
+as you like.
 
-The drivers FluidScript knows are `tout`, `troom`, `tground`, `humidity`, `wind`, `solar` and
-`demand`. Knowing one buys two things: the spellings above, and a check on the design value — `design
-tout=3 bar` is caught, because the outdoor temperature is a temperature.
+- **The first column is in the driver's unit.** −26 means −26 °C because `outdoor` is written in
+  °C. `let production = [2, 3] m3/h` puts the rows in m³/h, and a `let` that writes no single unit,
+  such as `let supply = outdoor + 2 K`, is read in its dimension's usual unit ([Units](units.md)).
+- **The second column is in the unit of whatever reads the curve** — see below.
+- A row that is not two numbers is [`FS1117`](diagnostics.md), and a curve needs at least two rows
+  ([`FS1530`](diagnostics.md)).
 
-You are not limited to them. Any name works as long as something gives it a number:
+## Reading a curve
+
+A parameter reads a curve by naming it, and in each case the curve is read at that case's value of
+its driver:
 
 ```fluidscript
-design flueTemp=180
-curve recovery flueTemp
-100   5
-200  20
+fluidscript 2
+
+project "Heating plant":
+  cases = [winter, mild]
+
+let outdoor = [-26, 5] C
+
+curve heating: outdoor
+  -26   50
+   20    0
+
+circuit "Heating":
+  fluid = water
+
+  HX1  heat_exchanger  power = heating       # 50 kW in winter, 16.3 kW in mild
 ```
 
-A driver that names no curve, no known driver, no `design` line and is not `time` is an error — not
-because the name is unregistered, but because nothing anywhere can say what it is.
+The result is a stated value in each case, a constraint exactly as a number would be.
+
+**A curve's numbers mean nothing on their own.** Whatever reads it decides the unit: `power = heating`
+makes 50 into 50 kW, and `position = opening` would make 0.3 a fraction. That is why one curve can
+drive a power, a percentage or a temperature.
+
+When the table is not in the parameter's own unit, write the unit after the name, the way you would
+after a number:
+
+```fluidscript
+fluidscript 2
+
+let outdoor = -26 C
+
+curve heating: outdoor
+  -26   50
+   20    0
+
+circuit "Heating":
+  fluid = water
+
+  HX1  heat_exchanger  power = heating W     # 50 becomes 50 W
+```
+
+The unit is read exactly as it would be on a literal, so `power = heating kPa` is refused as a
+pressure handed to a power ([`FS1304`](diagnostics.md)). A unit after a value that already has one,
+such as `dp = HE1.dp kW`, is refused the same way; `dp = HE1.dp kPa` merely agrees and changes nothing.
+
+A component can take its capacity from another point on the curve than its cases give it, with
+`sized_at.outdoor = -5 C` on its declaration — see
+[A component's own sizing point](project.md#a-components-own-sizing-point).
 
 ## Beyond the ends
 
@@ -62,44 +122,28 @@ and 0 for anything warmer than 20.
 outside the table; leave it off when you do not know. Holding is the default because it cannot invent
 a number: two rows are not evidence about a temperature twenty degrees past them.
 
-## What a curve's numbers mean
-
-Nothing, on their own. A curve is just numbers, and whatever reads it decides the unit:
-
-```fluidscript
-HX1 heat_exchanger power=heating       # 50 becomes 50 kW
-TV1 valve position=opening             # 0.3 becomes 0.3, a fraction
-```
-
-That is why one curve can drive a power, a percentage or a temperature.
-
-When the table is not in the parameter's own unit, write the unit after the reference, the way you
-would after a number:
-
-```fluidscript
-HX1 heat_exchanger power=heating W     # 50 becomes 50 W
-AHU load flow=demand kg/s              # the table is a mass flow
-```
-
-The unit is read exactly as it would be on a literal, so `power=heating kPa` is refused as a
-pressure handed to a power (`FS1304`). A unit after a value that already has one, such as
-`dp=HE1.dp kW`, is refused the same way; `dp=HE1.dp kPa` merely agrees and changes nothing.
-
 ## Curves of time
 
-Give `time` as the driver and the rows are timestamps:
+Give `time` as the driver and the first column is a date:
 
 ```fluidscript
-curve outdoor time
-2026-01-01T00:00:00  -1
-2026-01-01T01:00:00  -3
+fluidscript 2
+
+curve weather_jan: time
+  2026-01-15 06:00   -18
+  2026-01-15 12:00    -9
 ```
 
-Timestamps are ISO 8601, or plain seconds. For anything else, say the format:
+A date is written unquoted — `2026-01-15`, `2026-01-15 06:00` or `2026-01-15 06:00:30` — or as plain
+Unix seconds. No time zone is written or read, in a row or in a run's `start`, so the two always
+agree. For anything else, say the format:
 
 ```fluidscript
-curve outdoor time format="dd/MM/yyyy HH:mm:ss"
-01/01/2026 00:00:00  -1
+fluidscript 2
+
+curve weather_jan: time format="dd/MM/yyyy HH:mm:ss"
+  15/01/2026 06:00:00   -18
+  15/01/2026 12:00:00    -9
 ```
 
 **Capitals matter in that string.** `MM` is the month and `mm` is the minute; `HH` is the 24-hour
@@ -107,35 +151,49 @@ clock and `hh` is the 12-hour. `dd/mm/yyyy` is day, *minute*, year — which is 
 not guess a format from your data or from your computer's region: the same file has to mean the same
 thing everywhere.
 
-A format that cannot read a date is reported once, on the header (`FS1534`): not a quoted string,
-no day (`d`), or no month (`M`) — `dd/mm/yyyy` is the usual one. The rows are then left alone,
-because they are not the mistake. When the header is fine and rows still do not read, the first
-five are marked where they are and the rest are counted on the header (`FS1535`), so a year of
-hourly data with one wrong column layout is one message, not thousands.
+A format that cannot read a date is reported once, on the header ([`FS1534`](diagnostics.md)): not a
+quoted string, no day (`d`), or no month (`M`) — `dd/mm/yyyy` is the usual one. The rows are then left
+alone, because they are not the mistake. When the header is fine and rows still do not read, the
+first five are marked where they are and the rest are counted on the header
+([`FS1535`](diagnostics.md)), so a year of hourly data with one wrong column layout is one message,
+not thousands.
 
-## Where curves go
+**Only a run has a clock**, so a curve of time is read through a run. The run hands it to a driver —
+`outdoor = weather_jan` — and from then on every curve of that driver moves with the clock, and
+everything that reads one follows along:
 
-Before the first `circuit`, with the other whole-file lines. A curve is shared by every circuit that
-names it.
+```fluidscript
+fluidscript 2
 
-A curve's rows run until the next `curve` or the first `circuit`. Nothing else ends one.
+project "Heating plant":
+  cases = [winter, mild]
 
-## Curves and how the file is solved
+let outdoor = [-26, 5] C
 
-A curve is a value that changes, so it needs something to change with.
+curve heating: outdoor
+  -26   50
+   20    0
 
-- **Solving in time** (`fluid dynamic`) — a curve of time follows the clock, and everything reading
-  it follows along. The clock starts where the [`project`](project.md#where-a-run-starts-in-time) line's
-  `start=` says: a run started at `start="2026-01-15T06:00:00"` reads the 06:00 row first. A chain
-  follows too — `heating` by `outdoor`, `outdoor` by `time` — and the run's steps land on every row of
-  a time curve, where the line between rows changes slope.
-- **Solving a steady state** (`fluid static`) — there is no clock, so say the condition instead with
-  [`design`](design.md). Every curve is then read once at that condition and stays there. A
-  component may take its capacity from somewhere else on it with `sized_at` on its own line — see
-  [`design`](design.md#sizing-one-component-somewhere-else-on-the-curve).
+curve weather_jan: time
+  2026-01-15 06:00   -18
+  2026-01-15 12:00    -9
 
-Without either, a curve has no value and FluidScript says so rather than picking one.
+circuit "Heating":
+  fluid = water
+
+  HX1  heat_exchanger  power = heating
+
+run "Cold morning":
+  start    = 2026-01-15 06:00
+  duration = 2 h
+  outdoor  = weather_jan
+```
+
+The run's clock starts where its `start` says, so this run reads the 06:00 row first, and its steps
+land on every row of the time curve, where the line between rows changes slope. A parameter that
+reads a curve of time directly, with no run to hand it a clock, is [`FS1528`](diagnostics.md); a run
+that follows one with no `start` is [`FS1546`](diagnostics.md). See [`run`](run.md).
 
 ## See also
 
-[`design`](design.md) · [`schedule`](schedule.md) · [`fluid`](fluid.md)
+[`let`](let.md) · [`run`](run.md) · [`project`](project.md) · [`controller`](controller.md)

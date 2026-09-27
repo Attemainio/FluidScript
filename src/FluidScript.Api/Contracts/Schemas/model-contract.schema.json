@@ -191,7 +191,7 @@
             ]
           },
           "parentCircuit": {
-            "description": "The parent circuit, or null when this one stands alone (D-33).",
+            "description": "The circuit this one hangs off, the one whose nodes its components connect to, or null when it stands alone (D-33).",
             "type": [
               "string",
               "null"
@@ -1363,7 +1363,7 @@
           }
         },
         "margin": {
-          "description": "The clearance every component keeps from every other, world units (D-103); the spacing directive or 0.5.",
+          "description": "The clearance every component keeps from every other, world units (D-103); the spacing setting or 0.5.",
           "type": "number"
         },
         "labelMetric": {
@@ -1465,7 +1465,7 @@
               },
               "style": {
                 "title": "ResolvedStyle",
-                "description": "The resolved style: the script\u0027s named or anonymous style (D-104); absent when the theme\u0027s defaults apply throughout.",
+                "description": "The resolved style: the component\u0027s circuit\u0027s style merged over the project\u0027s (D-104, D-171); absent when the theme\u0027s defaults apply throughout.",
                 "type": [
                   "object",
                   "null"
@@ -1711,7 +1711,7 @@
     },
     "visualization": {
       "title": "Visualization",
-      "description": "The show directive\u0027s resolution (57).",
+      "description": "The show setting\u0027s resolution (57).",
       "type": "object",
       "properties": {
         "active": {

@@ -197,7 +197,7 @@ public sealed class LexerTests
     [Trait("Category", "Unit")]
     public void PatternTokensAreLeftForTheStyleParserToRecombine()
     {
-        // '--', '..' and '-.' are one pattern token each to the style directive and two tokens here.
+        // '--', '..' and '-.' are one pattern token each to a style's line pattern and two tokens here.
         // Recombining them is a parser concern, contained to one production on purpose.
         Assert.Equal(
             [TokenKind.Minus, TokenKind.Minus],
@@ -212,7 +212,7 @@ public sealed class LexerTests
     [Trait("Category", "Unit")]
     public void NoWordLexesAsAKeyword()
     {
-        // Language 2 reserves its statement words by position, in the parser (`19`): the lexer reads every
+        // The language reserves its statement words by position, in the parser (`12`): the lexer reads every
         // word as a name, the statement words included.
         foreach (var word in SettingRegistry.StatementWords.Concat(SettingRegistry.EventWords))
         {

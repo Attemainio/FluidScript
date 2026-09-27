@@ -36,7 +36,7 @@ based solver type and purpose") invites picking one, and they are not alternativ
 | Solver | Problem | Shape | When |
 |---|---|---|---|
 | **Newton** (`32`) | Find the state where all residuals are zero | Square nonlinear system, `F(x) = 0` | Every steady-state solve. The default. |
-| **Time-domain** (`33`) | Follow the state as boundary conditions change | Initial-value problem, `dx/dt = f(x, t)` | `fluid dynamic …` |
+| **Time-domain** (`33`) | Follow the state as boundary conditions change | Initial-value problem, `dx/dt = f(x, t)` | A run (`19` §Runs) |
 | **Evolutionary** (`35`) | Choose parameters minimising a cost subject to constraints | Optimization over a search space, each evaluation being a full solve | On request, M6 |
 
 **Bayesian optimization and gradient descent are not circuit solvers.** They are optimizers, and they
@@ -250,13 +250,13 @@ solve wants, pinned it is one step's problem; stiffness is the step's to report 
 
 ## Solver selection
 
-Automatic, from the model. Not a user choice in v1 — a `solver newton` directive would be a
+Automatic, from the model. Not a user choice in v1 — a `solver = newton` setting would be a
 question the user cannot answer better than the tool can.
 
 | Model | Solver |
 |---|---|
-| `fluid water` (static) | Newton |
-| `fluid dynamic water` | Time-domain ([`33`](33-transient-time-domain.md)), owning a Newton for t = 0 and for every step's pinned system |
+| The steady solve, with no run played | Newton |
+| A run | Time-domain ([`33`](33-transient-time-domain.md)), owning a Newton for t = 0 and for every step's pinned system |
 | An explicit optimization request (M6) | Evolutionary, wrapping Newton per evaluation |
 
 `CanSolve` is checked before the run so an unsuitable pairing produces a sentence rather than a

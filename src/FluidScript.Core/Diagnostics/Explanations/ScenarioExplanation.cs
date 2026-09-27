@@ -35,11 +35,11 @@ public static class ScenarioExplanation
 
         var text = new StringBuilder();
 
-        text.Append("=== scenarios  ")
+        text.Append("=== cases  ")
             .Append(result.Operating.Length.ToString(CultureInfo.InvariantCulture))
             .Append(result.Operating.Length == 1 ? " case" : " cases")
             .Append(scenarios.IsEmpty ? string.Empty : ": " + string.Join(", ", scenarios))
-            .Append(" — design ")
+            .Append(" — operating ")
             .Append(result.Design.Name)
             .AppendLine();
 

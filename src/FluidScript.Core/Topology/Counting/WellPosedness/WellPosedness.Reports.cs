@@ -11,7 +11,7 @@ namespace FluidScript.Core.Topology.Counting;
 
 public static partial class WellPosedness
 {
-    /// <summary>Says which control lines' setpoints the design solve does not hold, and why (<c>D-141</c>).</summary>
+    /// <summary>Says which controllers' setpoints the design solve does not hold, and why (<c>D-141</c>).</summary>
     /// <remarks>
     /// Lowering decided; this reads the decision off the graph and names it. Two reasons, two codes: the
     /// measurement is one the solve could hold but the actuator or the node was stated (<c>FS3210</c>),
@@ -53,7 +53,7 @@ public static partial class WellPosedness
         }
     }
 
-    /// <summary>Refuses each scheduled change whose target a control line already drives (<c>FS3109</c>).</summary>
+    /// <summary>Refuses each run event whose target a controller already drives (<c>FS3109</c>).</summary>
     /// <remarks>
     /// Applied or not: a setpoint that the design solve could not hold still owns its actuator once the
     /// run starts (<c>D-140</c>), so the schedule is refused either way.

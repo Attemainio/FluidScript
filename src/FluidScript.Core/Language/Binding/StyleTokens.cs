@@ -20,7 +20,7 @@ public static class StyleTokens
 {
     private static readonly ImmutableHashSet<string> Corners = ["fillet", "round", "sharp"];
 
-    /// <summary>Reads a directive's tokens into a spec.</summary>
+    /// <summary>Reads a style's tokens into a spec.</summary>
     /// <param name="parts">The tokens as parsed.</param>
     /// <param name="report">Receives <c>FS1202</c>.</param>
     /// <returns>The spec, with a category unstated where no token stated it.</returns>

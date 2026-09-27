@@ -139,13 +139,13 @@ public static partial class Lowering
             }
         }
 
-        /// <summary>Resolves every <c>control</c> line's setpoint into the design solve's constraints (<c>D-141</c>).</summary>
+        /// <summary>Resolves every controller's setpoint into the design solve's constraints (<c>D-141</c>).</summary>
         /// <returns>The nodes whose temperature a setpoint states, and the value.</returns>
         /// <remarks>
         /// <para>
         /// <strong>A setpoint holds in the design solve when the actuator is the solve's to choose.</strong>
-        /// <c>control actuate=3WV.position measure=N2.t by=TC1 setpoint=20</c> with no position stated
-        /// on <c>3WV</c> is <c>N2 t=20</c> answered by <c>3WV.position</c>: the loop's design point. With
+        /// A controller <c>TC1</c> with <c>moves = 3WV.position</c>, <c>reads = N2.t</c> and
+        /// <c>setpoint = 20</c>, and no position stated on <c>3WV</c>, is <c>N2 t=20</c> answered by <c>3WV.position</c>: the loop's design point. With
         /// the position stated the solve has nothing to hold the temperature with, the setpoint is not a
         /// constraint, and the run starts off setpoint by whatever the design solve lands on
         /// (<c>FS3210</c>, raised by well-posedness).
@@ -225,7 +225,7 @@ public static partial class Lowering
                                 : actuated?.Kind?.Keyword == "pump" && PumpStatement(actuated) is { } statement
                                     ? $"'{binding.Actuator.Component}.{statement}' is stated, so the pump has no head left to hold it with"
                                     : held.ContainsKey(measured.Component)
-                                    ? $"another control line already holds '{measured.Component}'"
+                                    ? $"another controller already holds '{measured.Component}'"
                                     : null;
                 }
 

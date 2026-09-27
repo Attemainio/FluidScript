@@ -60,7 +60,7 @@ public sealed record InputLimits(
         return findings.ToImmutable();
     }
 
-    /// <summary>Counts the component declarations, wherever a block nests them: language 2 writes each inside its circuit (<c>L-69</c>).</summary>
+    /// <summary>Counts the component declarations, wherever a block nests them: a script writes each inside its circuit (<c>L-69</c>).</summary>
     private static int Counted(IEnumerable<StatementSyntax> statements) =>
         statements.Sum(static statement => statement switch
         {

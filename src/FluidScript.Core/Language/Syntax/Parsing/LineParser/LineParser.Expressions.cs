@@ -136,7 +136,7 @@ internal sealed partial class LineParser
                     return ParseCall(name);
                 }
 
-                return ParseLanguage2Name(name);
+                return ParseName(name);
             }
 
             default:

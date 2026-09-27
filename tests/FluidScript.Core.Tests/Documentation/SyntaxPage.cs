@@ -4,12 +4,11 @@ using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Core.Tests.Documentation;
 
-/// <summary>Renders the generated region of <c>docs/functions/syntax.md</c> from language 2's statement words.</summary>
+/// <summary>Renders the generated region of <c>docs/functions/syntax.md</c> from the statement words.</summary>
 /// <remarks>
 /// The list is generated for the reason the unit and diagnostic tables are: it is data, and a hand-written copy of
-/// it goes stale the first time a word is added. It matters more than most, because a statement word may not name a
-/// component -- a page that omits one tells a reader a name is available when it is not. Until P6.11 package 8 it
-/// listed language 1's nineteen reserved words with language 1's meanings (<c>T-7</c>).
+/// it goes stale the first time a word is added (<c>T-7</c>). It matters more than most, because a statement word may
+/// not name a component -- a page that omits one tells a reader a name is available when it is not.
 /// </remarks>
 public static class SyntaxPage
 {

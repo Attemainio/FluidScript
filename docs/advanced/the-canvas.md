@@ -69,7 +69,7 @@ scale is decoration.
 - **A pipe is a gradient** between the value where it leaves one component and the value where it
   enters the next. That is a straight two-point blend along the pipe, not a computed profile -- a
   long pipe that loses heat along its length still draws as a smooth run from its hotter end to
-  its cooler one. A pipe you split with `nodes=` has a real value at every cell, so it draws its
+  its cooler one. A pipe you split with `nodes` has a real value at every cell, so it draws its
   profile cell by cell.
 - **A heat exchanger is a gradient across its body**, from its inlet's colour to its outlet's: the
   duty made visible. A pump on the pressure scale runs from suction to discharge the same way.

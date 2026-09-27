@@ -38,7 +38,7 @@ namespace FluidScript.Core.Model;
 public static partial class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "3.1";
+    public const string ContractVersion = "4.0";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", FluidScript.Core.Physics.Fluids.PropertyBackend.PackageVersion);

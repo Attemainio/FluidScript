@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Language.Binding;
 
-/// <summary>The CSS named colours (W3C CSS Color Module Level 4, section 6.1), the words a <c>style</c> directive accepts as a colour.</summary>
+/// <summary>The CSS named colours (W3C CSS Color Module Level 4, section 6.1), the words a style's <c>colour</c> accepts.</summary>
 /// <remarks>
 /// A public, stable list: the same names a browser accepts, so a colour that works in a stylesheet
 /// works in a script. Matched case-insensitively, as CSS does.

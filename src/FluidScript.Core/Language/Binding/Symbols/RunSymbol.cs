@@ -6,7 +6,7 @@ namespace FluidScript.Core.Language.Binding.Symbols;
 
 /// <summary>One run: where it starts, how long it runs, and what happens to the plant during it (<c>D-169</c>).</summary>
 /// <remarks>
-/// A language 2 file may hold several, and the interface plays the one chosen; the model says what the plant
+/// A file may hold several, and the interface plays the one chosen; the model says what the plant
 /// is, and nothing here changes it. <see cref="RunProjection"/> turns the model and one run into the model that
 /// run solves.
 /// </remarks>

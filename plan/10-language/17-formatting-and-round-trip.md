@@ -12,10 +12,6 @@ last_review_pass: 6
 
 # Formatting, printing, and round-trip
 
-> **The invariants here hold for language 2 unchanged ([`19`](19-fluidscript-2.md)); the examples are
-> language 1's.** They are marked `lang=1` and the corpus no longer checks them; language 2's printer and
-> its round-trip tests are `19`'s.
-
 ## Purpose
 
 The script is the source of truth (principle P5), so every canvas edit must become a text edit that
@@ -51,19 +47,19 @@ users will want alignment; it is a command, never a side effect.
 
 Built by P5.5 (2026-09-18) as `Formatter.Format(SourceText) → ImmutableArray<TextEdit>` in Core,
 served by `POST /api/v1/format` ([`42`](../40-api/42-rest-contract.md)) and bound to `Shift+Alt+F`
-in the editor ([`52`](../50-frontend/52-editor.md)); **rewritten for language 2 by P6.11 package 7
-step 4** (2026-09-26, `L-76`), because language 1's first rule -- remove leading indentation -- is a
-change of meaning in a language whose blocks are their indentation. Nothing outside the project fixes a
+in the editor ([`52`](../50-frontend/52-editor.md)); **rewritten by P6.11 package 7 step 4**
+(2026-09-26, `L-76`) for a language whose blocks are their indentation, where removing leading
+indentation would change the meaning. Nothing outside the project fixes a
 layout for a language of this shape, so the rules below are **this project's reasoning**, chosen to
 read well on the sample corpus as it was written, and the part of this document most worth arguing
 with once the product is looked at:
 
 1. **Indentation is the parse's depth.** A line is indented two spaces for each block it sits in, as
-   `FluidScript2Parser` read it ([`19`](19-fluidscript-2.md) §Lines, blocks and names), so a formatted
+   `FluidScriptParser` read it ([`19`](19-fluidscript-2.md) §Lines, blocks and names), so a formatted
    file parses to the tree the original did, block for block.
 2. **Fields are two spaces apart.** A declaration's name, its kind, `at`, each `name = value` and
    `sized_at`; each setting after the first on a shared line; each property of a pipe; an event's
-   target. In language 2 a value runs to the next `name =`, so one space would run the pairs together
+   target. A value runs to the next `name =`, so one space would run the pairs together
    to the eye. A pipe's first property is three spaces past its link, which sets the pipe apart from
    the connection it sits on.
 3. **Punctuation.** `=` has one space on each side, `:` none before and one after, a connection's `-`
@@ -79,7 +75,7 @@ with once the product is looked at:
    user aligns, which the grammar allows to be ragged), a line holding more than one statement or one
    statement over several lines, and a line the parser could not read. Token text is never changed.
 6. **Another major is left alone.** A file whose version line names a major other than 2, or two
-   majors, gets no edits; an unversioned draft is formatted as language 2.
+   majors, gets no edits; an unversioned draft is formatted as the current major ([`18`](18-script-compatibility.md)).
 
 One `TextEdit` per line that changes, at that line's span. Idempotent by construction: every rule
 reads tokens and the tree, not spacing, except rule 3's collapse, which a formatted line already
@@ -89,8 +85,7 @@ over the whole corpus, and each rule on a small example. Measured at the rewrite
 rule 4's comment column (the samples were written to one document-wide column) and rule 2 collapsing
 declaration tables (`SP   pump` over `TV1  valve3      stroke = 90 s`). What is deliberately absent:
 reordering of any kind, blank-line insertion, and column alignment of declarations' fields across
-lines, which reads well on a header of identical declarations and badly everywhere else -- the same
-choice language 1's formatter made. The corpus is left as written; formatting it is the user's
+lines, which reads well on a header of identical declarations and badly everywhere else. The corpus is left as written; formatting it is the user's
 command, not a side effect of this change.
 
 ## Trivia
@@ -135,7 +130,7 @@ public interface IScriptEditor
     /// <param name="parameter">Canonical parameter name or a registered script alias.</param>
     /// <param name="value">The value, formatted per the parameter's canonical unit.</param>
     /// <returns>
-    /// One edit replacing the existing value, or one inserting <c>name=value</c> at the end of
+    /// One edit replacing the existing value, or one inserting <c>name = value</c> at the end of
     /// the declaration's parameter list. Fails for an inferred component, which has no
     /// declaration to edit.
     /// </returns>
@@ -146,13 +141,13 @@ public interface IScriptEditor
 
     /// <summary>Adds a component declaration.</summary>
     /// <param name="afterComponent">
-    /// Insert after this component's declaration; <see langword="null"/> appends to the end of the
-    /// declaration section.
+    /// Insert after this component's declaration; <see langword="null"/> appends after the circuit's
+    /// last declaration.
     /// </param>
     EditResult AddComponent(string name, string kind, IReadOnlyDictionary<string, ScriptValue> parameters,
                             string? afterComponent);
 
-    /// <summary>Adds a connection line to the connections section.</summary>
+    /// <summary>Adds a connection line to the circuit's block.</summary>
     EditResult AddConnection(Endpoint from, Endpoint to);
 
     /// <summary>Removes a connection. Fails when the connection is part of a chain — see below.</summary>
@@ -237,7 +232,7 @@ public interface IScriptEditorFactory
 The factory must reject an unsupported major. Every edit is parsed and printed under the editor's
 fixed `LanguageMajor`; current application semantics are never applied implicitly to an older file
 (`18`, `D-27`). `ScriptValue` covers quantity-, symbol-, and reference-valued registry parameters, so
-write-back can set `characteristic=equal_percentage` as well as `kv=12.4`.
+write-back can set `characteristic = equal_percentage` as well as `kv = 12.4`.
 
 ### Formatting a value for insertion
 
@@ -247,7 +242,7 @@ write-back can set `characteristic=equal_percentage` as well as `kv=12.4`.
 2. Round to the parameter's display precision, declared alongside its range in the registry.
 3. Emit **bare** if the value is in the canonical unit; emit with an explicit unit only if the user's
    existing value had one — matching what they wrote (P5).
-4. Never emit more precision than the sizing produced. `kv=12.4` not `kv=12.40000000000001`.
+4. Never emit more precision than the sizing produced. `kv = 12.4` not `kv = 12.40000000000001`.
 
 Rule 3 is why `ParameterValue` retains the original `ExpressionSyntax`: the editor reads the old form
 to decide the new one's shape.
@@ -277,7 +272,7 @@ deliberately rather than discovered.
 ## Invariants
 
 1. **`Print(Parse(x)) == x` byte for byte**, for every input, including malformed ones. A
-   pre-`D-120` spelling (`in2=`, `HX1.t_in2`) is printed as written, though language 2 does not read it
+   pre-`D-120` spelling (`in2=`, `HX1.t_in2`) is printed as written, though the binder does not read it
    (`L-79`): a rename is the editor's, never the printer's.
 2. `Parse(Apply(Print(t), edits))` is well formed for every `EditResult` any method returns.
 3. An `EditResult` touches only spans belonging to the element named; a test asserts every other byte
@@ -291,7 +286,7 @@ deliberately rather than discovered.
 7. The formatter is idempotent: `Format(Format(x)) == Format(x)`.
 8. Editing a parameter through its canonical name or alias preserves the spelling already present;
    insertion uses the canonical name and never creates canonical-plus-alias duplicates.
-9. A circuit header whose number was resolved rather than written prints without a number (`D-33`).
+9. A circuit whose number was resolved rather than written prints without a `number` setting (`D-33`).
    `CircuitSymbol.NumberIsExplicit` is what invariant 1 depends on here: printing a resolved number
    would make `Print(Parse(x)) != x` for every single-circuit script in existence.
 10. `ApplyTags` either renames every eligible component in its scope or edits nothing; its
@@ -305,8 +300,8 @@ deliberately rather than discovered.
     specified; the line is the declaration).
 
 **Invariant 9 is the round trip's newest sharp edge.** The binder assigns every circuit a number, so
-the obvious printer reads `CircuitSymbol.Number` and writes it — which quietly rewrites
-`circuit coolingLoop` as `circuit coolingLoop 100` the first time anything touches the file. The
+the obvious printer reads `CircuitSymbol.Number` and writes it — which quietly adds `number = 100` to
+`circuit "coolingLoop":` the first time anything touches the file. The
 printer must therefore print from the *syntax tree*, where the number is absent, not from the bound
 model, where `D-33` guarantees it never is. This is the same rule that already keeps aliases and written parameter
 spellings intact, applied to a value the binder invents rather than one it normalises.
@@ -337,28 +332,32 @@ makes invariant 2 enforced rather than hoped for.
 
 The user drags `3WV`'s Kv to 12.4 on the canvas. Source before:
 
-```fluidscript lang=1
-HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
-3WV three_way_valve                # auto size
-PU1 pump                    # auto size by pressure difference in loop
+```fluidscript
+circuit "coolingLoop":
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50   # heat exchanger with power of 30 kW
+  3WV  three_way_valve                                    # auto size
+  PU1  pump                                               # auto size by pressure difference in loop
 ```
 
 `SetParameter("3WV", "kv", 12.4 m³/h)`:
 
 1. Find `3WV`'s `ComponentDeclarationSyntax`. Its `Parameters` is empty; its `Kind` token ends at
-   **offset 100** — line 1 is 80 characters plus a newline, and `3WV three_way_valve` is 19 more —
-   and its trailing trivia, `                | auto size`, begins there.
+   **offset 141** — line 1 is 22 characters and line 2 is 95, each plus a newline, and
+   `  3WV  three_way_valve` is 22 more — and its trailing trivia, the spaces and `# auto size`, begins
+   there.
 2. `kv` is absent, so this is an insertion at the end of the parameter list: **immediately after the
    kind token**, before the trailing trivia.
 3. Format the value: Kv's canonical form has no unit symbol, display precision 1 decimal → `12.4`.
-4. Emit one `TextEdit`: insert `" kv=12.4"` at offset 100.
+4. Emit one `TextEdit`: insert `"  kv = 12.4"` at offset 141 — two spaces before the field, as the
+   formatter's rule 2 separates fields, so the inserted text reads like the line it joins.
 
 Result:
 
-```fluidscript lang=1
-HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
-3WV three_way_valve kv=12.4                # auto size
-PU1 pump                    # auto size by pressure difference in loop
+```fluidscript
+circuit "coolingLoop":
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50   # heat exchanger with power of 30 kW
+  3WV  three_way_valve  kv = 12.4                                    # auto size
+  PU1  pump                                               # auto size by pressure difference in loop
 ```
 
 Every other byte is identical — including the two comment columns, which are now misaligned. **That is
@@ -366,7 +365,7 @@ correct behaviour.** Realigning them would change lines the user did not touch, 
 claim three lines changed when one did. If the user wants alignment they run the formatter, which is
 their choice and one undo step.
 
-Then `RemoveParameter("3WV", "kv")` returns the value to auto-sized: one edit deleting `" kv=12.4"`,
+Then `RemoveParameter("3WV", "kv")` returns the value to auto-sized: one edit deleting `"  kv = 12.4"`,
 restoring the file byte for byte to the original. That symmetry is invariant 3 doing its job, and it is
 worth a dedicated test.
 
@@ -388,7 +387,7 @@ worth a dedicated test.
 - [ ] `Rename` across a script containing the name in a declaration, a connection, and an expression
       updates all three.
 - [x] Formatter idempotence over the corpus (P5.5, `FormatterTests`; and no token or comment changes,
-      which is the stronger half; for language 2 also an unchanged tree, P6.11 package 7 step 4).
+      which is the stronger half; and an unchanged tree, P6.11 package 7 step 4).
 - [ ] On `T1 container v=300 layers=5`, setting canonical `volume` changes only `300`, removing `v`
       removes that assignment, and setting it again inserts exactly one canonical `volume=` while
       preserving `container`.

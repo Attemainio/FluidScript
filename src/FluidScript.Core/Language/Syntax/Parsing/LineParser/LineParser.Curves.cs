@@ -14,10 +14,10 @@ internal sealed partial class LineParser
 
     /// <summary>Takes one <c>x y</c> row whole, without interpreting either column.</summary>
     /// <remarks>
-    /// The split is the binder's, because <c>x</c> may be a timestamp and a timestamp is not one
-    /// token: <c>2026-01-01T00:00:00</c> lexes as six tokens and an identifier, and there is no
-    /// context-free way to lex it as a unit, since <c>2026-01-01</c> is also a valid subtraction. The
-    /// parser's job here is to keep every token on the line so the printer stays exact.
+    /// The split is the binder's, because <c>x</c> may be a timestamp, and only an ISO one,
+    /// <c>2026-01-01T00:00:00</c>, lexes as one date token; a curve's own <c>format</c>, such as
+    /// <c>01/01/2026 00:00:00</c>, lexes as many. The parser's job here is to keep every token on the
+    /// line so the printer stays exact.
     /// </remarks>
     private StatementSyntax ParseCurveRow()
     {

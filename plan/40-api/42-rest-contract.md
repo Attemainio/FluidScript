@@ -40,7 +40,7 @@ transient streaming ([`43-realtime-contract`](43-realtime-contract.md)), hosting
 
 ```jsonc
 // request
-{ "sessionId": "b3f1…", "script": "circuit coolingLoop\n…", "solve": true }
+{ "sessionId": "b3f1…", "script": "circuit \"coolingLoop\":\n…", "solve": true }
 
 // response — 200, always, unless the request itself is malformed
 { "model": { /* 26-model-contract, including its one diagnostics collection */ },
@@ -84,10 +84,10 @@ the escalated `FS1507` is why.
 
 ```jsonc
 // request
-{ "script": "circuit coolingLoop\n…" }
+{ "script": "circuit \"coolingLoop\":\n…" }
 
 // response — 200
-{ "contractVersion": "3.0", "languageMajor": 2,
+{ "contractVersion": "4.0", "languageMajor": 2,
   "diagnostics": [ /* 44's records, ordered by severity then offset */ ],
   "timings": { "parseMs": 1, "bindMs": 2, "sizeMs": 0, "solveMs": 0, "totalMs": 4 } }
 ```
@@ -107,7 +107,7 @@ the list is in (invariant 2), since the diagnostic record is the model contract'
 
 // response
 { "documentRevision": 184,
-  "edits": [ { "span": { "start": 96, "length": 0 }, "newText": " kv=12.4" } ],
+  "edits": [ { "span": { "start": 96, "length": 0 }, "newText": "  kv = 12.4" } ],
   "model": { /* the re-solved model */ } }
 ```
 
@@ -127,10 +127,10 @@ Operations mirror `IScriptEditor`: `setParameter`, `removeParameter`, `addCompon
 
 ```jsonc
 // request
-{ "script": "HE1   heat_exchanger power = 30\nPU1 pump\n" }
+{ "script": "fluidscript 2\ncircuit \"c\":\n  HE1   load power=30 kW\n  PU1  pump\n" }
 
 // response
-{ "edits": [ { "span": { "start": 0, "length": 31 }, "newText": "HE1 heat_exchanger power=30" } ] }
+{ "edits": [ { "span": { "start": 27, "length": 24 }, "newText": "  HE1  load  power = 30 kW" } ] }
 ```
 
 Added by P5.5 (2026-09-18). The formatter lives in Core (`Formatter`, `17`) because it reads the
@@ -155,7 +155,7 @@ committed as `Api.Tests/Contracts/Goldens/metadata.json` so the editor's complet
 the real registry without a host. A fixed port carries its id (`name`: `in[2]`, what the model and the
 layout key it by), its `spelling` (`secondary.in`, what a script writes after the dot, `D-179`) and
 its other accepted `aliases` (`primary.in`), so an editor offers what the binder reads (`A-8`, contract
-`3.0`). Since `3.1` the document also carries language 2's `statementWords` and `eventWords`, and `blocks`: each
+`3.0`). Since `3.1` the document also carries the `statementWords` and `eventWords`, and `blocks`: each
 block's settings (the project, a circuit, a run, a style, a controller) with its meaning, what its value is
 (`valueKind`), a quantity's dimension, and the closed set of words it takes where the build knows one -- a style's
 `corner`, a controller's `type`, the substances, the circuit roles, the catalogues as `id@version` (`A-9`). It is

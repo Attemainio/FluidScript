@@ -38,19 +38,20 @@ writes `LP` for a pump changes a row rather than patching the tagger.
 A heat exchanger wired into two circuits gets one tag, from the circuit on the side that **loses**
 heat. A district-heating substation's exchanger, taking 150 kW out of district circuit 400 and
 putting it into heating circuit 100, is `400HE01` — and it is `400HE01` whether its line sits in the
-`circuit district` block or the `circuit heating` block. The block you declare it in is a matter of
+`circuit "District":` block or the `circuit "Heating":` block. The block you declare it in is a matter of
 where the cursor was; the tag follows the plant.
 
 Which side loses heat is read from what you wrote:
 
 | You wrote | The losing side is |
 |---|---|
-| `power=150` (or `heater`, `boiler`) | side 2 — heat enters side 1 |
-| `power=-150` (or `load`, `cooler`, `radiator`, `chiller`) | side 1 |
-| No `power`, but `in.t=40 out.t=60` or `in[2].t=85 out[2].t=45` | whichever side's temperature drops |
+| `power = 150` (or `heater`, `boiler`) | the secondary side — heat enters the primary |
+| `power = -150` (or `load`, `cooler`, `radiator`, `chiller`) | the primary side |
+| No `power`, but `in.t = 40  out.t = 60` or `secondary.in.t = 85  secondary.out.t = 45` | whichever side's temperature drops |
 
 If both sides are in the same circuit, that circuit owns it. If one side is a stated profile rather
-than a circuit (`in[2].t=85 out[2].t=45` with nothing connected), the circuit you declared it in keeps it. If
+than a circuit (`secondary.in.t = 85  secondary.out.t = 45` with nothing connected), the circuit you
+declared it in keeps it. If
 it spans two circuits and nothing says which way heat goes, the lower circuit number takes it and
 [`FS2216`](diagnostics.md) says so — the choice affects the tag and the diagram's grouping, never
 the solve.

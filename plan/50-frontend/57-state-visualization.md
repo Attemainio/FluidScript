@@ -3,7 +3,7 @@ id: 57-state-visualization
 title: State visualization and colour scales
 tier: 50-frontend
 status: implemented
-owns: [the show directive, property selection, colour scales, gradient rendering, the scale legend, domain computation]
+owns: [the show setting, property selection, colour scales, gradient rendering, the scale legend, domain computation]
 depends_on: [12-grammar, 21-fluid-and-state, 26-model-contract, 53-canvas-renderer, 55-design-system]
 traces_to: [R-23, R-26, R-27, R-08, R-34, R-45]
 open_questions: 0
@@ -19,13 +19,13 @@ pipe cell coloured by a chosen property, with a legend that says what the colour
 feature that turns the canvas from a schematic into an instrument — a temperature gradient down a loop
 communicates in one glance what a table of forty numbers does not.
 
-The `show` directive selects the property. Both halves — the language and the rendering — are owned
-here, because a colour scale that the script cannot select is decoration, and a directive with no
+The `show` setting selects the property. Both halves — the language and the rendering — are owned
+here, because a colour scale that the script cannot select is decoration, and a setting with no
 scale behind it is dead syntax.
 
 ## Responsibilities
 
-**Owns.** The `show` directive and its property aliases, colour-scale selection, domain computation,
+**Owns.** The `show` setting and its property aliases, colour-scale selection, domain computation,
 gradient rendering per node and per segment, and the legend.
 
 **Explicitly does not own.** Grammar mechanics ([`12-grammar`](../10-language/12-grammar.md) hosts the
@@ -37,7 +37,7 @@ production; this document specifies it), the base palette
 
 ## The `show` setting
 
-```fluidscript lang=2
+```fluidscript
 project:
   show = temperature                    # colour everything by temperature
 ```
@@ -47,7 +47,7 @@ show-setting  = "show" , "=" , ( property-name | "[" , property-name , { "," , p
 property-name = identifier ;
 ```
 
-It sits in the project block (`D-171`; language 1 wrote `show temperature pressure` as a line of its own).
+It sits in the project block (`D-171`).
 
 **One setting, one or more properties.** The first is the active scale; the rest are alternatives the
 UI offers as a quick switch without recompiling. Writing several is how a user says "these are the
@@ -96,7 +96,7 @@ who meant kinematic and got dynamic sees numbers that are wrong by three orders 
 at least loud. The legend naming which one it is closes the gap.
 
 **A property that does not apply to an element leaves it un-coloured**, drawn in the neutral symbol
-colour. `show velocity` colours the pipes and greys the nodes, which is correct and self-explaining
+colour. `show = velocity` colours the pipes and greys the nodes, which is correct and self-explaining
 rather than an error.
 
 ## Colour scales
@@ -140,7 +140,7 @@ The range mapped to the scale's ends.
 |---|---|---|
 | **Auto** (default) | Min and max of the property across every element in the circuit | Static solve |
 | **Run-wide** | Min and max across every frame of a transient | Transient — see below |
-| **Fixed** | User-specified | `show temperature 0..80` (`D-30`) |
+| **Fixed** | User-specified | `scale = 0..80 C` beside `show` (`D-30`) |
 | **Nice** | Auto, settled to the legend's precision and then rounded outward to sensible ticks | Always applied on top, for the legend |
 
 **The ends are settled before they are niced** (`C-112`). Nice rounds outward to a 1-2-5 step, and a
@@ -169,8 +169,8 @@ finite value remains, the scale is `unavailable` (not degenerate), no numeric ra
 and the legend says `No solved {property} values`; every element is neutral.
 
 `show` is durable script presentation. Choosing another property in the UI creates a session-only
-override and does not write back; Reset view returns to the script's first property. `show temperature
-0..80` uses the grammar's existing range and fixes the domain. For band queries and legend counts, a
+override and does not write back; Reset view returns to the script's first property. `scale =
+0..80 C` uses the grammar's range and fixes the domain. For band queries and legend counts, a
 multi-state component contributes its downstream/outlet value; gradients still use every endpoint and
 internal state (`D-30`). A tank has several outlets and is the explicit exception: its representative
 value is the volume-weighted mean across layers, while the vessel always colours each layer separately
@@ -354,14 +354,14 @@ and inflate every transient frame.
 | `FS1211` | `show` names a property no element has | Warning | `No component has '{name}'; showing '{fallback}'.` |
 | `FS1212` | `show` names a psychrometric property for a non-air fluid | Warning | `'{name}' applies to humid air; this circuit is {fluid}.` |
 | `FS1213` | Duplicate property in one `show` | Info | `'{name}' listed twice.` |
-| `FS1214` | More than one `show` directive | Warning | `Only the first 'show' is used.` |
+| `FS1214` | More than one `show` setting | Warning | `Only the first 'show' is used.` |
 
 All warnings, none errors: a bad `show` must never stop a circuit rendering.
 
 ## Worked example
 
 The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) with
-`show temperature pressure`:
+`show = [temperature, pressure]`:
 
 **Domain.** Node temperatures: `N1` 6.0, `N2` 20.0, `PU1__HE1` 20.0, `HE1__3WV` 50.0, `3WV__P1` 50.0,
 `N3` 50.0. Raw domain 6.0…50.0; niced outward to **5…50**, ticks at 5, 15, 25, 35, 45, 50.
@@ -396,9 +396,9 @@ transport delay, watchable.
 
 ## Acceptance criteria
 
-- [x] `show t` and `show temperature` are equivalent (Core's property table, P5.1d; P5.10's
+- [x] `show = t` and `show = temperature` are equivalent (Core's property table, P5.1d; P5.10's
       `AShowDirectiveIsReadAndItsMistakesAreSaid` reads `t` and `temperature` as one).
-- [ ] `show viscosity` resolves to dynamic viscosity and the legend says so. Viscosity is not on
+- [ ] `show = viscosity` resolves to dynamic viscosity and the legend says so. Viscosity is not on
       `SolvedPort`; `FS1210` until it is.
 - [x] Default with no `show` is temperature (P5.10, `BeforeASolveEveryScaleIsThereWithNoDomain` and
       the frontend's scene test).
@@ -419,12 +419,12 @@ transport delay, watchable.
 - [x] Interpolation is Oklab -- `color-mix(in oklab …)` for fills and stops, `linear-gradient(in
       oklab …)` for the ramp; asserted on the markup, not on sampled colours, since jsdom paints
       nothing.
-- [x] `show nonsense` produces `FS1210` and still renders with the default (P5.10).
+- [x] `show = nonsense` produces `FS1210` and still renders with the default (P5.10).
 - [x] Hovering a legend band highlights exactly the elements in that range (`SceneView.test.tsx`,
       P5.10: the in-band set equals the symbols whose position lies in the band).
 - [x] A UI property override performs no write-back and Reset view restores the script-owned `show`
       (P5.10: `draft.shown`, session-only; `Home`).
-- [x] `show temperature 0..80` fixes the static domain without expansion (Core, P5.1d); the
+- [x] `scale = 0..80 C` fixes the static domain without expansion (Core, P5.1d); the
       transient half is M4's.
 - [x] A heat exchanger is counted in a legend band by its outlet value while its symbol retains the
       inlet-to-outlet gradient (P5.10: `at` is the outlet, `from`/`to` the gradient).

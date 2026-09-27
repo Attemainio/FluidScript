@@ -38,8 +38,8 @@ A file may hold several runs, each with its title. None of them changes the desi
 
 | Setting | Meaning | When it is left out |
 |---|---|---|
-| `from` | The case whose steady state the run starts from | The first case |
-| `start` | Where the clock sits on curves of time, as a date with an optional time | A run that follows a curve of time needs it ([`FS1546`](diagnostics.md)) |
+| `from` | The case whose steady state the run starts from; a name the project's `cases` does not list is [`FS1542`](diagnostics.md) | The first case |
+| `start` | Where the clock sits on curves of time, as an unquoted date with an optional time, `2026-01-15 06:00`; one that is not a time is [`FS1545`](diagnostics.md) | A run that follows a curve of time needs it ([`FS1546`](diagnostics.md)) |
 | `duration` | How much time is simulated | 10 min |
 | `frame` | The simulated time between kept states | 1 s |
 | `steady` | Circuits held quasi-steady in this run, by title: `steady = ["District primary"]` | Every circuit is solved in time |
@@ -74,6 +74,14 @@ An event replaces whatever drove its target: after `at 10 min RAD.power = 100 kW
 follows its curve. A controller's `setpoint` is a target too (`TC1.setpoint = 55 C`), read in what the
 controller measures.
 
+- The target is a component's parameter, `Name.parameter`. A run can move what the solver resolves
+  at solve time — an exchanger's `power`, a valve's `position` or `kv`, a pump's `head`. A size, and
+  for now a boundary's state (an inlet's `t`), is refused with [`FS3105`](diagnostics.md) when the run
+  starts, and a parameter a [`controller`](controller.md) moves with [`FS3109`](diagnostics.md).
+- The run lands a step boundary on every event's instant: the frame at the instant shows the plant
+  after the change ([Discretized pipes and the run in time](../advanced/discretized-pipes.md)).
+
 ## See also
 
-[`project`](project.md) · [`curve`](curve.md) · [`let`](let.md) · [`controller`](controller.md)
+[`project`](project.md) · [`curve`](curve.md) · [`let`](let.md) · [`controller`](controller.md) ·
+[Discretized pipes and the run in time](../advanced/discretized-pipes.md)

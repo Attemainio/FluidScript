@@ -133,13 +133,13 @@ public sealed class ValveLegsTests
     [Fact]
     public void AnUnwrittenPortIsLabelledFromThePlant()
     {
-        // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`. Language 1 handed an
-        // unwritten valve its letters in connection order: on `m2-cooling-loop`, wired `HE1 - 3WV` / `3WV - N2` /
-        // `3WV - N3`, that put `a` on the *recirculation* leg and `b` on the control leg, exactly backwards. Believing
-        // that letter sized the valve against a branch with almost no resistance behind it, which asks for a large Kv
-        // and yields no authority over the path it controls; measured, it also stopped the sample converging at all.
-        // Language 2 labels an unwritten three-way valve from the plant (`D-175`), so the leg the equations open with
-        // `position` and the leg the walk finds variable are one leg: `a`, the primary return.
+        // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`: letters handed out in
+        // connection order would, on `m2-cooling-loop`, wired `HE1 - 3WV` / `3WV - N2` / `3WV - N3`, put `a` on the
+        // *recirculation* leg and `b` on the control leg, exactly backwards. Believing that letter sized the valve
+        // against a branch with almost no resistance behind it, which asks for a large Kv and yields no authority over
+        // the path it controls; measured, it also stopped the sample converging at all. The binder labels an
+        // unwritten three-way valve from the plant (`D-175`), so the leg the equations open with `position` and the
+        // leg the walk finds variable are one leg: `a`, the primary return.
         var (graph, legs, valve) = Legs("m2-cooling-loop.fluid");
 
         var common = ValveLegs.Common(legs, new double[legs.Length], valve);
@@ -156,7 +156,7 @@ public sealed class ValveLegsTests
         // is the leg they are thinking about -- it is the one carrying the balancing valve.
         //
         // The header's own shape, with the AHU's supply tap written bare: the plant labels it `a` (`D-175`), and
-        // a language 2 port counts as stated however it was reached (`D-177`).
+        // a port counts as stated however it was reached (`D-177`).
         const string source = """
             fluidscript 2
 

@@ -4,12 +4,11 @@ using FluidScript.Core.Model.Contract;
 namespace FluidScript.Api.Tests.Endpoints;
 
 /// <summary>
-/// Language 2's diagnostics as a client reads them, every stage included (<c>plan/10-language/19-fluidscript-2.md</c>
-/// §Diagnostics): language 2's wording from the parse, the binding and the contract, and the codes only language 1
-/// can reach never reached.
+/// A script's diagnostics as a client reads them, every stage included (<c>plan/10-language/19-fluidscript-2.md</c>
+/// §Diagnostics): the wording from the parse, the binding and the contract, and the retired codes never reached.
 /// </summary>
 [Trait("Category", "Api")]
-public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixture<ApiFactory>
+public sealed class ScriptDiagnosticsTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private const string Compile = "/api/v1/compile";
 
@@ -23,7 +22,7 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     private async Task<IReadOnlyList<DiagnosticWire>> CompiledAsync(string script)
     {
         using var client = factory.CreateClient();
-        using var response = await client.PostAsync(Compile, new { sessionId = "language2", script });
+        using var response = await client.PostAsync(Compile, new { sessionId = "diagnostics", script });
         var body = await response.ReadAsync<CompileResponse>();
 
         return (IReadOnlyList<DiagnosticWire>?)body.Model?.Diagnostics ?? body.Diagnostics ?? [];
@@ -42,7 +41,7 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     // ---- the contract stage ------------------------------------------------------------------
 
     [Fact]
-    public async Task TheCatalogueNoteNamesLanguage2sSetting()
+    public async Task TheCatalogueNoteNamesTheCatalogSetting()
     {
         var diagnostic = await OnlyAsync("fluidscript 2\n" + Loop, "FS2606");
 
@@ -82,9 +81,8 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     // ---- a reader of a curve -----------------------------------------------------------------
 
     /// <summary>
-    /// A load that follows a curve, in a file with cases and in a file with a run. Package 3e held every language 2
-    /// reader of a curve for the run's clock, as language 1 held a dynamic circuit's, and the steady solve then
-    /// evaluated it again in a scope with no curves: <c>FS1404 Nothing named 'demand'</c>, and the design solve without
+    /// A load that follows a curve, in a file with cases and in a file with a run. Package 3e held every reader of a
+    /// curve for the run's clock, and the steady solve then evaluated it again in a scope with no curves: <c>FS1404 Nothing named 'demand'</c>, and the design solve without
     /// its load.
     /// </summary>
     public static TheoryData<string> CurveReaders =>
@@ -147,7 +145,7 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     public async Task ALoadThatFollowsACurveIsSolvedAtItsDesignValue(string script)
     {
         using var client = factory.CreateClient();
-        using var response = await client.PostAsync(Compile, new { sessionId = "language2", script });
+        using var response = await client.PostAsync(Compile, new { sessionId = "diagnostics", script });
         var body = await response.ReadAsync<CompileResponse>();
 
         var model = Assert.IsType<ModelContract>(body.Model);
@@ -163,21 +161,21 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
     // ---- the corpus ------------------------------------------------------------------------
 
     /// <summary>
-    /// The codes language 2 cannot reach, because the statement or the spelling they are about does not exist in it
-    /// (<c>19</c> §Diagnostics, the audit table).
+    /// The codes no mistake may raise: the retired ones (<c>DiagnosticRegistry.RetiredCodes</c>), and those whose
+    /// statement or spelling the language does not have.
     /// </summary>
-    private static readonly HashSet<string> Language1Only =
+    private static readonly HashSet<string> Unreachable =
     [
         "FS1101", "FS1102", "FS1103", "FS1106", "FS1107", "FS1109", "FS1110", "FS1111", "FS1112", "FS1113",
         "FS1118", "FS1120", "FS1204", "FS1205", "FS1508", "FS1517", "FS1518", "FS1520", "FS1523", "FS1526",
-        "FS1527", "FS1534", "FS1543", "FS1547", "FS2217",
+        "FS1527", "FS1543", "FS1547", "FS2217",
     ];
 
-    /// <summary>Language 1's spellings, which a language 2 message never quotes (FS1806 names language 1's words by design).</summary>
-    private static readonly string[] Language1Spellings =
+    /// <summary>Retired spellings, which a message never quotes (FS1806 names a retired statement's word by design).</summary>
+    private static readonly string[] RetiredSpellings =
         ["scenarios", "'design ", "in[2]", "out[2]", " dK", "t=", "p=", "'control ", "connections"];
 
-    /// <summary>Each script is a language 2 file written wrong in one of the ways the audit's battery found.</summary>
+    /// <summary>Each script is a file written wrong in one of the ways the audit's battery found.</summary>
     public static TheoryData<string> Mistakes =>
     [
         "event at top level\nat 10 min PU1.head = 5 m\n" + Loop,
@@ -291,7 +289,7 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
                 corner = round
                 thickness = 3
             """ + "\n" + Loop,
-        "language 1 words\n" + """
+        "retired statement words\n" + """
             circuit "loop":
               fluid = water
               PU1 pump
@@ -303,7 +301,7 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
 
     [Theory]
     [MemberData(nameof(Mistakes))]
-    public async Task AMistakeInALanguage2FileIsToldInLanguage2(string mistake)
+    public async Task AMistakeIsToldInTheLanguagesOwnWords(string mistake)
     {
         var script = "fluidscript 2\n" + mistake[(mistake.IndexOf('\n', StringComparison.Ordinal) + 1)..];
         var diagnostics = await CompiledAsync(script);
@@ -311,10 +309,10 @@ public sealed class Language2DiagnosticsTests(ApiFactory factory) : IClassFixtur
         Assert.Contains(diagnostics, static d => d.Severity is "error" or "warning");
         Assert.All(diagnostics, static d =>
         {
-            Assert.DoesNotContain(d.Code, Language1Only);
+            Assert.DoesNotContain(d.Code, Unreachable);
             if (d.Code != "FS1806")
             {
-                Assert.All(Language1Spellings, spelling => Assert.DoesNotContain(spelling, d.Message, StringComparison.Ordinal));
+                Assert.All(RetiredSpellings, spelling => Assert.DoesNotContain(spelling, d.Message, StringComparison.Ordinal));
             }
         });
     }

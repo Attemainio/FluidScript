@@ -12,13 +12,12 @@ public static partial class LayoutHintsDerivation
 {
     // ---- circuits ---------------------------------------------------------------------------------------
 
-    /// <summary>One hint per circuit, with its attachment read from the graph when the script wrote none.</summary>
+    /// <summary>One hint per circuit, with its parent and anchors read from the graph.</summary>
     /// <remarks>
-    /// <c>supply</c>/<c>return</c> lines bind a parent and two anchors (<c>D-33</c>); a subcircuit written
-    /// as connections -- which is how a mixing branch has to be written (<c>F-16</c>) -- binds nothing,
-    /// and the distribution header would have no group. So a circuit with no stated parent takes the
-    /// one it touches: its components connect to another circuit's <em>nodes</em>, and to no other
-    /// circuit's. Touching through a node and not through a component is what separates hanging off a
+    /// A script states no parent: circuits join through a component both name, so a subcircuit is written as
+    /// connections (<c>D-33</c>, <c>F-16</c>), and without this the distribution header would have no group. A
+    /// circuit takes as its parent the one it touches: its components connect to another circuit's
+    /// <em>nodes</em>, and to no other circuit's. Touching through a node and not through a component is what separates hanging off a
     /// header from being coupled across an exchanger (<c>D-36</c>), and touching one circuit, not two,
     /// is what separates a branch from a bridge. The supply anchor is the parent node feeding one of
     /// the circuit's inlets and the return anchor the one fed by one of its outlets; with no port role

@@ -12,11 +12,11 @@ using FluidScript.Fixtures;
 namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
-/// Language 2's parser against <c>plan/10-language/19-fluidscript-2.md</c>: the reference script, one test
-/// per statement shape, one per diagnostic the parser raises, and the invariants language 1's parser keeps —
-/// every token in the tree, printed back byte for byte, and no input that throws.
+/// The parser against <c>plan/10-language/12-grammar.md</c> and <c>19</c>'s reference script: one test per
+/// statement shape, one per diagnostic the parser raises, and the parser's invariants — every token in the tree,
+/// printed back byte for byte, and no input that throws.
 /// </summary>
-public sealed class FluidScript2ParserTests
+public sealed class FluidScriptParserTests
 {
     /// <summary><c>19</c>'s reference script, verbatim.</summary>
     public const string Reference = """
@@ -99,7 +99,7 @@ public sealed class FluidScript2ParserTests
           at   1 h          TC1.setpoint = 55 C
         """;
 
-    private static ParseResult Parse(string text) => FluidScript2Parser.Parse(new SourceText(text));
+    private static ParseResult Parse(string text) => FluidScriptParser.Parse(new SourceText(text));
 
     private static string Describe(ParseResult result) =>
         string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}"));
@@ -457,10 +457,10 @@ public sealed class FluidScript2ParserTests
     [InlineData("circuit \"c\":\n  inlet N1", "inlet")]
     [InlineData("circuit \"c\":\n  outlet N3", "outlet")]
     [Trait("Category", "Unit")]
-    public void ALanguageOneStatementIsFS1806(string text, string word)
+    public void ARetiredStatementIsFS1806(string text, string word)
     {
         var diagnostic = Only(text, "FS1806");
-        Assert.StartsWith($"'{word}' is language 1. In language 2, ", diagnostic.Message, StringComparison.Ordinal);
+        Assert.StartsWith($"'{word}' does not start a line this way; ", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -696,10 +696,10 @@ public sealed class FluidScript2ParserTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void EveryLanguage2BlockParsesWithNoUnexpectedDiagnostic()
+    public void EveryBlockParsesWithNoUnexpectedDiagnostic()
     {
-        // Language 1's corpus check (`ParserTests`), for the blocks whose fence says `lang=2`.
-        var blocks = ScriptCorpus.InLanguage(2);
+        // Every fenced script block in plan/ and docs/ (the decision log's history aside), and every sample.
+        var blocks = ScriptCorpus.All();
         Assert.NotEmpty(blocks);
 
         var offenders = new List<string>();

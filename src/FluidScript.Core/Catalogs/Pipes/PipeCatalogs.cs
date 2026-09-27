@@ -31,7 +31,7 @@ public static class PipeCatalogs
                 static catalog => KeyValuePair.Create(catalog.Name, catalog)));
 
     /// <summary>Resolves the catalogue a script asked for.</summary>
-    /// <param name="pin">The script's <c>catalog</c> directive, or <see langword="null"/> for none.</param>
+    /// <param name="pin">The script's <c>catalog</c> setting, or <see langword="null"/> for none.</param>
     /// <returns>
     /// The catalogue and its notes, or a failure: <c>FS2603</c> when the id is unknown, and
     /// <c>FS2604</c>/<c>FS2605</c> when the catalogue itself does not hold up. Validation runs at
@@ -47,7 +47,7 @@ public static class PipeCatalogs
         Resolve(pin, All, Default);
 
     /// <summary>Resolves a pin against a supplied set of catalogues.</summary>
-    /// <param name="pin">The script's <c>catalog</c> directive, or <see langword="null"/> for none.</param>
+    /// <param name="pin">The script's <c>catalog</c> setting, or <see langword="null"/> for none.</param>
     /// <param name="available">The catalogues to resolve against, by id.</param>
     /// <param name="fallback">The catalogue an absent pin selects.</param>
     /// <returns>As the single-argument overload.</returns>

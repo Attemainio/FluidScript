@@ -64,7 +64,7 @@ public sealed class IndexedPropertyTests
     [InlineData("out2_t", "out[2].t")]
     public void TheOldSpellingIsNotRead(string legacy, string current)
     {
-        // `D-120`'s old spellings were read with `FS1536` for one language major; language 2 is the next (`L-79`).
+        // `D-120`'s old spellings are not read (`L-79`).
         // The key is still the old spelling, so a solved value is published under it -- but a script cannot name it.
         Assert.Null(Tank.ResolveProperty(legacy));
         Assert.Equal(legacy, Tank.ResolveProperty(current)!.Key);

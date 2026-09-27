@@ -207,8 +207,8 @@ public static partial class ScriptCompatibility
     [GeneratedRegex(@"^\s*fluidscript\s+(?<major>\d+)\s*$")]
     private static partial Regex VersionLine();
 
-    // Language 1's `catalog id@version` line, and language 2's `catalog = id@version` setting inside the
-    // project block (`18`); neither form means anything else in either language.
+    // The `catalog = id@version` setting inside the project block, and the `catalog id@version` line a file
+    // stating another major may carry (`18`); neither form means anything but a catalogue pin.
     [GeneratedRegex(@"^\s*catalog(?:\s+|\s*=\s*)(?<id>[A-Za-z_][A-Za-z0-9_]*)(?:@(?<version>\d+\.\d+))?\s*$")]
     private static partial Regex CatalogLine();
 }

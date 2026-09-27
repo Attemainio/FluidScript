@@ -36,9 +36,8 @@ public sealed class DocumentationGateTests
     /// <summary>The words that open a statement, which the gate must cover as well as the component registry.</summary>
     /// <remarks>
     /// Enumerating these matters as much as enumerating the kinds: a statement that is not a component kind would
-    /// otherwise pass undocumented. Language 2's are <c>SettingRegistry.StatementWords</c>; <c>at</c> and <c>over</c>
-    /// open an event inside a run and are documented on the page of the run. Until P6.11 package 8 the gate read
-    /// language 1's reserved words, and language 2's <c>run</c> shipped without a page (<c>T-7</c>).
+    /// otherwise pass undocumented, as <c>run</c> once did (<c>T-7</c>). They are <c>SettingRegistry.StatementWords</c>;
+    /// <c>at</c> and <c>over</c> open an event inside a run and are documented on the page of the run.
     /// </remarks>
     private static IReadOnlyCollection<string> StatementWords => SettingRegistry.StatementWords;
 
@@ -95,7 +94,7 @@ public sealed class DocumentationGateTests
     /// <remarks>
     /// The plan documents each code in a table beside the rule that raises it, and nothing held those tables to the
     /// descriptors: measured in P6.11 package 7 step 6, 60 of 184 rows stated a message the registry no longer had --
-    /// renamed arguments, language 2's wording, a suggestion moved into the fix. The registry is what ships (the
+    /// renamed arguments, a reworded template, a suggestion moved into the fix. The registry is what ships (the
     /// diagnostics page is generated from it), so a row that disagrees is a spec that describes another program.
     /// The decision log, the registers and the state file are history and are not read.
     /// </remarks>

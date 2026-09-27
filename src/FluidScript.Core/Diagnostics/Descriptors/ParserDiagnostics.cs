@@ -11,12 +11,8 @@ namespace FluidScript.Core.Diagnostics.Descriptors;
 /// belongs. The rest are <c>FS11xx</c>, which is the parser's own area.
 /// </para>
 /// <para>
-/// Three of <c>12</c>'s codes are deliberately absent. <c>FS1201</c> and <c>FS1202</c> classify a
-/// <c>style</c> token as a colour or a corner treatment, which needs registries that do not exist yet;
-/// <c>FS1107</c> fires on a <c>schedule</c> section under a circuit solved as a steady state, and
-/// which mode a circuit ends up in is <c>D-37</c>'s resolution of the circuit's directive against the
-/// project's — a binder question. All three land with the binder. <c>FS1203</c> is here because
-/// detecting it needs only the comment the lexer already attached as trivia.
+/// <c>FS1202</c>, classifying a style's settings, is the binder's (<see cref="StyleDiagnostics"/>).
+/// <c>FS1203</c> is here because detecting it needs only the comment the lexer already attached as trivia.
 /// </para>
 /// </remarks>
 public static class ParserDiagnostics
@@ -61,14 +57,13 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "'{text}' — a name cannot contain '-'. Write '{underscored}'.");
 
-    /// <summary>A bare <c>#rrggbb</c> in a <c>style</c> directive.</summary>
+    /// <summary>A bare <c>#rrggbb</c> as a style setting's value.</summary>
     /// <value><c>FS1203</c>, a warning.</value>
     /// <remarks>
-    /// A warning about a comment, which sounds odd until you see the failure: <c>style #2f6f9f 2px</c>
-    /// comments out everything from the <c>#</c>, leaving a directive with no tokens at all — legal,
-    /// silent, and rendered in the default colour. The lexer cannot know a colour was meant; the style
-    /// parser can, because it sees a directive whose whole token list was consumed by a comment
-    /// beginning with a hex-shaped run.
+    /// A warning about a comment, which sounds odd until you see the failure: <c>colour = #2f6f9f</c>
+    /// comments out everything from the <c>#</c>, leaving a setting with no value at all. The lexer cannot
+    /// know a colour was meant; the parser can, because it sees a line ending in <c>=</c> whose value was
+    /// consumed by a comment beginning with a hex-shaped run.
     /// </remarks>
     public static DiagnosticDescriptor BareHexColour { get; } = new(
         "FS1203",
@@ -102,8 +97,7 @@ public static class ParserDiagnostics
     /// <value><c>FS1116</c>, an error.</value>
     /// <remarks>
     /// A curve with no <c>x</c> axis is a table nothing can look a value up in. The driver is required
-    /// rather than defaulted for the same reason a bare <c>actuate=</c> is refused: there is no
-    /// candidate a guess could be right about.
+    /// rather than defaulted because there is no candidate a guess could be right about.
     /// </remarks>
     public static DiagnosticDescriptor CurveWithoutDriver { get; } = new(
         "FS1116",
@@ -133,7 +127,7 @@ public static class ParserDiagnostics
     /// <value><c>FS1121</c>, an error.</value>
     /// <remarks>
     /// Shape only. <strong>Whether the list has the right number of values is not a parser question</strong>
-    /// -- the count comes from the <c>scenarios</c> line, which the parser has no view of, so a wrong
+    /// -- the count comes from the project's <c>cases</c>, which the parser has no view of, so a wrong
     /// length is the binder's <c>FS1540</c>. This code is for <c>[30,</c>, <c>[30 10]</c> and <c>[]</c>.
     /// </remarks>
     public static DiagnosticDescriptor MalformedScenarioList { get; } = new(

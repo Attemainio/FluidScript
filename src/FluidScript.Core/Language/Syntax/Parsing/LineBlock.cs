@@ -1,8 +1,8 @@
 namespace FluidScript.Core.Language.Syntax.Parsing;
 
-/// <summary>The kind of language 2 block a line sits in, which decides what the line may be.</summary>
-/// <remarks><c>plan/10-language/19-fluidscript-2.md</c> §Lines, blocks and names, §Statements.</remarks>
-internal enum Language2Block
+/// <summary>The kind of block a line sits in, which decides what the line may be.</summary>
+/// <remarks><c>plan/10-language/12-grammar.md</c> §Lines and blocks, §Statements.</remarks>
+internal enum LineBlock
 {
     /// <summary>No block: the file's top level, where the version line, the project, lets, curves, circuits and runs go.</summary>
     TopLevel,

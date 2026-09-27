@@ -283,7 +283,7 @@ kinds delivered through M2b; M4 adds its two rows before M4 exits.
 | `three_way_valve` | M3 | Bowtie with a third stub; the switched ports are **labelled** `a` and `b` and the inlet triangles filled, because the glyph alone no longer says which is which (`D-112`: the layout may draw either switched port on the straight run) |
 | `pump` | M3 | Circle with an internal triangle pointing in the flow direction |
 | `tank` | M4 | `D-32` vessel divided into `layers` bands; materialized inlet/outlet anchors sit at their normalized elevations, and layer fills use their own temperatures |
-| `controller` | M4 | Dashed circle with the loop tag, connected to its actuator by a dashed line, and to its measurement point by a second, lighter one. Both ends come from the `control` binding (`D-40`) via `hints.nonFlowElements`; the renderer infers neither from the graph, where a controller has no ports |
+| `controller` | M4 | Dashed circle with the loop tag, connected to its actuator by a dashed line, and to its measurement point by a second, lighter one. Both ends come from the controller's `moves` and `reads` (`D-40`, `D-168`) via `hints.nonFlowElements`; the renderer infers neither from the graph, where a controller has no ports |
 | `t_sensor`, `p_sensor`, `flow_sensor` | M3 | ISA-5.1's instrument bubble -- a circle with the tag letters (`TE`, `PE`, `FE`) as its label -- at its `attachedTo` node via `hints.nonFlowElements`. `D-61` added the kinds after `D-23` had deferred them; this row replaced a sentence that still said there was no sensor symbol (2026-09-15) |
 
 **Shipped in P5.1c (2026-09-15):** every row above has its strokes in Core's `SymbolCatalog`, on

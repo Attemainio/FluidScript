@@ -57,7 +57,7 @@ public sealed class FormatterTests
     [Fact]
     public void ItLeavesTheTreeAsItWasOverTheCorpus()
     {
-        // Indentation is language 2's block structure: the depth written must be the depth the parse read.
+        // Indentation is the block structure: the depth written must be the depth the parse read.
         foreach (var (name, text, _) in ScriptCorpus.All())
         {
             Assert.True(
@@ -67,7 +67,7 @@ public sealed class FormatterTests
 
         static string Shape(string text)
         {
-            var parse = FluidScript2Parser.Parse(new SourceText(text));
+            var parse = FluidScriptParser.Parse(new SourceText(text));
             var shape = new StringBuilder();
 
             void Walk(StatementSyntax statement, int depth)
@@ -204,7 +204,7 @@ public sealed class FormatterTests
     [InlineData("fluidscript 3\ncircuit \"c\":\n    P1   pump\n")]
     public void ItLeavesAFileOfAnotherMajorAsWritten(string text)
     {
-        // Its layout would say something else in another language: in language 1 indentation meant nothing.
+        // A file that states another major, or two, is not this language, and its layout may mean something else.
         Assert.Empty(Formatter.Format(new SourceText(text)));
     }
 }

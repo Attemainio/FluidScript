@@ -3,9 +3,9 @@
 A static solve answers *where the plant settles*. A run answers *how it gets there*: the front of
 warmer water leaving an exchanger, crossing a pipe, arriving at the node a controller measures some
 seconds later. That delay is the whole reason a run exists, and it is set by one parameter that looks
-cosmetic: `nodes=` on a pipe.
+cosmetic: `nodes` on a pipe.
 
-This page is about what a run computes, what `nodes=` buys and costs, and how to read a run that is
+This page is about what a run computes, what `nodes` buys and costs, and how to read a run that is
 slow, stopped, or still moving at the end.
 
 ## What is dynamic and what is not
@@ -14,13 +14,14 @@ Hydraulics are fast and thermals are slow. Pressure equalises across a water cir
 milliseconds; a temperature front travels at the flow velocity, about a metre a second, and takes
 minutes. So a run keeps the flows and pressures **algebraic** — solved fresh at every step exactly as
 a static solve does — and integrates only the **enthalpy of the volumes that store fluid**: the cells
-of a discretized pipe and the layers of a tank. A node with no volume behind it, such as a mixing
-point, a terminal or an exchanger's outlet, has no time constant and takes whatever its inflows bring
-it, instantly.
+of a discretized pipe, the layers of a tank, and the fluid a heat exchanger holds on each side. A node
+with no volume behind it, such as a mixing point or a terminal, has no time constant and takes whatever
+its inflows bring it, instantly.
 
-The consequence you will notice first: **a heat exchanger has no volume in this version.** When its
-duty steps, its outlet temperature jumps within one step. The lag you see downstream is the pipe's,
-not the exchanger's.
+A heat exchanger's hold-up is its `volume` on each side, stated or sized from its area at about 1 dm³
+per m² ([`heat-exchanger`](../functions/heat-exchanger.md)). When its duty steps, its outlet follows as a
+first-order lag with a time constant of the held mass over the flow: 0.5 dm³ at 0.24 kg/s is about 2 s.
+Only an exchanger with no area and no stated volume holds nothing, and its outlet jumps within one step.
 
 ## What a stated value means once time moves
 
@@ -29,32 +30,32 @@ t = 0 and then one of three things happens to it:
 
 | Written | At t = 0 | At t > 0 |
 |---|---|---|
-| A boundary condition — `inlet t=6 p=300` | Held | Held, unless the schedule moves it |
-| An input — `power=30` | Held | Held, unless the schedule moves it |
-| A stated design temperature on equipment — `out.t=50` on an exchanger | Held, and it chose something: a pump head, a valve position | **Released.** What it chose stays where the design solve put it; the temperature follows the flow |
+| A boundary condition — `inlet t = 6 p = 300` | Held | Held, unless an event in the run moves it |
+| An input — `power = 30` | Held | Held, unless an event in the run moves it |
+| A stated design temperature on equipment — `out.t = 50` on an exchanger | Held, and it chose something: a pump head, a valve position | **Released.** What it chose stays where the design solve put it; the temperature follows the flow |
 | A sized value — a pipe's `dn`, a pump's head | Sized | Frozen |
-| A `control` line's setpoint | Held, by choosing the actuator | The controller drives the actuator (when controllers ship) |
+| A controller's setpoint | Held, by choosing the actuator | The controller drives the actuator (when controllers ship) |
 
-There is no implicit thermostat. `out.t=50` names the flow the exchanger was designed for, not a
+There is no implicit thermostat. `out.t = 50` names the flow the exchanger was designed for, not a
 promise that the outlet stays at 50 °C when the load doubles. If you want a value followed in time,
-write a [`control`](../functions/control.md) line.
+declare a [`controller`](../functions/controller.md).
 
-## The `nodes=` trade
+## The `nodes` trade
 
-Write `PB pipe length=8 dn=20 nodes=4` and the 8 m of pipe becomes four cells of 2 m, each holding
+Write `PB pipe length = 8 dn = 20 nodes = 4` and the 8 m of pipe becomes four cells of 2 m, each holding
 0.74 litres of water at the DN20 bore of 21.7 mm. At a flow of 0.076 kg/s each cell has a residence
 time of 9.6 s, and a front entering the pipe appears at the far end about 38 s later — the sum of the
 four.
 
 What the cell count changes is the **shape** of the arrival, not its mean time:
 
-- `nodes=1` smears the front into a single first-order lag. At one residence time the outlet has
+- `nodes = 1` smears the front into a single first-order lag. At one residence time the outlet has
   reached 63 % of the change, not 0 %.
-- `nodes=4` gives a recognisable front: 2 % at 10 s, 16 % at 20 s, 38 % at 30 s.
-- `nodes=8` is visibly sharper; `nodes=20` sharp; `nodes=100` very sharp at a hundred times the state
-  count.
+- `nodes = 4` gives a recognisable front: 2 % at 10 s, 16 % at 20 s, 38 % at 30 s.
+- `nodes = 8` is visibly sharper; `nodes = 20` sharp; `nodes = 100` very sharp at a hundred times the
+  state count.
 
-Both are "correct" for their discretization. Doubling `nodes=` should change what you see by less
+Both are "correct" for their discretization. Doubling `nodes` should change what you see by less
 each time; when it stops changing, you have enough.
 
 **What it costs.** An explicit integrator cannot step further than the smallest cell's residence
@@ -64,7 +65,7 @@ cell that is limiting. That message is the answer to "why is my run slow": the p
 cells than the frame rate can use.
 
 **On an air duct the advice inverts.** Air is 800 times less dense, so a duct cell of the same length
-holds 800 times less mass and its residence time is a fraction of a second. A high `nodes=` on a duct
+holds 800 times less mass and its residence time is a fraction of a second. A high `nodes` on a duct
 buys almost nothing visible — a front crosses 8 m of duct in under two seconds — and costs twenty
 times the steps. Keep ducts coarse.
 
@@ -73,25 +74,50 @@ between two internal nodes is coloured from their own values, so the profile alo
 gradient of real states rather than a line interpolated between its ends, and a front travelling down
 it during a run is visible as it moves.
 
-## The schedule
+## Events
 
-A run has to be disturbed. The [`schedule`](../functions/schedule.md) section is where:
+A run has to be disturbed. A [`run`](../functions/run.md) block's events are where:
 
 ```fluidscript
-schedule
-at 60 s              HE1.power = 45
-over 60 s .. 120 s   HE1.power = 30 .. 45
+fluidscript 2
+
+circuit "demandStep":
+  fluid = water
+
+  HE1  heat_exchanger  power = 30  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+  P1   pipe  length = 25
+  PB   pipe  length = 8  dn = 20  nodes = 4
+
+  N1 - N2
+  N2 - PU1
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - PB - N2
+  3WV - P1
+  P1 - N3
+
+  N1  inlet  t = 6  p = 300
+  N3  outlet  p = 280
+
+run "Step":
+  at   60 s          HE1.power = 45
+
+run "Ramp":
+  over 60..120 s     HE1.power = 30..45
 ```
 
-The first is a step at an instant; the second a linear ramp. A single value over a span is a step
-**at the end** of the span. The integrator lands a step boundary on every scheduled instant, so the
-frame at 60 s shows the plant *after* the step — the exchanger's outlet already at its new
-temperature — and the frame at 59 s shows it before.
+The first is a step at an instant; the second a linear ramp, and a ramp writes both ends of both
+spans: a single value after `over` is [`FS1807`](../functions/diagnostics.md), and a step is written
+with `at`. The integrator lands a step boundary on every event's instant, so the frame at 60 s shows
+the plant *after* the step — the exchanger's outlet already at its new temperature — and the frame at
+59 s shows it before.
 
-What a schedule can move is what the solver resolves at solve time: an exchanger's `power`, a
-valve's `position` or `kv`, a pump's `head`. A boundary temperature, a pipe's diameter or a tank's
-volume are fixed at assembly, and scheduling one is refused with `FS3105` rather than silently
-ignored. A parameter a `control` line drives cannot also be scheduled (`FS3109`); move the setpoint
+What an event can move is what the solver resolves at solve time: an exchanger's `power`, a valve's
+`position` or `kv`, a pump's `head`. A boundary temperature, a pipe's diameter or a tank's volume are
+fixed at assembly, and an event on one is refused with `FS3105` rather than silently ignored. A
+parameter a controller moves cannot also be an event's target (`FS3109`); move the setpoint
 instead.
 
 ## Reading a run
@@ -102,7 +128,7 @@ there, the smallest of those steps, and whatever the run had to say.
 **Settled** means every stored enthalpy has moved by less than the integrator can resolve over each
 of the last ten frames. A run that reaches its horizon before settling says so with `FS3104`, which is
 information, not a fault: extend the horizon. A run that has settled still runs to its horizon,
-because the schedule may have a later entry.
+because the run may have a later event.
 
 **Drift** is the run's self-check. The energy stored in the cells and layers is compared, at every
 step, with the heat the exchangers injected and the boundaries carried in, integrated over the run.
@@ -118,11 +144,11 @@ That agreement between two solvers that share no time-stepping code is the stron
 and it is what the test suite holds.
 
 **A run that stops early** ends on the last frame whose flows and pressures balanced, with an error
-saying why: `FS3103` when the circuit could not be balanced at some instant (the usual cause is a
-scheduled value outside what the fluid can do), `FS3102` when the step fell below its floor because
+saying why: `FS3103` when the circuit could not be balanced at some instant (the usual cause is an
+event's value outside what the fluid can do), `FS3102` when the step fell below its floor because
 something changed faster than the model can follow.
 
 ## See also
 
-[`pipe`](../functions/pipe.md) · [`schedule`](../functions/schedule.md) · [`control`](../functions/control.md) ·
+[`pipe`](../functions/pipe.md) · [`run`](../functions/run.md) · [`controller`](../functions/controller.md) ·
 [`tank`](../functions/tank.md) · [Reading the solve report](reading-the-solve-report.md)

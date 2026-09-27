@@ -51,13 +51,13 @@ docs/
 │
 ├── tutorial/                    linear, in order, each building on the last
 │   ├── 01-first-circuit.md      a heat exchanger and two nodes, rendered
-│   ├── 02-connections.md        the connections section, inferred nodes
+│   ├── 02-connections.md        connection lines and chains, inferred nodes
 │   ├── 03-auto-sizing.md        why `pump` with no parameters works
 │   ├── 04-overriding.md         stating a value as a constraint
 │   ├── 05-units.md              bare numbers, explicit units, temperature vs difference
 │   ├── 06-expressions.md        let, arithmetic, referring to other components
 │   ├── 07-reading-results.md    hover, the log, the colour scale
-│   └── 08-going-dynamic.md      fluid dynamic, disturbances, a controller
+│   └── 08-going-dynamic.md      a run, its events, a controller
 │
 ├── advanced/                    non-linear; each solves one real problem
 │   ├── mixing-circuits.md       three-way valves, bypass, authority
@@ -83,32 +83,35 @@ docs/
 ├── functions/                   reference. one page per thing. exhaustive.
 │   ├── index.md                 the complete list — the agent's entry point
 │   ├── syntax.md                [part generated] how a line is read: comments, names,
-│   │                            numbers and units, text, the reserved-word list
-│   ├── fluidscript.md           ─┐ directives
+│   │                            numbers and units, text, blocks, the statement words
+│   ├── fluidscript.md           ─┐ statements: the version line, the project block (its
+│   ├── project.md                │ cases included), lets, curves, circuits (their connection
+│   ├── let.md                    │ lines included) and runs (their events included)
+│   ├── curve.md                  │
 │   ├── circuit.md                │
-│   ├── project.md                │
-│   ├── spacing.md                │
+│   ├── run.md                   ─┘
+│   ├── spacing.md               ─┐ settings of a block
 │   ├── fluid.md                  │
 │   ├── catalog.md                │
 │   ├── style.md                  │
-│   ├── show.md                   │
-│   ├── let.md                   ─┘
-│   ├── connections.md           ─┐ section markers
-│   ├── schedule.md              ─┘
-│   ├── inlet-outlet.md          ─┐ statements
-│   ├── control.md               ─┘
-│   ├── node.md                  ─┐
+│   ├── show.md                  ─┘
+│   ├── inlet-outlet.md          ─┐
+│   ├── node.md                   │
 │   ├── pipe.md                   │ components
 │   ├── heat-exchanger.md         │
 │   ├── valve.md                  │
 │   ├── three-way-valve.md        │
 │   ├── pump.md                   │
 │   ├── tank.md                   │
+│   ├── t-sensor.md               │
+│   ├── p-sensor.md               │
+│   ├── flow-sensor.md            │
 │   ├── controller.md            ─┘
 │   ├── tags.md                  [generated] every kind's tag code and an example tag
 │   ├── units.md                 [generated] every symbol, dimension, canonical unit
 │   ├── properties.md            [generated] every referenceable property
 │   ├── diagnostics.md           [generated] every FSxxxx code
+│   ├── model-contract.md        [part generated] the JSON every consumer receives
 │   └── catalogs.md              [generated] shipped dimension tables + provenance
 │
 └── assets/                      diagrams and screenshots
@@ -123,7 +126,7 @@ documentation milestone — those never happen.
 Concretely, for a new component, the nine-file list in
 [`03-repository-layout`](../00-foundation/03-repository-layout.md) ends with
 `docs/functions/<kind>.md`, and that row is a gate, not a suggestion. **CI checks it**
-([`63-ci-and-repo-hygiene`](63-ci-and-repo-hygiene.md)): every registered component kind, directive,
+([`63-ci-and-repo-hygiene`](63-ci-and-repo-hygiene.md)): every registered component kind, statement word,
 and diagnostic code must have a page or a generated entry, and the build fails otherwise.
 
 This is the only mechanism that makes `R-28` real. A convention that documentation is required produces
@@ -137,25 +140,26 @@ spellings, each indexed family at both ends of its range and in its retired patt
 quantity by its long name and its aliases -- is put through `ResolveProperty`, and what resolves must
 have a row. A generator that forgets a source the resolver reads fails there.
 
-### The gate covers statements and directives, not only components
+### The gate covers statements, not only components
 
-`D-33`, `D-37` and `D-40` added five statements — `project`, `spacing`, `supply`/`return` and
-`control` — and none of them is a component kind. The CI check must therefore enumerate the **reserved
-word list** as well as the component registry, or the gate passes on a language feature with no page
-at all. That is precisely how a documentation rule decays: it keeps working for the case it was
-written against and silently stops covering everything else.
+The statements — `fluidscript`, `project`, `let`, `curve`, `circuit` and `run` — are not component
+kinds. The CI check must therefore enumerate the **statement words** (`SettingRegistry`, `L-86`) as well
+as the component registry, or the gate passes on a language feature with no page at all. That is
+precisely how a documentation rule decays: it keeps working for the case it was written against and
+silently stops covering everything else; `run` shipped without a page while the gate read an older word
+list (`T-7`).
 
-**Widening the gate exposed four words that never had pages** — `fluidscript`, `catalog`,
-`connections` and `schedule` — which is the gate working, not a reason to narrow it. They are added
-above. `supply` and `return` share one page because they are one construct with two directions, and
+**Widening the gate exposed words that never had pages**, which is the gate working, not a reason to
+narrow it. `inlet` and `outlet` share one page because they are one construct with two directions, and
 the manifest records that pairing explicitly so the check does not have to infer it:
 
 ```
 inlet, outlet   → functions/inlet-outlet.md
 ```
 
-Every other statement-introducing reserved word maps to `functions/<word>.md`. A word absent from both
-the manifest and the tree fails the gate.
+Every other statement word and kind maps to `functions/<word>.md`, an underscore written as a hyphen;
+`at` and `over` open an event inside a run and are documented on `run.md`. A word absent from both the
+manifest and the tree fails the gate.
 
 `R-51`'s solver status is user-visible and therefore needs a page too; it is
 `advanced/reading-solver-status.md`, because what a user needs is not the status line's shape but what
@@ -240,7 +244,7 @@ acceptance criterion. A block that is meant to be wrong is annotated on its fenc
 produces, and asserted to produce exactly those:
 
 ````markdown
-```fluidscript lang=2 expects=FS1203
+```fluidscript expects=FS1203
 circuit "heating":
   style:
     colour = #2f6f9f              # NOT a colour: everything from the # is a comment
@@ -255,11 +259,9 @@ instead, because an example that cannot be run cannot be trusted, and one that i
 be run. This is the mechanism that makes the documentation trustworthy for both audiences, and it
 turns `/docs` into a second test corpus at almost no cost.
 
-**A block in language 2 says so on its fence too**, `` ```fluidscript lang=2 ``, beside any `expects=`,
-because most blocks are fragments with no version line to tell which parser reads them
-([`19`](../10-language/19-fluidscript-2.md)). Its `expects=` names what language 2's parser produces, and
-language 1's corpus checks leave it out. Without the tag a language 2 block is read as language 1 and
-fails, which is how `19`'s own examples first reached the suite.
+**Every `fluidscript` block in `plan/` and `docs/` is compiled as the current language** (`D-180`), with one
+exception: the decision log's blocks are the scripts as they were written when each decision was made, and
+the log is never edited, so the suite does not read them.
 
 ## Generated pages
 
@@ -293,7 +295,7 @@ works.
 
 ## Invariants
 
-1. Every registered component kind, directive, and diagnostic code has a page or generated entry.
+1. Every registered component kind, statement word, and diagnostic code has a page or generated entry.
 2. Every `fluidscript` code block in `/docs` compiles, or is annotated with the diagnostic it produces.
 3. Generated pages match what the code would generate.
 4. Every **hand-written** function page has every template section, in order. A generated page —
@@ -355,22 +357,21 @@ will need more. Write `head=` to state your own.
 ## Examples
 
 ### Minimal
-    circuit simpleLoop
-    fluid water
+    circuit "simpleLoop":
+      fluid = water
 
-    HE1 heat_exchanger power=30 in=20 out=50
-    CV1 valve
-    PU1 pump
-    P1  pipe length=25
+      HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+      CV1  valve
+      PU1  pump
+      P1   pipe  length = 25
 
-    connections
-    N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+      N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
 
 `PU1` is sized to 5.28 m at 0.241 l/s — the loop's drop of 51.7 kPa (2.4 kPa of pipe,
 20 kPa across `HE1`, 29.4 kPa across `CV1`).
 
 ### Stating a head
-    PU1 pump head=8
+    PU1  pump  head = 8
 
 The pump now delivers 8 m and the loop settles at a higher flow. If the loop cannot
 absorb 8 m, `FS2303` reports the mismatch rather than silently ignoring it.
@@ -400,7 +401,7 @@ basis, two working examples, and the errors it might hit. That is what `R-29` as
 
 ## Acceptance criteria
 
-- [ ] Every component kind, directive, and diagnostic code has a page or generated entry; CI enforces it.
+- [ ] Every component kind, statement word, and diagnostic code has a page or generated entry; CI enforces it.
 - [ ] Every `fluidscript` block in `/docs` compiles, or produces its annotated diagnostic.
 - [ ] Generated pages regenerate identically; a stale one fails the build.
 - [ ] Every hand-written function page has every template section in order.

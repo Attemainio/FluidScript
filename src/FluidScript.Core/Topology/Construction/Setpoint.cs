@@ -2,8 +2,8 @@ using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Topology.Construction;
 
-/// <summary>A <c>control</c> line's setpoint as the design solve sees it (<c>D-141</c>).</summary>
-/// <param name="Controller">The controller the line names with <c>by=</c>.</param>
+/// <summary>A controller's setpoint as the design solve sees it (<c>D-141</c>).</summary>
+/// <param name="Controller">The controller.</param>
 /// <param name="Measured">The component whose property the loop reads: <c>N2</c> for <c>N2.t</c>.</param>
 /// <param name="Parameter">The measured property's parameter key on that component: <c>t</c>.</param>
 /// <param name="ActuatorComponent">The component the loop drives: <c>3WV</c> for <c>3WV.position</c>.</param>
@@ -26,7 +26,7 @@ namespace FluidScript.Core.Topology.Construction;
 /// <c>HE1 out.t=50</c>, no <c>in.t</c> and no valve position; without this the valve defaults to fully
 /// open, the exchanger's outlet promotion drives the pump to 62 m, and the t = 0 solve goes non-finite
 /// (<c>S-75</c>). With it <c>N2.t = 20</c> is a node-temperature constraint answered by the valve the
-/// line names, exactly as <c>N2 node t=20</c> would be, and the run starts at the controlled equilibrium
+/// controller moves, exactly as <c>N2 node t=20</c> would be, and the run starts at the controlled equilibrium
 /// with the controller initialized bumplessly at the position the design solve chose.
 /// </para>
 /// <para>

@@ -33,8 +33,8 @@ public enum DiagnosticArea
     /// <summary>Tokens to a syntax tree. <c>FS11xx</c>.</summary>
     Parser = 11,
 
-    /// <summary>The <c>style</c> directive's own vocabulary. <c>FS12xx</c>.</summary>
-    StyleDirective = 12,
+    /// <summary>The <c>style</c> block's own vocabulary. <c>FS12xx</c>.</summary>
+    Style = 12,
 
     /// <summary>Units and dimensional analysis. <c>FS13xx</c>.</summary>
     Units = 13,
@@ -51,8 +51,8 @@ public enum DiagnosticArea
     /// <summary>Opening a script written by another version. <c>FS17xx</c>.</summary>
     Compatibility = 17,
 
-    /// <summary>Language 2's syntax and its translation to the binder. <c>FS18xx</c>.</summary>
-    Language2 = 18,
+    /// <summary>The blocks and lines of a script, and how the reader hands them to the binder. <c>FS18xx</c>.</summary>
+    Blocks = 18,
 
     /// <summary>Substances and their thermodynamic properties. <c>FS20xx</c>.</summary>
     Substances = 20,

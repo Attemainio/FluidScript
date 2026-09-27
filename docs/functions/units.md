@@ -5,10 +5,15 @@ means the usual unit for whatever you are describing**, and you can always write
 would rather be explicit.
 
 ```fluidscript
-HE1 heat_exchanger power=30 in.t=20 out.t=50
+fluidscript 2
+
+circuit "Plant":
+  fluid = water
+
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
 ```
 
-That is 30 kilowatts between 20 °C and 50 °C. Writing `power=30 kW` means exactly the same thing.
+That is 30 kilowatts between 20 °C and 50 °C. Writing `power = 30 kW` means exactly the same thing.
 
 ## What a bare number means
 
@@ -84,33 +89,37 @@ accepted in any case.
 
 ## Temperatures and temperature differences are not the same thing
 
-A temperature is a reading: `20C`. A temperature *difference* is written `dK` or `dC`: `30 dK`.
+A temperature is a reading: `20 C`. A temperature *difference* is written in `K`: `30 K`, as engineers
+write a rise or a band. `dK` and `dC` are differences too.
 
-This matters because adding two readings has no meaning. `20C + 30 dK` is 50 °C and is accepted;
-`20C + 30C` is refused, because there is no sensible answer to it. Subtracting works the way you
+This matters because adding two readings has no meaning. `20 C + 30 K` is 50 °C and is accepted;
+`20 C + 30 C` is refused, because there is no sensible answer to it. Subtracting works the way you
 would expect in one direction only:
 
 | You write | You get |
 |---|---|
-| `70C - 20 dK` | 50 °C — a reading |
-| `70C - 20C` | 50 dK — a difference |
+| `70 C - 20 K` | 50 °C — a reading |
+| `70 C - 20 C` | 50 K — a difference |
+| `20 K - 70 C` | refused |
+
+An absolute temperature in kelvin cannot be written: `300 K` on a temperature is a difference where a
+reading belongs, and the fix is to write it in °C. A compound unit that contains a `K`, such as
+`kJ/(kg*K)`, is its own unit and is not affected.
 
 A pressure difference has the same spellings: `dPa`, `dkPa`, `dbar`. `300 kPa - 10 dkPa` is 290 kPa,
 a reading; `300 kPa - 290 kPa` is 10 kPa, a difference, which a `dp` accepts and a node's `p` does not.
-| `20 dK - 70C` | refused |
-
-Pressures behave the same way, because a gauge pressure is also a reading rather than an amount.
+Pressures behave this way because a gauge pressure is also a reading rather than an amount.
 
 ## Gauge and absolute pressure
 
 Pressures are **gauge** unless you say otherwise — that is what a gauge on the pipe shows, and it is
-what circuits are specified in. `p=300`, `p=300 kPa` and `p=3 bar` are the same pressure. Add an `a`
-for absolute: `p=401.325 kPaa` is that same pressure, measured from vacuum instead of from the
+what circuits are specified in. `p = 300`, `p = 300 kPa` and `p = 3 bar` are the same pressure. Add an
+`a` for absolute: `p = 401.325 kPaa` is that same pressure, measured from vacuum instead of from the
 weather.
 
 ## Pump head has no unit to write
 
-`head=15` is 15 metres **of the fluid being pumped**, and there is deliberately no way to write a
+`head = 15` is 15 metres **of the fluid being pumped**, and there is deliberately no way to write a
 unit after it. Metres of water column is a pressure, not a head, and the two are only equal when the
 fluid is water — so a glycol circuit that let you write one for the other would be wrong by the
 density ratio, and would look entirely reasonable on the diagram.

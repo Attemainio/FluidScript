@@ -90,7 +90,7 @@ public static partial class WellPosedness
             return [];
         }
 
-        // A node temperature a control line's setpoint stated is answered by the actuator the line names
+        // A node temperature a controller's setpoint stated is answered by the actuator it moves
         // and by nothing else (D-141): the loop said who holds it, and offering the nearest split instead
         // would put the design point on a valve the controller never touches.
         if (constraint.Kind is ConstraintKind.NodeTemperature

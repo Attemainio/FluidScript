@@ -539,7 +539,7 @@ Where the M1 packages land for one line of the syntax reference — `3WV three_w
 | P2.6 | `three_way_valve` resolves to a registered kind | An unknown kind would be `FS1502` with an `Unknown` kind, not a crash |
 | P2.7 | `ComponentSymbol` with **zero** parameters present | `R-02`: absence is representable and distinct from a default |
 | P2.8 | Three ports materialized, connections bound, tag `101TV01` assigned last | The M1 criterion "binds with zero parameters and no diagnostic" |
-| P2.9 | Nothing for this line — the gate reads the `fluidscript 1` above it | Its disposition is `Current`, so every action including `Save` is allowed |
+| P2.9 | Nothing for this line — the gate reads the `fluidscript 2` above it | Its disposition is `Current`, so every action including `Save` is allowed |
 
 Eight packages for one line, and each is observable on its own. That is what makes a package
 reviewable: the criterion it closes is checkable without the next one existing.

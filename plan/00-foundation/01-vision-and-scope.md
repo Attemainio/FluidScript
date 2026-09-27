@@ -60,8 +60,8 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-04` | Dimensioned values may be written bare (`power=30` means kW) or with an explicit unit (`power=30000 W`); both resolve to the same internal SI quantity. |
 | `R-05` | The parser recovers from errors: one bad line does not prevent the rest of the script from being analysed and rendered. |
 | `R-06` | The language infers what it reasonably can: intermediate nodes between named components, terminating nodes on open ports, and flow direction from connection order. |
-| `R-46` | A script may describe several circuits, each with a number that is stated or resolved automatically, and subcircuits that attach to a parent circuit at explicitly named nodes. A circuit's role (`AHU`, `radiator`) resolves through a registry rather than a keyword (`D-33`, `D-35`). In language 2 circuits join by ordinary links between globally named components and there is no attachment statement (`D-166`). |
-| `R-49` | A controller is declared once with its algorithm and gains, and bound to its actuator and measurement by a separate statement with named arguments (`D-40`). In language 2 the binding is part of the one declaration, still by named arguments (`D-168`). |
+| `R-46` | A script may describe several circuits, each with a number that is stated or resolved automatically, joined by ordinary links between globally named components; there is no attachment statement (`D-33`, `D-166`). A circuit's role (`AHU`, `radiator`) resolves through a registry rather than a keyword (`D-35`). |
+| `R-49` | A controller is one declaration holding its algorithm, its gains, and the actuator and measurement it is bound to, all by named settings (`D-40`, `D-168`). |
 
 ### Physics and core
 
@@ -167,7 +167,7 @@ or validated before the solve it wraps is trustworthy.
 
 The brief's own script, and what each requirement demands of it:
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 circuit "coolingLoop":                    # R-01: declarative block
@@ -265,7 +265,7 @@ a ground circuit remains grouped on the left of the conversion stage (`D-31`).
 
 #### The cooling loop — topology reference
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project:
@@ -360,7 +360,7 @@ declared `P1` here is stale.
 
 #### The simple loop — sizing and solver reference
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 circuit "simpleLoop":
@@ -393,7 +393,7 @@ still a correct answer and an arbitrary temperature is different physics.
 
 #### The substation — two-sided exchanger reference
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project:
@@ -496,7 +496,7 @@ unless someone builds it otherwise, and `D-02` says an omitted parameter is a re
 
 #### The demand-step loop — transient and control reference
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project:
@@ -531,7 +531,7 @@ run "Transient":
   at 60 s  HE1.power = 45
 ```
 
-**Its t = 0 state is the cooling loop's design state** (`D-141`): the `control` line's setpoint holds
+**Its t = 0 state is the cooling loop's design state** (`D-141`): `TC1`'s setpoint holds
 `NS` at 20 °C in the design solve and chooses the valve position, so the run starts at 0.2392 kg/s
 secondary, 0.0763 kg/s recirculating, the valve at 0.50 and `HE1` at 50 °C — the figures above.
 Without that rule the script does not solve (measured 2026-09-22, `S-75`).
@@ -604,7 +604,7 @@ gap between them is most of what `/docs`'s tutorial has to teach.
 
 #### The storage header — tank and thermal-order reference
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project:
@@ -674,7 +674,7 @@ The only reference circuit with more than one circuit. It exists so that `D-33`'
 across circuits, `D-34`'s per-circuit tag ordinals, `D-38`'s header layout and `D-41`'s naming rule have a
 fixture to be tested against; every other reference has exactly one circuit and exercises none of them.
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project "plant_01":
@@ -716,9 +716,8 @@ circuit "radiators":
 
 **Each branch names the header nodes it joins.** `N3 - PU_AHU - HE_AHU - TV_AHU.ab` in `AHU` starts
 at `heating`'s `N3`, and `TV_AHU.a - N5` returns to its `N5`: the flow path the header figures below
-are computed over. Language 1 wrote this as an attachment (`inlet N3`, `outlet N5`) that lowered to
-the same two connections; language 2 writes the connections themselves (`D-166`). The valves' `b`
-ports are left open, as the attachment always left them -- the listing states the header's intent,
+are computed over: circuits join through the components both name, and there is no attachment
+statement (`D-166`). The valves' `b` ports are left open -- the listing states the header's intent,
 and `samples/m2-distribution-header.fluid` is the plant that solves.
 
 **Three circuits, three numbers, one of them resolved.** `heating` states 100, `AHU` states 101,

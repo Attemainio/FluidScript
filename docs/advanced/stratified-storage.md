@@ -14,7 +14,18 @@ A port's `level` is a fraction of the vessel, not a height in metres. It decides
 talks to:
 
 ```fluidscript
-T1 tank volume=300 dm3 layers=5 in.level=90% out.level=90% in[2].level=30% out[2].level=30%
+circuit "storageHeader":
+  fluid = water
+  S1           inlet  t = 60  flow = 0.12
+  S2           inlet  t = 45  flow = 0.08
+  T1           tank  volume = 300 dm3  layers = 5  in.level = 90%  out.level = 90%  in[2].level = 30%  out[2].level = 30%
+  RAD_NETWORK  outlet  flow = 0.12
+  AHU_NETWORK  outlet  flow = 0.08
+
+  S1 - T1.in
+  S2 - T1.in[2]
+  T1.out - RAD_NETWORK
+  T1.out[2] - AHU_NETWORK
 ```
 
 The rule is `min(floor(level × layers) + 1, layers)`, so 0 is the bottom layer, 30 % of a five-layer
@@ -32,15 +43,28 @@ By default every layer starts at the mixed temperature the design solve found. S
 the run starts somewhere else:
 
 ```fluidscript
-T1 tank volume=300 dm3 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60
+circuit "Buffer":
+  fluid = water
+  S1  inlet  t = 60  flow = 0.12
+  T1  tank:
+    volume = 300 dm3
+    layers = 5
+    layer[1].t = 25
+    layer[2].t = 30
+    layer[3].t = 40
+    layer[4].t = 50
+    layer[5].t = 60
+  R1  outlet
+
+  S1 - T1 - R1
 ```
 
 Either write `t` once for a uniform start, or write every layer. Half a profile is an error, because
 the layers you left out have no sensible default once the others are stated.
 
-**A profile is a disturbance.** A run with no schedule normally sits exactly where it started, and
+**A profile is a disturbance.** A run with no events normally sits exactly where it started, and
 that is the strongest check the solver has. A stated profile is the exception: the vessel begins away
-from equilibrium on purpose, so it evolves from the first step with nothing in the schedule at all.
+from equilibrium on purpose, so it evolves from the first step with no event at all.
 
 ## Layers cannot float on heavier water
 
@@ -62,7 +86,7 @@ doing nothing wrong.
 ## Choosing the layer count
 
 More layers give a sharper picture of a charge front moving through the vessel and cost more states.
-`layers=1` is a fully mixed vessel with a closed-form response, useful as a check and as a model of a
+`layers = 1` is a fully mixed vessel with a closed-form response, useful as a check and as a model of a
 tank with no real stratification, such as one with a strong internal circulation pump.
 
 The step limit applies here as it does to a pipe: the shortest residence time among the layers bounds
@@ -82,4 +106,4 @@ user asks about an unexpected number should have an answer in their own file.
 ## See also
 
 [`tank`](../functions/tank.md) · [Discretized pipes and the run in time](discretized-pipes.md) ·
-[`schedule`](../functions/schedule.md)
+[`run`](../functions/run.md)

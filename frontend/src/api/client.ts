@@ -33,10 +33,10 @@ export class ApiError extends Error {
 
 /**
  * The contract major this build reads (`26`). A minor is additive and read by any build of the same
- * major; a major removes fields or changes units (3.0 moved a temperature difference from `dK` to
- * `K`), so a body from another major is refused rather than rendered with the wrong meaning.
+ * major; a major removes a field, a value or a unit, so a body from another major is refused rather
+ * than rendered with the wrong meaning.
  */
-export const contractMajor = 3;
+export const contractMajor = 4;
 
 /**
  * A successful answer written in a contract major this build cannot read (`26`, `51` error cases):

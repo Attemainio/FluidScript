@@ -3,8 +3,18 @@
 A controllable resistance between two points.
 
 ```fluidscript
-V1 valve kv=6.3
-V2 valve authority=0.5 characteristic=equal_percentage
+circuit "Two branches":
+  fluid = water
+  PU1  pump
+  HE1  load  power = 20  dt = 20
+  HE2  load  power = 10  dt = 20
+  V1   valve  kv = 6.3
+  V2   valve  authority = 0.5  characteristic = equal_percentage
+
+  PU1 - N1
+  N1 - V1 - HE1 - N2
+  N1 - V2 - HE2 - N2
+  N2 - PU1
 ```
 
 ## Ports
@@ -21,9 +31,9 @@ V2 valve authority=0.5 characteristic=equal_percentage
 | `authority` | — | Target authority for sizing | Sized |
 | `dp` | kPa | Design drop at the design flow: the Kv is the next catalogue row above the one that takes it | Sized |
 | `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
-| `stroke` | s | How long the actuator takes from shut to open. It limits the valve however it is moved, by a controller or by a schedule, and only in a run: the design solve never reads it | No limit is stated. Nothing runs a controller yet, so today it is recorded and not used |
+| `stroke` | s | How long the actuator takes from shut to open. It limits the valve however it is moved, by a controller or by an event, and only in a [`run`](run.md): the design solve never reads it | No limit is stated. Nothing runs a controller yet, so today it is recorded and not used |
 
-`kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
+`kv` is defined as m³/h of water at 1 bar differential, so a bare `kv = 6.3` is in those units and
 nothing else.
 
 ## How the Kv is chosen
@@ -70,7 +80,7 @@ CV1  kv         2.5    sized   Kv 2.5 (R5 preferred numbers) — authority 0.31 
                                rounds up
 ```
 
-Write `authority=0.7` to change the target. The default is 0.5.
+Write `authority = 0.7` to change the target. The default is 0.5.
 
 The sizes come from the **R5 preferred numbers** — 1.0, 1.6, 2.5, 4.0, 6.3 and the same digits in
 every decade, which is what most manufacturers step their Kvs on. The step is 1.6× in Kv and therefore
@@ -84,8 +94,8 @@ almost nothing would sit inside the range where the solver smooths the flow law,
 would not be what the arithmetic says. You are told so and asked to add resistance to the branch or to
 state a `kv` yourself.
 
-If the achieved authority is below 0.25 you get [`FS4006`](diagnostics.md): the valve will behave as a
-switch. In a file with [`scenarios`](scenarios.md) it is read on the finished plant in every case and
+If the achieved authority is below 0.25 the valve's sizing note says so (`FS4006` in the plan, a note on
+the sized `kv` today rather than a coded diagnostic): the valve will behave as a switch. In a file with several [cases](project.md) it is read on the finished plant in every case and
 the lowest is reported, with [`FS4013`](diagnostics.md) when the lightest case is below the valve's
 turn-down. Raising authority means a smaller valve, and the smallest one in the catalogue may still be
 larger than the branch needs, so the fix is usually to the branch rather than to the valve.
@@ -100,7 +110,7 @@ on its loop fixes the pressure — a stated `head` on the pump, say, or a second
 sharing the same pressure difference — the valve's `kv` is **solved** instead of sized: it closes
 until it has absorbed exactly what the circuit has to spare. You see it in the solve report as a
 solved value with no basis and no authority, because no rule chose it and no catalogue row was
-taken. On the simple loop with `PU1 pump head=15`, that is Kv 0.77 dropping 124 kPa where an
+taken. On the simple loop with `PU1 pump head = 15`, that is Kv 0.77 dropping 124 kPa where an
 unconstrained loop would have chosen Kv 1.6 and 29 kPa. Balancing a whole set of parallel branches
 against one another still needs the branches' own drops stated or an explicit `kv` on each.
 
@@ -124,7 +134,7 @@ be measured — and the first solved pass replaces it.
 
 ### A stated drop
 
-`CV1 valve dp=30` asks for a valve that drops 30 kPa at the branch's design flow. The Kv that does so
+`CV1 valve dp = 30` asks for a valve that drops 30 kPa at the branch's design flow. The Kv that does so
 exactly is computed from the Kv law, and the catalogue row chosen is the **next larger** one, so the
 valve drops no more than you asked at that flow. That is the manufacturers' own rule for a calculated
 Kv between two Kvs values: Belimo's planning notes take a calculated 4.5 m³/h to the 6.3 m³/h row.
@@ -162,4 +172,4 @@ solve reports the drop it actually produces, which is how you find out whether t
 
 ## See also
 
-[`three_way_valve`](three-way-valve.md) · [`control`](control.md)
+[`three_way_valve`](three-way-valve.md) · [`controller`](controller.md)

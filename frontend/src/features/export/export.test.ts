@@ -89,7 +89,7 @@ describe('the SVG export (59)', () => {
     const svg = render(loop);
     const desc = /<desc id="export-desc">([\s\S]*?)<\/desc>/.exec(svg)![1]!;
     expect(desc).toContain('application: 0.0.0-test');
-    expect(desc).toContain('model contract: 3.1');
+    expect(desc).toContain('model contract: 4.0');
     expect(desc).toContain('language major: 2');
     expect(desc).toContain(`source hash: ${loop.provenance.sourceHash}`);
     expect(desc).toContain('catalogue: steel_en10255 2026.1');
@@ -100,7 +100,7 @@ describe('the SVG export (59)', () => {
     expect(desc).toContain('shown: temperature (°C), 0 to 60');
     expect(desc).toContain('tags: equipment tags are as of the source hash above');
     expect(desc).toContain('generated: 2026-09-19T00:00:00.000Z');
-    expect(desc).not.toContain('fluidscript 1'); // never the source text
+    expect(desc).not.toContain('fluidscript 2'); // never the source text
     expect(svg).toContain('<title id="export-title">coolingLoop — FluidScript diagram</title>');
     expect(svg).toMatch(/<svg [^>]*role="img" aria-labelledby="export-title export-desc"/);
   });

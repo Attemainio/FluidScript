@@ -8,17 +8,17 @@ using FluidScript.Core.Solvers.Transient;
 namespace FluidScript.Core.Tests.Solvers.Transient;
 
 /// <summary>
-/// A language 2 run played in time (<c>D-169</c>): the model projected onto one run by <see cref="RunProjection"/>,
-/// then the same design solve, snapshot and transient a language 1 file takes.
+/// A run played in time (<c>D-169</c>): the model projected onto one run by <see cref="RunProjection"/>, then the
+/// design solve, snapshot and transient.
 /// </summary>
 /// <remarks>
-/// The plant is <see cref="CurveClockTests"/>' weather loop written in language 2: the demand follows
+/// The plant is <see cref="CurveClockTests"/>' weather loop: the demand follows
 /// <c>heating</c> of the driver <c>outdoor</c>, and the run hands <c>outdoor</c> to the weather curve, −26 → −6 °C
 /// over five minutes, so <c>heating</c> falls 30 → 15 kW. The rise across <c>HE1</c> at its fixed 0.2393 kg/s is
 /// the duty over the stream's capacity: 30 K at t = 0, 22.5 K at 150 s, 15 K from 300 s on.
 /// </remarks>
 [Trait("Category", "Validation")]
-public sealed class Language2RunTests
+public sealed class ScriptRunTests
 {
     private static string Script(string events = "") => $$"""
         fluidscript 2
@@ -91,7 +91,7 @@ public sealed class Language2RunTests
     [Fact]
     public async Task ADriverHandedToTheWeatherFollowsTheClock()
     {
-        var run = await PlayAsync("language2-weather", Script());
+        var run = await PlayAsync("script-run-weather", Script());
 
         Assert.Equal(900, run.Frames[^1].Time, 9);
         Assert.Equal(30.0, Rise(run.At(0), run), 0.3);
@@ -103,7 +103,7 @@ public sealed class Language2RunTests
     [Fact]
     public async Task AStepReplacesTheCurveItsTargetFollowed()
     {
-        var run = await PlayAsync("language2-weather-step", Script("  at 10 min  HE1.power = 20 kW"));
+        var run = await PlayAsync("script-run-weather-step", Script("  at 10 min  HE1.power = 20 kW"));
 
         Assert.Equal(15.0, Rise(run.At(590), run), 0.3);
         Assert.Equal(20.0, Rise(run.Frames[^1], run), 0.3);
@@ -122,7 +122,7 @@ public sealed class Language2RunTests
             "HE1  heat_exchanger  power = heating  out.t = 50  sized_at.outdoor = -16 C");
         Assert.Contains("sized_at.outdoor", script, StringComparison.Ordinal);
 
-        var run = await PlayAsync("language2-weather-capacity", script);
+        var run = await PlayAsync("script-run-weather-capacity", script);
 
         Assert.Equal(30.0, Rise(run.At(0), run), 0.3);
         Assert.Equal(30.0, Rise(run.At(70), run), 0.3);

@@ -59,9 +59,8 @@ public static class CompatibilityDiagnostics
     /// <summary>A version directive repeating the major an earlier one states.</summary>
     /// <value><c>FS1706</c>, a warning.</value>
     /// <remarks>
-    /// Harmless to the model -- the major is the same -- but the line means nothing, and <c>18</c> promised a
-    /// diagnostic for it that language 1's duplicate-directive code (<c>FS1112</c>) gave and language 2 lost
-    /// (<c>L-83</c>). Reported on each repeat, so the first line, the one that counts, stays unmarked.
+    /// Harmless to the model -- the major is the same -- but the line means nothing, and <c>18</c> promises a
+    /// diagnostic for it (<c>L-83</c>). Reported on each repeat, so the first line, the one that counts, stays unmarked.
     /// </remarks>
     public static DiagnosticDescriptor RepeatedMajor { get; } = new(
         "FS1706",

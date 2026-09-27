@@ -11,7 +11,7 @@ namespace FluidScript.Core.Language.Binding;
 /// <para>
 /// This runs <c>15</c>'s binding steps 0 through 5 — partition into circuits, collect declarations,
 /// resolve kinds, bind parameters, build the dependency graph, evaluate. Steps 6 through 11 — ports,
-/// connections, inference, attachments, control bindings, the schedule, validation and tags — are in
+/// connections, inference, observers, control bindings, validation and tags — are in
 /// <c>BindingRun.Topology.cs</c> and have no notion of expressions, exactly as steps 0–5 have no
 /// notion of topology. The split is what keeps each half testable alone.
 /// </para>

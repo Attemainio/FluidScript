@@ -9,7 +9,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
     /// <summary>The port inferred for one end of one link, by the endpoint's position and the direction of flow at it.</summary>
     private readonly Dictionary<(int Start, bool Inflow), string> _inferred = [];
@@ -219,7 +219,7 @@ internal sealed partial class Language2Reader
         if (asserted is not null && asserted != function)
         {
             Report(
-                Language2Diagnostics.ValveFunctionContradicted,
+                BlockDiagnostics.ValveFunctionContradicted,
                 free[0].Endpoint.Span,
                 ("component", name),
                 ("asserted", asserted),
@@ -261,7 +261,7 @@ internal sealed partial class Language2Reader
         }
 
         Report(
-            Language2Diagnostics.PortsInferred,
+            BlockDiagnostics.PortsInferred,
             free[0].Endpoint.Span,
             ("component", name),
             ("wiring", $"a {function} valve: {string.Join(", ", wiring)}"));
@@ -398,7 +398,7 @@ internal sealed partial class Language2Reader
 
         if (wiring.Count > 1)
         {
-            Report(Language2Diagnostics.PortsInferred, free[0].Endpoint.Span, ("component", name), ("wiring", string.Join(", ", wiring)));
+            Report(BlockDiagnostics.PortsInferred, free[0].Endpoint.Span, ("component", name), ("wiring", string.Join(", ", wiring)));
         }
     }
 
@@ -436,7 +436,7 @@ internal sealed partial class Language2Reader
         // Only a side with more than one stream had a choice made for it.
         if (free.Count(static end => end.Inflow) > 1 || free.Count(static end => !end.Inflow) > 1)
         {
-            Report(Language2Diagnostics.PortsInferred, free[0].Endpoint.Span, ("component", name), ("wiring", string.Join(", ", wiring)));
+            Report(BlockDiagnostics.PortsInferred, free[0].Endpoint.Span, ("component", name), ("wiring", string.Join(", ", wiring)));
         }
 
         static string Spell(string prefix, int index) =>
@@ -452,7 +452,7 @@ internal sealed partial class Language2Reader
 
     private void NotInferred(string name, End end, string reason, IEnumerable<string> ports) =>
         Report(
-            Language2Diagnostics.PortNotInferred,
+            BlockDiagnostics.PortNotInferred,
             end.Endpoint.Span,
             ("component", name),
             ("reason", reason),

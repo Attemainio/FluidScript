@@ -28,8 +28,8 @@ public sealed record DeferredExpression(
 
     /// <summary>Gets whether the expression was held only so a run can read its curve on the clock.</summary>
     /// <value>
-    /// <see langword="true"/> when it reads a curve and the binder already evaluated it: a dynamic circuit's reader of a
-    /// curve in language 1 (<c>D-58</c>), and every reader of a curve in language 2 (<c>19</c> §Runs). Its bound value
+    /// <see langword="true"/> when it reads a curve and the binder already evaluated it: every reader of a curve
+    /// (<c>19</c> §Runs, <c>D-58</c>). Its bound value
     /// is the design value, which the steady solve keeps; only the transient's clock reads it again (<c>D-149</c>).
     /// </value>
     public bool FollowsTheClock => CurrentEstimate is not null && Dependencies.Any(static id => id is ValueId.Curve);

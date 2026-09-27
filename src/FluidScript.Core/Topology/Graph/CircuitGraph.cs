@@ -92,7 +92,7 @@ public sealed record CircuitGraph
     /// </value>
     public required PortAdjacency Adjacency { get; init; }
 
-    /// <summary>Gets the ports the script itself named, as <c>component.port</c> (<c>D-88</c>).</summary>
+    /// <summary>Gets the stated ports -- written, or settled by the reader from the plant -- as <c>component.port</c> (<c>D-88</c>, <c>D-177</c>).</summary>
     /// <value>
     /// <para>
     /// Empty by default, which is right for a hand-built graph: nothing named anything, so nothing may
@@ -101,10 +101,10 @@ public sealed record CircuitGraph
     /// <para>
     /// <strong>A port name in <see cref="BranchEnd.PortName"/> is always present and only sometimes
     /// means something.</strong> Lowering resolves an unqualified endpoint to a real port and records
-    /// its name like any other, so the graph alone cannot say whether <c>3WV.a</c> is what the user
-    /// wrote or what connection order produced. This set is that difference, and the only thing that
+    /// its name like any other, so the graph alone cannot say whether <c>3WV.a</c> was stated or is
+    /// what connection order produced. This set is that difference, and the only thing that
     /// currently needs it is <see cref="FluidScript.Core.Solvers.Results.ValveLegs"/> — <c>a</c> is a three-way valve's control
-    /// path and <c>b</c> its bypass, so a script naming them has said which leg the valve modulates,
+    /// path and <c>b</c> its bypass, so a stated one says which leg the valve modulates,
     /// while positional binding has said nothing at all.
     /// </para>
     /// </value>
@@ -126,7 +126,7 @@ public sealed record CircuitGraph
     /// </value>
     public ImmutableHashSet<string> ProvisionalParameters { get; init; } = [];
 
-    /// <summary>Gets every <c>control</c> line's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
+    /// <summary>Gets every controller's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
     /// <value>
     /// Empty by default, which is right for a hand-built graph and for a static circuit with no control
     /// line. An applied entry says the measured component's stated parameter of that name is the

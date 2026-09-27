@@ -64,10 +64,10 @@ internal sealed partial class BindingRun
         }
     }
 
-    /// <summary>Checks a <c>measure=</c> that reads a node directly (<c>D-150</c>), and puts the sensor the reading implies on it (I8, <c>D-151</c>).</summary>
+    /// <summary>Checks a <c>reads</c> that names a node directly (<c>D-150</c>), and puts the sensor the reading implies on it (I8, <c>D-151</c>).</summary>
     /// <param name="controller">The controller, for the message.</param>
-    /// <param name="measurement">What the line measures.</param>
-    /// <param name="span">The control line.</param>
+    /// <param name="measurement">What the controller reads.</param>
+    /// <param name="span">The controller's declaration.</param>
     /// <remarks>A sensor was checked where it was placed, so only a node read directly is checked here.</remarks>
     private void CheckMeasurement(string controller, PropertyReference measurement, TextSpan span)
     {
@@ -86,7 +86,7 @@ internal sealed partial class BindingRun
 
     /// <summary>
     /// I8 (<c>D-151</c>): a controller that reads a node's temperature, pressure or flow directly reads it through a sensor
-    /// the binder puts there -- <c>NS__TE</c> for <c>measure=NS.t</c> -- unless one of that kind already stands on the node,
+    /// the binder puts there -- <c>NS__TE</c> for <c>reads = NS.t</c> -- unless one of that kind already stands on the node,
     /// which it then reads through.
     /// </summary>
     /// <remarks>
@@ -154,7 +154,7 @@ internal sealed partial class BindingRun
 
     /// <summary>Binds a controller's loop: what it moves, what it reads, and its setpoint (<c>D-61</c>, <c>D-168</c>).</summary>
     /// <remarks>
-    /// The controller declaration's <c>moves</c> and <c>measures</c> arrive as the line's ends; its
+    /// The controller declaration's <c>moves</c> and <c>reads</c> arrive as the line's ends; its
     /// <c>setpoint</c> and tuning as named arguments, because a setpoint is a quantity and the others are
     /// components.
     /// </remarks>
@@ -171,13 +171,13 @@ internal sealed partial class BindingRun
             return;
         }
 
-        if (Endpoint(statement.Actuator!, actuated: true) is not { } actuator
-            || Endpoint(statement.Sensor!, actuated: false) is not { } measurement)
+        if (Endpoint(statement.Actuator, actuated: true) is not { } actuator
+            || Endpoint(statement.Sensor, actuated: false) is not { } measurement)
         {
             return;
         }
 
-        var (controllerName, controllerSpan) = statement.Controller!.Value;
+        var (controllerName, controllerSpan) = statement.Controller;
         var controller = _componentsByName.TryGetValue(controllerName, out var slot)
             ? _components[slot.Index]
             : null;
@@ -208,7 +208,7 @@ internal sealed partial class BindingRun
         _controlBindings.Add(WithTuning(binding, arguments));
     }
 
-    /// <summary>Binds what language 2 writes on a controller beyond its setpoint (<c>D-168</c>, <c>19</c> §Controllers).</summary>
+    /// <summary>Binds what a script writes on a controller beyond its setpoint (<c>D-168</c>, <c>19</c> §Controllers).</summary>
     /// <param name="binding">The loop as its <c>moves</c>, <c>reads</c> and <c>setpoint</c> bind it.</param>
     /// <param name="arguments">Its named arguments, by name as written.</param>
     /// <returns>The binding with its band, differential, output limits and curve.</returns>
@@ -322,7 +322,7 @@ internal sealed partial class BindingRun
             ("value", parse.Source.ToString(argument.Value.Span).Trim()),
             ("actual", actual.Name.ToLowerInvariant()));
 
-    /// <summary>Resolves one bare or qualified endpoint of a short <c>control</c> line.</summary>
+    /// <summary>Resolves a controller's <c>moves</c> or <c>reads</c>, bare or qualified.</summary>
     /// <param name="endpoint">The endpoint as written, with or without its <c>.</c> half.</param>
     /// <param name="actuated">
     /// <see langword="true"/> for the thing the loop drives, <see langword="false"/> for what it reads.
@@ -341,8 +341,8 @@ internal sealed partial class BindingRun
 
         if (endpoint.Port is { } port)
         {
-            // Checked as the long form checks `actuate=`: a controller moving what does not exist, or a parameter its
-            // kind lacks, was bound as written and moved nothing.
+            // Checked, because a controller moving what does not exist, or a parameter its kind lacks, would be bound
+            // as written and move nothing.
             if (!_componentsByName.TryGetValue(name, out var named))
             {
                 Report(BinderDiagnostics.UnknownName, endpoint.Span, ("name", name));
@@ -436,37 +436,11 @@ internal sealed partial class BindingRun
             ? new PropertyReference(reference.Head.Token.Text, reference.PropertyPath())
             : null;
 
-    /// <summary>Binds the <c>schedule</c> section — the step <c>15</c>'s binding order never had.</summary>
-    /// <remarks>
-    /// Steps 0–11 cover directives, declarations, kinds, parameters, expressions, ports, connections,
-    /// inference, attachments, control bindings, validation and tags, and never mention a disturbance:
-    /// the parser produced <see cref="DisturbanceSyntax"/> and nothing consumed it. It runs here,
-    /// after control bindings and before validation, because a scheduled target resolves exactly the
-    /// way an actuated one does.
-    /// </remarks>
-    private void BindSchedule(List<CircuitBlock> blocks)
-    {
-        foreach (var block in blocks)
-        {
-            foreach (var statement in block.LinesOf<ChangeLine>())
-            {
-                BindDisturbance(statement, block.Circuit!.Name);
-            }
-        }
-    }
-
-    private void BindDisturbance(ChangeLine statement, string circuit)
-    {
-        if (Disturbance(statement, circuit, range => Bounds(range, Dimension.Time)) is { } disturbance)
-        {
-            _disturbances.Add(disturbance);
-        }
-    }
-
-    /// <summary>Binds one step or ramp: its target, its times and its values.</summary>
+    /// <summary>Binds one step or ramp in a run: its target, its times and its values.</summary>
+    /// <remarks>A changed target resolves exactly the way an actuated one does.</remarks>
     /// <param name="statement">The line.</param>
     /// <param name="circuit">The circuit it belongs to.</param>
-    /// <param name="times">Reads the line's times; a language 2 run reads a clock time as well as a duration.</param>
+    /// <param name="times">Reads the line's times, a clock time as well as a duration.</param>
     /// <returns>The change, or <see langword="null"/> when its target has been reported.</returns>
     private DisturbanceSymbol? Disturbance(
         ChangeLine statement, string circuit, Func<RangeOrPointSyntax, (Quantity? From, Quantity? To)> times)
@@ -496,7 +470,7 @@ internal sealed partial class BindingRun
         ParameterInfo? info = null;
         Dimension? dimension = null;
 
-        // A language 2 run may move a controller's setpoint (`19` §Runs), which is its line's and read in what
+        // A run may move a controller's setpoint (`19` §Runs), which is its line's and read in what
         // it measures, not a parameter of the controller.
         if (string.Equals(NameResolution.Normalize(parameter), "setpoint", StringComparison.Ordinal)
             && _controlBindings.FirstOrDefault(binding => string.Equals(binding.Controller.Name, component, StringComparison.Ordinal)) is { } loop)
@@ -527,8 +501,8 @@ internal sealed partial class BindingRun
         var (from, to) = times(statement.When);
         var (fromValue, toValue) = Bounds(statement.Value, dimension);
 
-        // A single value is where the change ends: at the instant for `at`, at the end of the span for
-        // `over` (`12` §Schedule: a step at the end of the ramp). Only a range has a start value.
+        // A single value is where the change ends: at the instant for `at`, and at the end of the span for an
+        // `over` given one value, which the parser has already refused (FS1807). Only a range has a start value.
         return new DisturbanceSymbol(
             circuit,
             new PropertyReference(component, info?.Key ?? parameter),

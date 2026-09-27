@@ -47,7 +47,7 @@ export interface ModelContract {
    */
   layout: Layout;
   /**
-   * The show directive's resolution (57).
+   * The show setting's resolution (57).
    */
   visualization: Visualization;
   /**
@@ -165,7 +165,7 @@ export interface Circuit {
    */
   role: string | null;
   /**
-   * The parent circuit, or null when this one stands alone (D-33).
+   * The circuit this one hangs off, the one whose nodes its components connect to, or null when it stands alone (D-33).
    */
   parentCircuit: string | null;
   /**
@@ -606,7 +606,7 @@ export interface Layout {
    */
   inferred: string[];
   /**
-   * The clearance every component keeps from every other, world units (D-103); the spacing directive or 0.5.
+   * The clearance every component keeps from every other, world units (D-103); the spacing setting or 0.5.
    */
   margin: number;
   /**
@@ -753,7 +753,7 @@ export interface Placement {
    */
   source: string;
   /**
-   * The resolved style: the script's named or anonymous style (D-104); absent when the theme's defaults apply throughout.
+   * The resolved style: the component's circuit's style merged over the project's (D-104, D-171); absent when the theme's defaults apply throughout.
    */
   style?: ResolvedStyle | null;
   /**
@@ -1199,7 +1199,7 @@ export interface Kind {
    */
   indexedProperties: IndexedProperty[];
   /**
-   * The parameter a control line may actuate, or null.
+   * The parameter a controller's moves may actuate, or null.
    */
   actuatedParameter: string | null;
   /**

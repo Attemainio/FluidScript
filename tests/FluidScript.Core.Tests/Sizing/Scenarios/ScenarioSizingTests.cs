@@ -203,7 +203,7 @@ public sealed class ScenarioSizingTests
     }
 
     /// <summary>
-    /// A language 2 driver reaches sizing as a list would (<c>D-167</c>): the demand curve read at −26 °C is
+    /// A driver <c>let</c> reaches sizing as a list would (<c>D-167</c>): the demand curve read at −26 °C is
     /// 30 kW, so 30 000 / (4180 × 30) = 0.239 kg/s; at 5 °C it is 30 − 31 × 30/44 = 8.86 kW, so 0.0707 kg/s.
     /// Measured 2026-09-25: 0.2392 and 0.0707 kg/s, both cases converged, the flow governed by winter.
     /// </summary>

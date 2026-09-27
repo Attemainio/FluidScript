@@ -49,7 +49,7 @@ public sealed record ModelContract
     /// <summary>The layout hints, serialized from <c>25</c>'s contract field for field.</summary>
     public required LayoutWire Layout { get; init; }
 
-    /// <summary>The <c>show</c> directive's resolution (<c>57</c>).</summary>
+    /// <summary>The <c>show</c> setting's resolution (<c>57</c>).</summary>
     public required VisualizationWire Visualization { get; init; }
 
     /// <summary>Evaluated <c>let</c> values.</summary>

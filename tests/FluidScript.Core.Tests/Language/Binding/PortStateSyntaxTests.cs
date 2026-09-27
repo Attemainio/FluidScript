@@ -12,7 +12,7 @@ namespace FluidScript.Core.Tests.Language.Binding;
 /// </summary>
 /// <remarks>
 /// Two spellings meet here: what the script writes (<c>secondary.in.t</c>), and what the model, the sizes and the
-/// wire key it by (<c>in2</c>). Language 1's old spellings and their notice (<c>FS1536</c>) went with it (<c>D-174</c>).
+/// wire key it by (<c>in2</c>). The old spellings are not read, and their notice (<c>FS1536</c>) is retired (<c>D-174</c>).
 /// </remarks>
 [Trait("Category", "Unit")]
 public sealed class PortStateSyntaxTests

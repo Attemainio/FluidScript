@@ -2,16 +2,17 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Diagnostics.Descriptors;
 
-/// <summary>What reading a <c>style</c> or a <c>show</c> directive has to say: <c>FS1201</c>, <c>FS1202</c>, <c>FS1204</c>, <c>FS1205</c> (<c>12</c>, <c>D-104</c>) and <c>FS1210</c>, <c>FS1213</c>, <c>FS1214</c> (<c>57</c>).</summary>
+/// <summary>What reading a <c>style:</c> block or a <c>show</c> setting has to say: <c>FS1202</c> (<c>D-104</c>) and <c>FS1210</c>, <c>FS1213</c>, <c>FS1214</c> (<c>57</c>).</summary>
 /// <remarks>
 /// None is an error: a style is presentation, and a diagram in the default colour is still the
 /// diagram; a bad <c>show</c> must never stop a circuit rendering. <c>FS1203</c>, the bare hex colour,
-/// is the parser's, because it is about a comment. <c>FS1211</c> and <c>FS1212</c> of <c>57</c> wait for
+/// is the parser's, because it is about a comment. <c>FS1201</c>, <c>FS1204</c> and <c>FS1205</c> are
+/// retired (<see cref="DiagnosticRegistry"/>). <c>FS1211</c> and <c>FS1212</c> of <c>57</c> wait for
 /// humid air on the wire.
 /// </remarks>
 public static class StyleDiagnostics
 {
-    /// <summary>Two tokens of the same category in one directive; the later wins.</summary>
+    /// <summary>Two settings of the same category in one style; the later wins.</summary>
     /// <value><c>FS1202</c>, a warning.</value>
     public static DiagnosticDescriptor OverriddenToken { get; } = new(
         "FS1202",
@@ -32,14 +33,14 @@ public static class StyleDiagnostics
         DiagnosticSeverity.Info,
         "'{name}' listed twice.");
 
-    /// <summary>A second <c>show</c> directive; only the first is read.</summary>
+    /// <summary>A second <c>show</c> setting; only the first is read.</summary>
     /// <value><c>FS1214</c>, a warning.</value>
-    public static DiagnosticDescriptor SecondShowDirective { get; } = new(
+    public static DiagnosticDescriptor SecondShowSetting { get; } = new(
         "FS1214",
         DiagnosticSeverity.Warning,
         "Only the first 'show' is used.");
 
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
-        [OverriddenToken, UnknownShowProperty, DuplicateShowProperty, SecondShowDirective];
+        [OverriddenToken, UnknownShowProperty, DuplicateShowProperty, SecondShowSetting];
 }

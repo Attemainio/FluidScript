@@ -12,7 +12,7 @@ colour never waits for a compile:
 
 | You see | It is |
 |---|---|
-| `circuit`, `let`, `connections` in the keyword colour | A reserved word starting a statement |
+| `circuit`, `let`, `run` in the keyword colour | A word starting a statement or a block |
 | `HE1` emphasised at the start of a line | A name being introduced |
 | `heat_exchanger` in the type colour | The kind of the component |
 | `power` muted, before an `=` | A parameter |
@@ -54,10 +54,10 @@ Completion opens as you type and knows where you are on the line:
 | Start of a declaration line | Nothing; you are naming the component |
 | After the name | Every component kind, with its description; an alias is matched too and shown as `via 'radiator'` |
 | After the kind, or after a parameter | The parameters that kind still accepts, each with its dimension, unit and typical range |
-| After `param=` | `let` names, `Component.property` references and unit symbols that have that parameter's dimension |
+| After `param =` | `let` names, `Component.property` references and unit symbols that have that parameter's dimension |
 | Start of a connection line, or after `-` | Every component, including the ones the compiler inferred, marked as such |
 | After a `.` | The component's ports in a connection, its properties in an expression |
-| Inside `schedule` | The parameters a schedule may set |
+| Inside a `run` | Its settings, `at` and `over`, and the `let`s it may override; after `at` or `over`, the parameters an event may move and a controller's `setpoint` |
 
 **Tab or Enter commits the canonical spelling.** Type `heat_ex`, press Tab, and the text reads
 `heat_exchanger`; type `rad` and Tab gives `heat_exchanger` as well, because `radiator` is one of its
@@ -65,9 +65,9 @@ aliases and the list said so. Anything you type without accepting a completion s
 typed it. The compiler accepts the same aliases and misspellings the list does, so nothing the list
 offers is refused later, and nothing the compiler would accept is missing from the list.
 
-**Values are filtered by dimension.** After `power=` you see the `let`s and properties that are a
-power and the power units, `kW` and `W` among them; a temperature `let` is not there. After `out.t=` a
-`let` holding `70 C` is offered and one holding `20 dK` is not, because a temperature and a
+**Values are filtered by dimension.** After `power =` you see the `let`s and properties that are a
+power and the power units, `kW` and `W` among them; a temperature `let` is not there. After `out.t =` a
+`let` holding `70 C` is offered and one holding `20 K` is not, because a temperature and a
 temperature difference are different things and the filter says so before the compiler has to. A
 `let` whose value waits for the solve is offered with its dimension and no value. Where the kind did
 not resolve, so no dimension is known, everything is offered rather than nothing.
@@ -107,8 +107,7 @@ paragraph and no further. Columns of declarations are not lined up with each oth
 over a header of identical components and badly everywhere else. Formatting twice changes nothing, it
 changes no token and no comment, and the whole thing is one edit: one Undo restores your layout.
 
-A file whose version line names another major, such as a `fluidscript 1` file, is left exactly as
-written. A draft with no version line is formatted as the current version.
+A file whose version line names another major is left exactly as written. A draft with no version line is formatted as the current version.
 
 ## Shortcuts
 

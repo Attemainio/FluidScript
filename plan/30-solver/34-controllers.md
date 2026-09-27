@@ -27,8 +27,8 @@ coupling, and default tunings.
 
 **Explicitly does not own.** Time integration ([`33-transient-time-domain`](33-transient-time-domain.md)),
 component equations ([`22-component-model`](../20-core-domain/22-component-model.md)), controller syntax
-([`12-grammar`](../10-language/12-grammar.md), which defines the declaration and the `control`
-binding), or how a binding's named arguments resolve
+([`12-grammar`](../10-language/12-grammar.md) and [`19`](../10-language/19-fluidscript-2.md) §Controllers, which
+define the declaration), or how its named parameters resolve
 ([`15-semantic-model`](../10-language/15-semantic-model.md)).
 
 ## The model
@@ -55,15 +55,15 @@ public interface IControlLaw
     string Name { get; }
 
     /// <summary>What is measured directly under D-23: a component property reference such as <c>N2.t</c>.</summary>
-    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`); see below.</remarks>
+    /// <remarks>Projected from the declaration's <c>reads</c> at lowering (`D-40`, `D-168`); see below.</remarks>
     PropertyReference Measurement { get; }
 
     /// <summary>What is driven: a settable parameter such as <c>3WV.position</c>.</summary>
-    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`).</remarks>
+    /// <remarks>Projected from the declaration's <c>moves</c> at lowering (`D-40`, `D-168`).</remarks>
     ParameterReference Actuator { get; }
 
     /// <summary>Target value for the measurement, in the measurement's dimension.</summary>
-    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`).</remarks>
+    /// <remarks>Projected from the declaration's <c>setpoint</c> at lowering (`D-40`, `D-168`).</remarks>
     Quantity Setpoint { get; }
 
     /// <summary>Advances the controller by one timestep and returns the new actuator value.</summary>
@@ -95,10 +95,10 @@ run start** from the perturbation under *Default tunings*, which is a run-time m
 `FS3201`, not a sizing pass — their basis on the wire says so, and [`24`](../20-core-domain/24-auto-sizing.md)'s
 frozen-snapshot rule does not apply to them because the run has not started when they are chosen.
 
-**Language 2 (`D-168`, bound since P6.11 slice 3d).** A controller is one declaration with a `type` (`P`, `PI`,
+**The declaration (`D-168`, bound since P6.11 slice 3d).** A controller is one declaration with a `type` (`P`, `PI`,
 `PID`, `onoff`, `curve`; absent `PI`), so the algorithm is stated rather than inferred from the gains present. The
-registry row gains `type`, `ti`, `td` (the ideal form's times, where language 1 writes `ki`) and `action` (a check,
-never a setting); the binding carries `band`, `differential`, the `output` limits and a `curve`, because each is read
+registry row also carries `type`, `ti`, `td` (the ideal form's times, beside `ki`) and `action` (a check, never a
+setting); the binding the reader makes from `moves`, `reads` and `setpoint` carries `band`, `differential`, the `output` limits and a `curve`, because each is read
 in the units of what is measured or moved. **The band is not converted to `kp` by the binder:** `kp = (Ymax −
 Ymin) / band` needs the output range, which is the controller's to settle when it is built here, so this document owns
 the conversion. **Slew is the actuator's**: a valve's `stroke` is its full-stroke time and the slew is `1/stroke`;
@@ -106,9 +106,9 @@ with no `stroke`, *Actuator limits and rate*'s default applies.
 
 ### The design point and the setpoint
 
-`D-141`. A `control` binding whose actuator is **unstated** contributes its setpoint as a constraint on
-its measurement in the design solve, promoting the actuator: `control actuate=3WV.position
-measure=NS.t by=TC1 setpoint=20` holds `NS` at 20 °C at t = 0 and the solve chooses the valve
+`D-141`. A controller whose actuator is **unstated** contributes its setpoint as a constraint on
+its measurement in the design solve, promoting the actuator: `TC1` with `moves = 3WV.position`,
+`reads = NS.t` and `setpoint = 20` holds `NS` at 20 °C at t = 0 and the solve chooses the valve
 position that does it — the demand-step loop's 0.501. The run then starts at the controlled
 equilibrium, `Initialize` receives that position, and the first step produces no increment. This is
 what a designer means by the design point of a controlled loop, and it is the only way the reference
@@ -127,7 +127,7 @@ the node's stated parameters and records every binding on `CircuitGraph.Setpoint
 `WellPosedness` answers the node-temperature constraint with the named actuator alone and raises the
 two codes. The demand-step loop solves on `01`'s figures (`S-75` closed).
 
-**A pump holds its setpoint through its head (`D-163`, `S-87`).** A `control` line on a pump actuates its
+**A pump holds its setpoint through its head (`D-163`, `S-87`).** A controller that moves a pump actuates its
 `speed`, and at the design point speed moves nothing: the pump's head is sized or stated and its curve anchored at
 the design flow the loop's drops are read at, so a promoted speed left the design solve singular (`FS3009`, then
 `FS3010` on the held node). What sets the design flow is the head, and the design solve already holds temperatures
@@ -136,20 +136,21 @@ and leaves `speed` to the run, where the controller starts at 1 -- the circulato
 at its duty point. Step 3 with its controls: `NR.t = 20` held by `PU1.head` at 4.09 m, 0.2392 kg/s, converged in one
 iteration. A pump stating `head`, `dp`, `flow` or `vflow` has spent its head and the setpoint is `FS3210`.
 
-**These three properties are populated from the binding, not from the declaration** (`D-40`). The
-controller *declaration* carries the algorithm and its gains; the `control` *binding* carries what is
-measured, what is actuated, and the setpoint. Lowering resolves each `ControlBindingSymbol`
+**These three properties are populated from the binding, not from the controller component** (`D-40`,
+`D-168`). The declaration holds both halves and the reader splits them: the algorithm and its gains stay
+with the component, and `moves`, `reads` and `setpoint` become the *binding*, what is actuated, what is
+measured, and the setpoint. Lowering resolves each `ControlBindingSymbol`
 ([`15-semantic-model`](../10-language/15-semantic-model.md)) and projects its three references onto
-the `IController` instance its `by=` argument names, before the first timestep.
+the `IController` instance of the controller it came from, before the first timestep.
 
 The direction is one-way and worth stating because the alternative is silently plausible: the binding
-is the source, the interface is the consequence, and nothing writes back. A controller named by no
+is the source, the interface is the consequence, and nothing writes back. A controller with no
 binding is inert — it holds gains and drives nothing — which is `FS3208`, a warning rather than an
 error, because a half-written script is the normal editing state (`P4`).
 
-Two bindings naming one controller is `FS3209`: a single PI instance holds one integral term, so
-driving two actuators from it would couple them through shared state in a way nobody writes on
-purpose. Reusing a *tuning* across loops is the legitimate case behind that shape, and it is served by
+One declaration is one loop, and two bindings naming one controller would be `FS3209`: a single PI
+instance holds one integral term, so driving two actuators from it would couple them through shared state
+in a way nobody writes on purpose. Reusing a *tuning* across loops is the legitimate case behind that shape, and it is served by
 declaring two controllers with the same gains.
 
 **"Call exactly once per accepted timestep" is the invariant that adaptive stepping breaks.**
@@ -272,8 +273,8 @@ discrete-time nature.
 | `FS3205` | Actuator parameter is not settable | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS3206` | Process-gain estimation failed | Warning | `{name}: could not measure a process gain; using conservative defaults.` |
 | `FS3207` | Setpoint outside the measurement's plausible range | Warning | `{name}: a setpoint of {v} is outside the usual range for {dimension}.` |
-| `FS3208` | A declared controller is named by no `control` binding | Warning | `{name}` drives nothing; add a 'control' line naming it. |
-| `FS3209` | Two `control` bindings name one controller | Error | `{name}` is used by {n} control lines; a controller holds one integral term and drives one actuator. |
+| `FS3208` | A declared controller has no binding: it moves or reads nothing | Warning | `{name}` drives nothing; give it 'moves' and 'reads'. |
+| `FS3209` | Two bindings name one controller | Error | `{name}` is used by {n} loops; a controller holds one integral term and drives one actuator. |
 | `FS3210` | The setpoint is not a constraint of the design solve: the actuator is stated, the node states its own temperature, or a neighbouring stated terminal already fixes it | Info | `{controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}.` |
 | `FS3211` | The measurement is not one the design solve can hold at a setpoint — a boundary's temperature, a flow, a pressure, an exchanger's terminal | Info | `{controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands.` |
 
@@ -287,7 +288,7 @@ M4's demo is the **demand-step loop** ([`01-vision-and-scope`](../00-foundation/
 `TC1` holds `NS.t` — the mixed stream just past the mixing node `N2` — at **20 °C** by modulating `3WV.position`, and the
 load steps 30 → 45 kW at t = 60 s.
 
-```fluidscript lang=2
+```fluidscript
 circuit "demandStep":
   TC1  controller:
     type     = PI                 # the algorithm; PI when absent
@@ -297,19 +298,17 @@ circuit "demandStep":
 ```
 
 `moves` names the actuator: a component means its kind's one actuated parameter (a valve's position,
-`D-61`), and a qualified parameter, `3WV.position`, says the same thing outright -- the only form language 1
-accepted (`D-43`) ([`19`](../10-language/19-fluidscript-2.md) §Controllers). `type` selects the algorithm -- `PI` when it
+`D-61`), and a qualified parameter, `3WV.position`, says the same thing outright (`D-43`)
+([`19`](../10-language/19-fluidscript-2.md) §Controllers). `type` selects the algorithm -- `PI` when it
 is absent -- and a parameter the stated type does not have is `FS1808`, so one declaration cannot mean
 two algorithms (`D-168`). `band` (or `kp`), `ti` and `td` are optional per `D-02` -- omitted here, so
 the defaults below apply.
 
-**Why one declaration, with named parameters.** Language 1 wrote this as two statements: a definition,
-`TC1 pi`, whose algorithm followed from which gains were present (`D-15`), and a `control` line binding
-it by four named arguments (`D-40`). The names were the point and stay: there is no memorable order for
-actuator, measurement and controller, and a swapped pair binds, solves, and drives the valve the wrong
-way, so a name buys a bind-time error instead of a plausible wrong answer. Language 2 keeps them and
-puts them in the one block, where a retuning edit and a rewiring edit are still different lines, and
-the spelling of the kind no longer has to agree with the gains.
+**Why one declaration, with named parameters.** The names are the point (`D-40`): there is no memorable
+order for actuator, measurement and controller, and a swapped pair binds, solves, and drives the valve the
+wrong way, so a name buys a bind-time error instead of a plausible wrong answer. They sit in the one
+block, where a retuning edit and a rewiring edit are still different lines, and `type` states the
+algorithm rather than leaving it to follow from which gains are present (`D-168`).
 
 **There is no `dT` mode.** A differential keyword was considered and rejected in `D-40`: its proposed
 meaning — the difference between setpoint and measurement — is the error signal every controller

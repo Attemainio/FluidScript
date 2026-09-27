@@ -4,25 +4,25 @@ Between the text you write and the numbers you get back there is a graph. You ne
 cannot edit it, but almost every confusing result is easier to understand once you know what it looks
 like — so this page walks the whole of it, with the cooling loop from the tutorial as the example.
 
-```
-circuit cooling 100
-fluid water
+```fluidscript
+circuit "cooling":
+  fluid  = water
+  number = 100
 
-N1 node t=6 p=300
-N3 node p=280
-PU1 pump head=6 flow=0.24
-HE1 heat_exchanger power=30
-3WV three_way_valve kv=6.3
-P1 pipe length=10 dn=25
+  N1   inlet  t = 6  p = 300
+  N3   outlet  p = 280
+  PU1  pump  head = 6  flow = 0.24
+  HE1  heat_exchanger  power = 30
+  3WV  three_way_valve  kv = 6.3
+  P1   pipe  length = 10  dn = 25
 
-connections
-N1 - N2
-N2 - PU1
-PU1 - HE1
-HE1 - 3WV
-3WV - N2
-3WV - P1
-P1 - N3
+  N1 - N2
+  N2 - PU1
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2
+  3WV - P1
+  P1 - N3
 ```
 
 ## Nodes: where state lives
@@ -33,7 +33,7 @@ you wrote. The script above declares two — `N1` and `N3` — and the graph has
 | Node | Where it came from |
 |---|---|
 | `N1`, `N3` | You wrote them. They carry the boundary conditions |
-| `N2` | You named it in `connections` without declaring it, so it was created |
+| `N2` | You named it in a connection line without declaring it, so it was created |
 | `PU1__HE1`, `HE1__3WV`, `3WV__P1` | Two components were connected directly, and a node was put between them |
 
 The last three exist because **components do not connect to each other; they connect to nodes.**
@@ -41,11 +41,11 @@ Without that rule there would be nowhere for the temperature between the pump an
 live, and that temperature is the one you usually want to see. The generated names use `__` so they
 are recognisable, and the diagram draws them smaller than the ones you named.
 
-**A pipe written on a connection line** -- `3WV - N3 length=10 dn=25` instead of `P1` -- is a
+**A pipe written on a connection line** -- `3WV - N3   10 m  DN25` instead of `P1` -- is a
 component too, named `3WV__N3`, and the node between the valve and it is `3WV__N3__in`. The graph is
 the same; only the names say where the pipe came from.
 
-A pipe with `nodes=n` adds more: `nodes=4` becomes five sub-pipes with four nodes between them, each
+A pipe with `nodes = n` adds more: `nodes = 4` becomes five sub-pipes with four nodes between them, each
 carrying a quarter of the pipe's water. That is how travel time along a long run shows up in a
 transient — and it is off by default, because most pipes are not long enough for it to matter.
 
@@ -60,8 +60,8 @@ The cooling loop has four:
 |---|---|---|
 | 1 | `N1` → `N2` | nothing: a bare connection is a perfect, lossless link |
 | 2 | `N2` → `3WV.ab` | `PU1`, `HE1`, and the two nodes between them |
-| 3 | `3WV.a` → `N2` | nothing — the recirculation leg |
-| 4 | `3WV.b` → `N3` | `P1` |
+| 3 | `3WV.b` → `N2` | nothing — the recirculation leg |
+| 4 | `3WV.a` → `N3` | `P1` |
 
 This is why a chain of five pipes in series solves as fast as one: it is one flow, not five.
 
@@ -99,10 +99,10 @@ will be wrong in a way that still looks like a solved circuit.
   them changes nothing about the circuit and nothing about how long it takes to solve.
 - **Controllers.** Same reason: a controller moves a valve, it does not carry water.
 - **Circuit boundaries.** Several circuits in one file are one graph. A circuit is a name and a
-  grouping, not a wall — attaching a subcircuit to its parent joins them hydraulically, and they
-  share one pressure reference from then on.
+  grouping, not a wall — a connection line in one circuit that names a component of another joins
+  them hydraulically, and they share one pressure reference from then on.
 
 ## See also
 
-[`connections`](../functions/connections.md) · [`node`](../functions/node.md) ·
+[`circuit`](../functions/circuit.md) · [`node`](../functions/node.md) ·
 [`pipe`](../functions/pipe.md) · [`three-way valve`](../functions/three-way-valve.md)

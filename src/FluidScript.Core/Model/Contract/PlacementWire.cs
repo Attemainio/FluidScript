@@ -41,7 +41,7 @@ public sealed record PlacementWire
     /// <summary><c>computed</c>; <c>pinned</c> is reserved for a placement the script states.</summary>
     public required string Source { get; init; }
 
-    /// <summary>The resolved style: the script's named or anonymous style (<c>D-104</c>); absent when the theme's defaults apply throughout.</summary>
+    /// <summary>The resolved style: the component's circuit's style merged over the project's (<c>D-104</c>, <c>D-171</c>); absent when the theme's defaults apply throughout.</summary>
     [AbsentWhenNull]
     public ResolvedStyleWire? Style { get; init; }
 

@@ -55,9 +55,9 @@ converting there costs one pass and removes a whole class of consumer bug.
 
 ```jsonc
 {
-  "contractVersion": "3.1",            // majors: D-33's `circuits` (2.0); C-139/C-140's removals and `K` (3.0)
+  "contractVersion": "4.0",            // majors: D-33's `circuits` (2.0); C-139/C-140's removals and `K` (3.0); D-180's areas (4.0)
   "provenance": {
-    "sourceHash": "sha256:…", "languageMajor": 1,
+    "sourceHash": "sha256:…", "languageMajor": 2,
     "catalog": { "id": "steel-en10255", "version": "2026.1" },
     "propertyBackend": { "id": "sharp-prop", "version": "…" },
     "atmosphereKPaAbsolute": 101.325       // gauge/absolute boundary fixed by D-26
@@ -177,7 +177,7 @@ converting there costs one pass and removes a whole class of consumer bug.
     ]
   },
 
-  "visualization": {                     // the `show` directive's resolution — owned by 57
+  "visualization": {                     // the `show` setting's resolution — owned by 57
     "active": "temperature",
     "available": ["temperature", "pressure", "flow"],
     "scale": { "property": "temperature", "displayName": "Temperature", "unit": "C",
@@ -271,8 +271,8 @@ it, each recorded here rather than left for a reader of the golden files to disc
   always drew. `D-46`'s emitted schema and the generated TypeScript mirror are not built: P5.2's,
   with the endpoints that carry the payload. The golden files and the round trip are Api tests.
 
-- **The unit strings are the language's canonical spellings**: `°C` not `C`, `dK` (since `3.0`, `K`) for a temperature
-  difference, `kPa` gauge. A dimension with no canonical spelling -- head, Kv -- goes out in its SI
+- **The unit strings are the language's canonical spellings**: `°C` not `C`, `K` for a temperature difference
+  (since `3.0`; `dK` before it), `kPa` gauge. A dimension with no canonical spelling -- head, Kv -- goes out in its SI
   unit (`m`, `m3/h`), which is what a bare number meant for it. A dimensionless value has `unit: null`.
   Confirmed 2026-09-15: the wire carries `°C`, `kPa`, `kW` and `kg/s` **always**, and the frontend
   shows the wire's unit as it is -- it formats the number and never converts it. SI stays inside
@@ -460,19 +460,27 @@ Rejected: `2.4` with the three fields still sent empty and a deprecation note. N
 (`tsc` compiled the frontend with them deleted), so keeping them would be three fields described in
 the contract and meaningless on the wire, and the unit change would still need the major.
 
-### `3.0` → `3.1`: the metadata describes language 2's blocks, and an untitled project has no title
+### `3.0` → `3.1`: the metadata describes the blocks, and an untitled project has no title
 
-`P6.11` package 8, the editor's completion for language 2 (2026-09-27). A minor, because each change is additive or
+`P6.11` package 8, the editor's completion (2026-09-27). A minor, because each change is additive or
 removes only what could not occur:
 
 - **The metadata gains `statementWords`, `eventWords` and `blocks`** (`A-9`, `L-86`): each block's settings as
   `42` describes them, from the Core table the reader checks settings against. A consumer that does not know them
   ignores them.
-- **The metadata's `dimensions[].units` leaves out `in` and `t`**, and `language.json`'s lexicon does too. Language
-  2's lexer never reads either after a number, so no model, no value and no script could carry them; a consumer
+- **The metadata's `dimensions[].units` leaves out `in` and `t`**, and `language.json`'s lexicon does too. The lexer
+  never reads either after a number, so no model, no value and no script could carry them; a consumer
   that knew them loses nothing it could meet.
 - **`project` is absent for an untitled `project:` block** (`L-85`), as this document always said: the reader had
   sent the word `project` as its title. A correction to what `3.0` already specified, not a change of shape.
+
+### `3.1` → `4.0`: two diagnostic areas are renamed
+
+The final sweep of `P6.11` (2026-09-27, `D-180`). With one language, the names that told two apart went: the
+metadata's `diagnostics[].area` is `Blocks` where it was `Language2` (the `FS18xx` range) and `Style` where it was
+`StyleDirective` (`FS12xx`, a `style:` block's settings, no longer a directive). Nothing else changes shape. A major,
+by this document's rule: a value is removed, and a consumer that matched the old string would stop matching without
+an error. The frontend reads no `area`, so its only change is `contractMajor`.
 
 ### `pressureDatum` moved out of the circuit, and that is a correction
 

@@ -64,7 +64,7 @@ public sealed class SizingPointTests
         Assert.Equal(27_173.913, Power(model, "HP1"), 3);
         Assert.Equal(50_000, Power(model, "BL1"), 6);
 
-        // The point itself is carried, evaluated, as `design` is.
+        // The point itself is carried on the component, evaluated.
         var point = Assert.Single(Component(model, "HP1").SizingPoint);
         Assert.Equal("tout", point.Key);
         Assert.Equal(-5, point.Value.Number);
@@ -128,9 +128,9 @@ public sealed class SizingPointTests
                 .Diagnostics.Select(static d => d.Code));
     }
 
-    // ---- language 2, where the driver varies by case (`D-175`) -------------------------------------
+    // ---- cases, where the driver varies by case (`D-175`) ------------------------------------------
 
-    /// <summary>The same bivalent pair in language 2, with a mild case beside the design day.</summary>
+    /// <summary>The same bivalent pair with a mild case beside the design day.</summary>
     private const string Cases = """
         fluidscript 2
         project "p":
@@ -181,7 +181,7 @@ public sealed class SizingPointTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void Language2WritesThePointAsASettingPerDriver()
+    public void ThePointIsASettingPerDriver()
     {
         var model = Model2(Cases);
 
@@ -204,7 +204,7 @@ public sealed class SizingPointTests
         Assert.Equal(16_304.348, Power(model, "HP1", 1), 3);
     }
 
-    /// <summary>A heat demand stated per case and read directly, the way language 2 writes most drivers: nothing about the
+    /// <summary>A heat demand stated per case and read directly, the way a script writes most drivers: nothing about the
     /// point needs a curve or an outdoor temperature (<c>D-175</c>).</summary>
     private const string Demand = """
         fluidscript 2

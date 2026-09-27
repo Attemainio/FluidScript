@@ -8,26 +8,34 @@ straight from a question to the code. It assumes nothing beyond the tutorial.
 The example throughout is the cooling loop sample, `samples/m2-cooling-loop.fluid`, and every number
 quoted is from its solve report:
 
-```
-fluidscript 1
-circuit coolingLoop
-fluid water
-show temperature
+```fluidscript
+fluidscript 2
 
-HE1 heat_exchanger power=30 in.t=20 out.t=50
-3WV three_way_valve
-PU1 pump
+project:
+  show = temperature
 
-connections
-N1 - N2                    # primary supply into the mixing node
-N2 - PU1                   # the secondary pump drives the loop
-PU1 - HE1
-HE1 - 3WV
-3WV - N2                   # recirculation branch, closes the secondary loop
-3WV - N3 length=25 dn=25   # primary return, a pipe
+circuit "coolingLoop":
+  fluid = water
+  role = cooling
+  style:
+    colour = blue
+    width = 2
+    corner = fillet
+    line = dashed
 
-N1 inlet t=6 p=300         # fluid enters here
-N3 outlet p=280            # and leaves here
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+
+  N1 - N2  # primary supply into the mixing node
+  N2 - PU1  # the secondary pump drives the loop
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2  # recirculation branch — closes the secondary loop
+  3WV - N3   25 m  DN25  # primary return
+
+  N1  inlet  t = 6  p = 300  # primary-side boundary: fluid enters here (D-64)
+  N3  outlet  p = 280  # and leaves here
 ```
 
 ## The one-minute version
@@ -35,7 +43,7 @@ N3 outlet p=280            # and leaves here
 ```
  script text
      │  1  lexer            characters → tokens
-     │  2  parser           tokens → syntax tree, one statement per line
+     │  2  parser           tokens → syntax tree, one statement per line, in blocks
      │  3  binder           syntax tree → semantic model (names, kinds, typed values)
      │  4  lowering         semantic model → circuit graph (components, nodes, branches)
      │  5  sizing           the graph, with every missing size chosen and re-lowered
@@ -69,15 +77,16 @@ Two rules hold at every stage, and knowing them explains a lot of the code's sha
 
 **In:** the raw text. **Out:** which language major to read it as. **Who:** `Compatibility/ScriptCompatibility`.
 
-Before anything parses, the first meaningful line is checked for `fluidscript 1`. This runs on the
-text rather than on a syntax tree because the parser's own rules depend on the answer. A file that
-names a major this build cannot read comes back as diagnostics alone.
+Before anything parses, the first meaningful line is checked for the version line, `fluidscript 2`;
+a file without one is read as the current major. This runs on the text rather than on a syntax tree
+because which parser reads the file depends on the answer. A file that names a major this build cannot
+read comes back as diagnostics alone.
 
 ### 1. Lexing: characters into tokens
 
 **In:** text. **Out:** a token stream that still holds every character. **Who:** `Syntax/Lexer`.
 
-`HE1 heat_exchanger power=30 in.t=20 out.t=50` becomes identifier, identifier, identifier, `=`,
+`HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50` becomes identifier, identifier, identifier, `=`,
 number, and so on.
 Spaces, comments and line breaks are kept as *trivia* attached to the tokens, not discarded. That is
 deliberate: the printer in the next stage has to reproduce the file byte for byte. Codes in the
@@ -88,9 +97,10 @@ deliberate: the printer in the next stage has to reproduce the file byte for byt
 **In:** tokens. **Out:** a `ParseResult` holding one statement per line. **Who:** `Syntax/FluidScriptParser`
 and `Syntax/LineParser`; the tree's node types are in `Syntax/Ast`.
 
-The language is line-oriented, so the parser reads one line into one statement: a component
-declaration, a connection, a `let`, a `show`, a section header. A line that cannot be read becomes a
-`MalformedStatementSyntax` that still holds its tokens, so the rest of the file parses and the
+The language is line-oriented, so the parser reads one line into one statement — a component
+declaration, a connection, a `let`, a setting such as `fluid = water` — and gathers the lines indented
+under a block head (`project`, `circuit`, `run`, a `curve`, a declaration ending in `:`) into that
+block. A line that cannot be read becomes a `MalformedStatementSyntax` that still holds its tokens, so the rest of the file parses and the
 printer can still reproduce the broken line. `FS11xx` codes are the parser's.
 
 Two more classes live here and matter more than their size suggests:
@@ -102,25 +112,30 @@ Two more classes live here and matter more than their size suggests:
 
 ### 3. Binding: names and values get a meaning
 
-**In:** the syntax tree. **Out:** a `SemanticModel`. **Who:** `Binding/Binder`, using `Language/ComponentRegistry`
-and `Units/`.
+**In:** the syntax tree. **Out:** a `SemanticModel`. **Who:** `Binding/Binder`, reading the tree's blocks
+through `Binding/ScriptReader`, using `Language/ComponentRegistry` and `Units/`.
 
 The binder answers three questions for every line:
 
 - **What is this?** `pump` is looked up in the `ComponentRegistry`, the table of every component
   kind: which parameters it accepts, each one's dimension, its default, and its *omission policy*,
-  which says what happens when the script leaves it out (usually: size it). `3WV.b` is checked
-  against the kind's ports.
-- **What does this number mean?** `power=30` is a power in kilowatts, `t=6` a temperature. Values become
+  which says what happens when the script leaves it out (usually: size it). A written port such as
+  `3WV.b` is checked against the kind's ports.
+- **Which port is this?** A connection that writes no port takes one from the direction of flow. The
+  cooling loop's `3WV` has one connection flowing in and two flowing out, so it is a diverting valve
+  with `ab` from `HE1`; which switched leg is the control path `a` and which the bypass `b` is read
+  from the plant, and `FS1815` says what was chosen: *'3WV' is wired as a diverting valve: ab from
+  HE1, a to N3, b to N2.*
+- **What does this number mean?** `power = 30` is a power in kilowatts, `t = 6` a temperature. Values become
   `Quantity` objects with a `Dimension`, so the type system can refuse `20 °C + 30 °C` while allowing
   `20 °C + 30 K`. Everything is converted to SI here and stays SI until the wire.
 - **What is stated and what is absent?** A parameter the script wrote is a *constraint* the circuit
   must satisfy. One it did not write is *absent*, never zero and never null-as-a-value, and a later
   stage decides it. This distinction is the single most important idea in the model.
 
-`let` bindings and expressions such as `kv=0.7*CV2.kv` are evaluated by `ExpressionEvaluator` where
+`let` bindings and expressions such as `kv = 0.7 * CV2.kv` are evaluated by `ExpressionEvaluator` where
 they can be; an expression that needs a solved value is recorded as *deferred* and evaluated after a
-solve (stage 10). `FS12xx` to `FS15xx` are the binder's codes.
+solve (stage 10). `FS12xx` to `FS15xx` are the binder's codes, and `FS18xx` the block reader's.
 
 ### 4. Lowering: the model becomes a graph
 
@@ -137,7 +152,7 @@ Then the connections are walked. Two rules produce a graph that is larger than t
   between them, because the temperature and pressure between the pump and the exchanger have to
   live somewhere. The cooling loop names three nodes, `N1`, `N2` and `N3`, and the graph has six:
   `PU1__HE1`, `HE1__3WV` and `3WV__N3__in` are inferred.
-- **A connection with pipe parameters is a pipe.** `3WV - N3 length=25 dn=25` becomes a `PipeComponent`
+- **A connection with pipe parameters is a pipe.** `3WV - N3   25 m  DN25` becomes a `PipeComponent`
   named `3WV__N3` with a node in front of it.
 - **A run of components between two junctions is a branch.** Branches are what carry a flow. The
   cooling loop has four: the primary supply, the coil run from the mixing node through the pump and
@@ -161,7 +176,7 @@ sizes purely so that flows can be estimated on it. Flow estimates come from the 
 flows, not from the provisional sizes, so nothing depends on the placeholder. The rules then run.
 In the cooling loop:
 
-- The return pipe's `dn=25` becomes the catalogue's 27.3 mm bore. A DN is a designation, not a
+- The return pipe's `DN25` becomes the catalogue's 27.3 mm bore. A DN is a designation, not a
   diameter, and the catalogue row says where the bore comes from.
 - `HE1.flow` is set to 0.239 kg/s, "the flow HE1's 20 kPa is measured at": the exchanger's default
   design drop needs a flow to be measured at, and 30 kW across the stated 20 to 50 °C is that flow.
@@ -242,7 +257,7 @@ scaled residual of 6e-10; a re-solve after an edit starts from the previous solu
 and usually takes one or two.
 
 The outer loop is why "solve" is not one Newton run. Sizing needs flows, flows need sizes, and a
-deferred expression like `in[2].t=HE1.out[2].t` needs a solved value. So the loop goes: size, solve,
+deferred expression like `secondary.in.t = HE1.secondary.out.t` needs a solved value. So the loop goes: size, solve,
 evaluate the deferred expressions (`DeferredEvaluation`), size again from the solved flows, and stop
 when no sized or deferred value moves by more than half a percent. One loop rather than three nested
 ones, so that no inner loop converges against a stale outer one. After the last pass it reads the
@@ -315,7 +330,7 @@ places anything.
 
 ## Following one number through
 
-`HE1 heat_exchanger power=30 in.t=20 out.t=50`:
+`HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50`:
 
 | Stage | What happens to it |
 |---|---|

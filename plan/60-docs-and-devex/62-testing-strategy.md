@@ -333,7 +333,7 @@ the normative interactive gate in `07`, and it is the one budget that cannot be 
 end alone: a server-side timer misses the debounce, which measurement says is the dominant term, and a
 client-side timer around `fetch` misses the decoration commit. The benchmark drives a real keypress,
 waits for the diagnostic decoration for that edit to be present in the DOM, and records the interval —
-against the M1 syntax tour and the 200-declaration reference script, both recorded as baselines.
+against the syntax tour and the 200-declaration reference script, both recorded as baselines.
 
 Three component figures are recorded alongside it, because a regression in the sum is unactionable
 without them: the debounce actually in force, the server's compile time, and the payload's

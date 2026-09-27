@@ -19,9 +19,8 @@ answers — and it always does — this document is what breaks the tie. Without
 (`R-01`) is a preference rather than a criterion, and the language accretes convenience features until
 it is Python with different punctuation.
 
-These principles were written for language 1. Language 2 (`19`, `D-164`) re-decides several of the choices
-they led to — the file's shape, how ports and cases are written, the controller — and keeps the principles
-themselves.
+[`19`](19-fluidscript-2.md) records how they decided the language's statements — the file's shape, how
+ports and cases are written, the controller (`D-165`–`D-171`).
 
 ## Responsibilities
 
@@ -83,32 +82,30 @@ keywords are words rather than symbols, and structure is explicit enough that a 
 have to model whitespace. A language that is easy for a person to skim is usually easy for an agent to
 emit; where they conflict, the person wins, and `/docs` closes the gap.
 
-## Statements added after the first draft
+## How the principles chose the statements
 
-Five statements joined the language with `D-33`, `D-37` and `D-40`. They are listed here because the
-principles above were the argument for each of their shapes, and reading them together is the clearest
-demonstration of what those principles actually decide:
+The statements below are listed here because the principles above were the argument for each of their
+shapes, and reading them together is the clearest demonstration of what those principles actually decide:
 
 | Statement | Shape | Which principle chose it |
 |---|---|---|
-| `circuit AHU 101` | Optional trailing number; the name doubles as the role | **P1** — a single-circuit script writes no number and is unchanged. **P6** — the role is not a second way to say what the name says |
-| `inlet N3` / `outlet N5` | Keyword and endpoint | **P3** — attachment is structure the language refuses to guess, because a wrong guess still solves |
-| `project dynamic plant_01` | File-wide default | **P1** — stating `dynamic` once per circuit in a six-circuit file is five repetitions of one decision |
-| `spacing 20` | Bare number, world units | **P5** — presentation lives in the text with everything else, rather than in a side file |
-| `control actuate=… measure=… by=…` | Named arguments, each a qualified reference (`D-43`) | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
+| `circuit "AHU":` with `number = 101`, `role = ahu` | A block with a quoted title; the number and the role are settings | **P1** — a single-circuit script writes no number and no role. **P6** — the title names the circuit and is never a reference, and the role is a setting of its own rather than a second reading of the name (`D-33`, `D-35`, `D-165`) |
+| `N3 - PU_AHU - HE_AHU` in another circuit | An ordinary link naming the parent's node | **P3** — where a circuit joins its parent is structure the language refuses to guess, because a wrong guess still solves (`D-166`) |
+| `TV1 - SP - NS` | A chain read in the direction of flow; ports taken from the inflows and outflows | **P3** — a count of inflows and outflows settles a three-way valve's function with no guess, and what it cannot settle is `FS1804`, never a guess (`D-166`) |
+| `spacing = 20` in the project block | A project setting, in world units | **P5** — presentation lives in the text with everything else, rather than in a side file (`D-37`, `D-171`) |
+| `TC1 controller:` with `moves`, `reads`, `setpoint` | One declaration, every field a named setting, each a qualified reference or a component (`D-43`, `D-61`) | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
 
-**`inlet`/`outlet` is where P3 did the most work.** The obvious spelling was `in N3` / `out N5`, and
-it is lexically impossible: it parses as a component named `in` of kind `N3`, binds, and describes a
-different plant. The rejected alternative — inferring the attachment from proximity or declaration
-order — fails P3 for the same reason one level up: the attachment point sets the flow split, so a
-wrong inference yields a model that is well-posed, solvable, and wrong. Structure the language cannot
+**Joining circuits is where P3 did the most work.** A circuit joins its parent where its links name the
+parent's nodes; there is no attachment statement (`D-166`). The rejected alternative — inferring the
+joining point from proximity or declaration order — fails P3: the joining point sets the flow split, so
+a wrong inference yields a model that is well-posed, solvable, and wrong. Structure the language cannot
 determine unambiguously is structure the user writes.
 
-**`control`'s named arguments are the one place P1 lost.** `control TV1 N2.t PID1` is shorter than
-`control actuate=TV1.position measure=N2.t by=PID1`, and P1 says brevity wins ties. This was not a tie: the
-positional form has no memorable order, and transposing two arguments produces a controller that
-drives the wrong way while binding cleanly. P1 asks for an argument stronger than consistency, and
-"the short form silently reverses the control loop" is one.
+**The controller's named settings are the one place P1 lost.** A positional form — actuator, measurement,
+setpoint in a fixed order — is shorter, and P1 says brevity wins ties. This was not a tie: the positional
+form has no memorable order, and transposing two arguments produces a controller that drives the wrong
+way while binding cleanly (`D-40`, `D-168`). P1 asks for an argument stronger than consistency, and "the
+short form silently reverses the control loop" is one.
 
 ## The inference rules
 
@@ -117,21 +114,21 @@ These are `R-06` made precise. Each states its trigger, its result, and — crit
 
 | # | Rule | Fires when | Result | Does not fire when |
 |---|---|---|---|---|
-| I1 | **Undeclared node** | An identifier appears only in `connections`, never in a declaration | A `node` component with that name is created | The identifier matches a declared component of any other kind |
+| I1 | **Undeclared node** | An identifier appears only in connection lines, never in a declaration | A `node` component with that name is created | The identifier matches a declared component of any other kind |
 | I2 | **Implicit intermediate node** | Two non-node components are connected directly (`N2 - HE1` is fine; `HE1 - 3WV` is not) | A node is inserted between them, named `<A>__<B>` | Either side is already a node |
 | I3 | **Open-port termination** | A component's declared port has no connection | A boundary node is attached, carrying the circuit's default boundary condition | The port is optional for that component kind (e.g. a three-way valve used as two-way) |
 | I4 | **Flow direction** | A connection `A - B` is written | Nominal flow is A → B; it seeds the solver's sign convention and the arrow drawn on the canvas | Never — but a solved negative flow is legal and is drawn reversed, with an info diagnostic |
 | I5 | **Single-circuit membership** | A component is declared in a file with exactly one `circuit` header | It belongs to that circuit | The file declares more than one circuit (M6) |
 | I6 | **Chained connections** | `A - B - C` | Two connections, `A - B` and `B - C` | Never |
-| I7 | **Implicit pipe** (`D-110`) | A connection line ends in pipe properties: `N5 - N1 length=25` | Each connection on the line becomes a `pipe` named `<A>__<B>` carrying those properties, with I2's nodes beside it named `<A>__<B>__in` / `__out`; `length` unwritten is zero | The line carries no properties: it stays a lossless link |
-| I8 | **Implicit sensor** (`D-151`) | A `control` line measures a node's `t`, `p` or `flow` directly: `measure=NS.t` | A sensor of that kind named `<Node>__TE` / `__PE` / `__FE` is placed `at` the node, and the controller reads through it | A sensor of that kind already stands on the node, or the node is a junction (`FS1548`, `D-150`) |
+| I7 | **Implicit pipe** (`D-110`, `D-166`) | A one-link connection line ends in pipe properties: `N5 - N1  25 m  DN25` | The link becomes a `pipe` named `<A>__<B>` carrying those properties, with I2's nodes beside it named `<A>__<B>__in` / `__out`; `length` unwritten is zero | The line carries no properties: it stays a lossless link. On a longer chain the properties are `FS1803` |
+| I8 | **Implicit sensor** (`D-151`) | A controller reads a node's `t`, `p` or `flow` directly: `reads = NS.t` | A sensor of that kind named `<Node>__TE` / `__PE` / `__FE` is placed `at` the node, and the controller reads through it | A sensor of that kind already stands on the node, or the node is a junction (`FS1548`, `D-150`) |
 
 **I2's naming matters.** `HE1__3WV` is derived, stable, and visible in hover and diagnostics. It is
 also a legal identifier the user can reference, which lets them promote an inferred node to a declared
 one by writing it down — the only migration path that does not require them to guess a name.
 
-**I3 has a sharp edge worth naming now.** A three-way valve has three ports. In the brief's example
-`3WV` connects to `N2` and `N3` — two ports — so I3 fires on the third. What that boundary node *is*
+**I3 has a sharp edge worth naming now.** A three-way valve has three ports; wired on two of them, it
+leaves I3 to fire on the third. What that boundary node *is*
 (a dead leg? an open supply?) is a physics question, not a language one, and it is deferred to
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md). The language's obligation is to
 create it and say so.
@@ -183,17 +180,19 @@ The brief's script, annotated with which stage produces what:
 
 | Source | Lexer | Parser | Binder | Lowering |
 |---|---|---|---|---|
-| `circuit coolingLoop` | `kw(circuit)`, `ident(coolingLoop)` | `CircuitHeader` | circuit symbol `coolingLoop` | `Circuit` |
-| `fluid dynamic water` | `kw(fluid)`, `kw(dynamic)`, `ident(water)` | `FluidDirective(dynamic: true)` | substance `Water`, mode `Transient` | circuit's `Substance` |
-| `HE1 heat_exchanger power=30 …` | `ident(HE1)`, `ident(heat_exchanger)`, … | `ComponentDeclaration` | kind `HeatExchanger`, `Power = 30 kW → 30000 W` | `HeatExchangerComponent` with 2 ports |
-| `3WV three_way_valve` | `ident(3WV)`, `ident(three_way_valve)` | `ComponentDeclaration`, 0 params | kind `ThreeWayValve`, all params **absent** | `ThreeWayValveComponent`, 3 ports, all resolved by registry policy |
-| `N1 - N2` | `ident(N1)`, `dash`, `ident(N2)` | `Connection` | two unresolved symbols | **I1** creates both as `Node` |
-| `HE1 - 3WV` | … | `Connection` | both resolve to declared components | **I2** inserts node `HE1__3WV` |
-| `3WV - N3` | … | `Connection` | resolves | **I3** fires on `3WV`'s third port |
+| `circuit "coolingLoop":` | `ident(circuit)`, `string("coolingLoop")`, `colon` | `CircuitHeadSyntax`, the head of a `BlockSyntax` | circuit symbol `coolingLoop` | `Circuit` |
+| `fluid = water` | `ident(fluid)`, `equals`, `ident(water)` | `SettingLineSyntax` in the circuit's block | substance `Water` | circuit's `Substance` |
+| `HE1 heat_exchanger power = 30 …` | `ident(HE1)`, `ident(heat_exchanger)`, … | `ComponentDeclarationSyntax` | kind `HeatExchanger`, `Power = 30 kW → 30000 W` | `HeatExchangerComponent` with 2 ports |
+| `3WV three_way_valve` | `ident(3WV)`, `ident(three_way_valve)` | `ComponentDeclarationSyntax`, 0 params | kind `ThreeWayValve`, all params **absent** | `ThreeWayValveComponent`, 3 ports, all resolved by registry policy |
+| `PU1 pump` | `ident(PU1)`, `ident(pump)` | `ComponentDeclarationSyntax`, 0 params | kind `Pump`, in no connection (`FS1507`) | **I3** terminates both its ports |
+| `N1 - N2` | `ident(N1)`, `minus`, `ident(N2)` | `ConnectionSyntax` | two unresolved symbols | **I1** creates both as `Node` |
+| `HE1 - 3WV.ab` | … | `ConnectionSyntax` | both resolve to declared components | **I2** inserts node `HE1__3WV` |
+| `3WV.a - N3` | … | `ConnectionSyntax` | `N3` unresolved | **I1** creates `N3` |
 
 Counting the result: the user wrote 3 components and 5 connections. The graph contains 3 declared
 components, 3 inferred nodes from I1 (`N1`, `N2`, `N3`), 1 inferred node from I2, and 2 boundary
-nodes from I3 — nine components. That ratio is the point of the language, and it is also the
+nodes from I3 on `PU1`'s ports — nine components, as [`01`](../00-foundation/01-vision-and-scope.md)'s
+diagnostic table counts them. That ratio is the point of the language, and it is also the
 reason hover (`R-23`) must show inferred names: the user must be able to see what was created for them.
 
 ## Invariants
@@ -204,10 +203,10 @@ reason hover (`R-23`) must show inferred names: the user must be able to see wha
 4. The language never infers a *value*, only a structure (P3).
 5. Every canvas-originated change reaches the model as a text edit, never as a parallel model (P5).
 6. There is exactly one syntactic form for each thing the language can express (P6).
-7. Every statement is classifiable from its first token plus at most one token of lookahead. A
+7. Every line is classifiable from its first token and, when that is a name, the qualified name it
+   starts and the token after it — never from the lines around it (`19` §Lines, blocks and names). A
    proposed statement that needs more is rejected, not accommodated — this is what makes P4's
-   line-granular recovery possible, and it is why `inlet` is a keyword rather than `in` being
-   contextually reinterpreted.
+   line-granular recovery possible.
 
 ## Acceptance criteria
 

@@ -4,7 +4,7 @@ using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Registry;
 
-/// <summary>One setting a language 2 block takes: <c>fluid</c> in a circuit, <c>duration</c> in a run (<c>19</c>).</summary>
+/// <summary>One setting a block takes: <c>fluid</c> in a circuit, <c>duration</c> in a run (<c>19</c>).</summary>
 /// <param name="Name">The setting as a script writes it before its <c>=</c>.</param>
 /// <param name="Meaning">What it says, in <c>19</c>'s words; an editor shows it beside the name.</param>
 /// <param name="Kind">What its value is.</param>

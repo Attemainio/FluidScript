@@ -51,13 +51,13 @@ mitigation is that the client's grammar only needs to be *lexically* correct —
 does not bind or validate — so it cannot disagree with the server about anything that matters.
 Divergence shows as a mis-coloured token, not a wrong result.
 
-**As built (P5.5, 2026-09-18; language 2 since P6.11 package 8, 2026-09-27): a CodeMirror
+**As built (P5.5, 2026-09-18; rebuilt on the blocks in P6.11 package 8, 2026-09-27): a CodeMirror
 `StreamLanguage`, not a Lezer grammar.** The tokenizer is `features/editor/language/tokenizer.ts`, a
 line-at-a-time port of Core's lexer (maximal munch on the unit table, `3WV` as a name, `30 kW` as one
 quantity, `..`, a date or clock time as one token, no reserved words, no unit before an `=` even past
 spaces) with the **open blocks** carried as the stream state -- a stack of heads and their indentation,
 closed by a line no deeper than its head (`19` §Lines, blocks and names) -- and roles assigned the way
-`LineParser.ClassifyLanguage2` reads a line: a statement word at the start opens its statement, otherwise
+`LineParser.Classify` reads a line: a statement word at the start opens its statement, otherwise
 the qualified name the line starts with is followed by `=` for a setting, `-` for a connection, anything
 else for a declaration. A Lezer grammar would need `12`'s word classification, which is a
 lookup in the unit table and a longest-match over it, and Lezer's tokenizer is a generated
@@ -97,7 +97,7 @@ while keeping the unit legible, in a language where columns of numbers are the n
 
 Driven by `/api/v1/metadata` ([`42-rest-contract`](../40-api/42-rest-contract.md)), fetched once and
 cached, plus the current compile's symbol table for anything the user has written. Completion is
-contextual on the cursor's syntactic position, read as the parser reads a language 2 line (`19`): the
+contextual on the cursor's syntactic position, read as the parser reads a line (`19`): the
 block the line sits in, then what its first name is followed by.
 
 | Position | Offers |
@@ -405,7 +405,7 @@ item and it is right. The cost is a dimension lookup the editor already has from
 - [x] The editor is fully usable with the network disabled. (P5.5: completion, format and go-to-definition return nothing rather than throwing when the host or the model is missing.)
 - [ ] A dirty draft survives reload through `58`; unavailable recovery storage is visible and offers Download.
 - [x] The client's tokenizer and the server agree on token classification over the whole sample corpus —
-      a test that catches the two grammars diverging. (P5.5: `TokenGoldenTests` and `tokenizer.test.ts` over the same goldens. Language 1's tokenizer disagreed with all nine language 2 samples from package 7 until package 8 (`U-11`); they agree again.)
+      a test that catches the two grammars diverging. (P5.5: `TokenGoldenTests` and `tokenizer.test.ts` over the same goldens. The tokenizer disagreed with all nine samples from package 7 until package 8 rebuilt it on the blocks (`U-11`); they agree again.)
 
 ### Completion acceptance criteria
 

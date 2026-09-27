@@ -108,7 +108,7 @@ public sealed class ModelContractBuilderTests
     {
         // Changing a dimension's canonical unit changes the wire, which is a major bump (26): this
         // table is the version's, and it fails until both move together.
-        Assert.Equal("3.1", ModelContractBuilder.ContractVersion);
+        Assert.Equal("4.0", ModelContractBuilder.ContractVersion);
 
         var pinned = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -304,7 +304,7 @@ public sealed class ModelContractBuilderTests
     // ---- visualization ---------------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task TheShowDirectiveResolvesToAScaleOverTheSolvedNodes()
+    public async Task TheShowSettingResolvesToAScaleOverTheSolvedNodes()
     {
         var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(ContractFixture.Sample("m2-cooling-loop.fluid")));
 
@@ -409,9 +409,9 @@ public sealed class ModelContractBuilderTests
     // ---- the colour scales (57, D-117) ----------------------------------------------------------------------
 
     [Fact]
-    public void AShowDirectiveIsReadAndItsMistakesAreSaid()
+    public void AShowSettingIsReadAndItsMistakesAreSaid()
     {
-        // 57's error cases were specified and never raised; `show nonsense` silently showed temperature.
+        // 57's error cases were specified and never raised; `show = nonsense` silently showed temperature.
         var source = ContractFixture.Sample("m2-cooling-loop.fluid")
             .Edited("show = temperature", "show = [nonsense, t, temperature, h]\n  show = p");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
@@ -426,7 +426,7 @@ public sealed class ModelContractBuilderTests
         Assert.Equal("warning", second.Severity);
         Assert.NotNull(second.Range);
 
-        // The first directive stands: temperature first, enthalpy after it, then the three every model offers.
+        // The first setting stands: temperature first, enthalpy after it, then the three every model offers.
         Assert.Equal("temperature", contract.Visualization.Active);
         Assert.Equal(["temperature", "enthalpy", "pressure", "flow"], contract.Visualization.Available);
     }

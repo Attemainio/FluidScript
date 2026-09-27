@@ -223,7 +223,7 @@ public sealed class ObserverTests
     [Fact]
     public void AReferenceToANodeIsLeftAlone()
     {
-        // `measure=N2.t` is still legal; D-61 changed where a user *should* point, not what binds.
+        // `reads = N2.t` is still legal; D-61 changed where a user *should* point, not what binds.
         var reference = new PropertyReference("NB2", "t");
 
         Assert.Equal(reference, ModelObservers.Resolve(reference, ModelObservers.Collect(Model(Script))));

@@ -3,7 +3,7 @@ using FluidScript.Core.Topology.Counting;
 
 namespace FluidScript.Core.Tests.Topology.Construction;
 
-/// <summary>A control line's setpoint is the design point of its loop (<c>D-141</c>, <c>S-75</c>).</summary>
+/// <summary>A controller's setpoint is the design point of its loop (<c>D-141</c>, <c>S-75</c>).</summary>
 public sealed class SetpointTests
 {
     private const string DemandStep = """

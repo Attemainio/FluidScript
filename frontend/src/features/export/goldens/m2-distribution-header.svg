@@ -3,9 +3,9 @@
 <desc id="export-desc">FluidScript diagram
 document: plant_01
 application: 0.0.0-test
-model contract: 3.1
+model contract: 4.0
 language major: 2
-source hash: sha256:5f896b244dc11c2047fb4169751cdc30315407e6409fdb83e4319188cdb1a09d
+source hash: sha256:7140dcda8b7a3b2e0ac6f7323f6d97d9df9bf5d01e32c0d69bd7aa4ccb957d4c
 catalogue: steel_en10255 2026.1
 property backend: sharp-prop 1.0.0.0
 atmosphere: 101.325 kPa absolute

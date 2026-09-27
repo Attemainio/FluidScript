@@ -20,7 +20,7 @@ internal sealed partial class LineParser
 
         switch (token.Kind)
         {
-            // Language 2 reserves its statement words by position rather than in the lexer (`19`), so a
+            // The language reserves its statement words by position rather than in the lexer (`19`), so a
             // name spelled as one is caught here, where a name belongs. Before an `=` it is a setting's name,
             // which no statement starts with: a controller's `curve = heating`. `at` and `over` open a
             // statement only inside a run, so they are not among them.

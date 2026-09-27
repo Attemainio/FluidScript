@@ -525,7 +525,7 @@
             }
           },
           "actuatedParameter": {
-            "description": "The parameter a control line may actuate, or null.",
+            "description": "The parameter a controller\u0027s moves may actuate, or null.",
             "type": [
               "string",
               "null"
@@ -576,7 +576,7 @@
       "type": "array",
       "items": {
         "title": "SettingBlock",
-        "description": "A language 2 block and the settings it takes (19).",
+        "description": "A block and the settings it takes (19).",
         "type": "object",
         "properties": {
           "name": {
@@ -588,7 +588,7 @@
             "type": "array",
             "items": {
               "title": "Setting",
-              "description": "One setting a language 2 block takes, as an editor offers it (19, 52, A-9).",
+              "description": "One setting a block takes, as an editor offers it (19, 52, A-9).",
               "type": "object",
               "properties": {
                 "name": {

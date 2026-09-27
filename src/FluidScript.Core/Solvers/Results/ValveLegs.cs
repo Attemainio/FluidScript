@@ -14,13 +14,15 @@ namespace FluidScript.Core.Solvers.Results;
 /// leg's flow and hand it to the equation governing the other.
 /// </para>
 /// <para>
-/// <strong>An <em>inferred</em> port name is not that, and believing it is a wrong Kv rather than a wrong
-/// label.</strong> Positional binding hands out <c>a</c> and <c>b</c> in connection order; measured on
-/// <c>m2-cooling-loop</c>, whose valve is wired without ports, the inferred <c>a</c> lands on the
-/// recirculation leg and <c>b</c> on the control leg -- exactly backwards. Sizing the recirculation leg
-/// measures authority against a branch with almost no resistance behind it, which asks for a large Kv and
-/// yields a valve with no authority over the path it controls. <see cref="FluidScript.Core.Topology.Graph.CircuitGraph.StatedPorts"/>
-/// is what separates the two, and it is consulted before any letter is read.
+/// <strong>A port name handed out by <em>position</em> is not that, and believing it is a wrong Kv rather than a
+/// wrong label.</strong> Positional binding, which a connection falls back to when the flow cannot settle its port
+/// (<c>FS1804</c>), hands out <c>a</c> and <c>b</c> in connection order; measured on <c>m2-cooling-loop</c> wired
+/// that way, the positional <c>a</c> lands on the recirculation leg and <c>b</c> on the control leg -- exactly
+/// backwards. Sizing the recirculation leg measures authority against a branch with almost no resistance behind
+/// it, which asks for a large Kv and yields a valve with no authority over the path it controls.
+/// <see cref="FluidScript.Core.Topology.Graph.CircuitGraph.StatedPorts"/> -- every port the script wrote or the
+/// reader settled from the plant (<c>D-175</c>, <c>D-177</c>) -- is what separates the two, and it is consulted
+/// before any letter is read.
 /// </para>
 /// <para>
 /// <strong>Where the ports were not named the shape is asked instead, and the bypass is the leg that closes
@@ -56,7 +58,7 @@ public static class ValveLegs
     /// after which the two remaining legs share a far end, are equidistant, and the valve declines.
     /// </para>
     /// <para>
-    /// <strong>An inferred <c>ab</c> is believed here, unlike the inferred <c>a</c>
+    /// <strong>A positional <c>ab</c> is believed here, unlike the positional <c>a</c>
     /// <see cref="Variable"/> refuses</strong> (<c>D-88</c>), and the asymmetry is in the port order rather
     /// than in the confidence. <c>ab</c> is the valve's <em>first</em> port, so positional binding gives it to
     /// the first connection written -- which for a mixing valve is the outlet and for a diverting one the
@@ -89,11 +91,11 @@ public static class ValveLegs
     public static string? PortName(Branch leg, IFlowComponent valve) =>
         ReferenceEquals(leg.From.Element, valve) ? leg.From.PortName : leg.To.PortName;
 
-    /// <summary>Whether the script wrote the port a leg attaches to, rather than the binder choosing it.</summary>
-    /// <param name="graph">The lowered circuit, which carries the set of ports the script named.</param>
+    /// <summary>Whether the port a leg attaches to is stated -- written, or settled from the plant -- rather than positional.</summary>
+    /// <param name="graph">The lowered circuit, which carries the set of stated ports.</param>
     /// <param name="leg">A branch with the valve at one end.</param>
     /// <param name="valve">The valve.</param>
-    /// <returns><see langword="true"/> only for a port the user typed (<c>D-88</c>).</returns>
+    /// <returns><see langword="true"/> only for a stated port (<c>D-88</c>, <c>D-177</c>).</returns>
     public static bool Stated(CircuitGraph graph, Branch leg, IFlowComponent valve)
     {
         ArgumentNullException.ThrowIfNull(graph);
@@ -116,7 +118,7 @@ public static class ValveLegs
     /// may name one switched port and leave the other to positional binding, and either word is enough.
     /// </para>
     /// <para>
-    /// <strong>An unwritten letter is not consulted at all</strong>, because it is connection order wearing a
+    /// <strong>An unstated letter is not consulted at all</strong>, because it is connection order wearing a
     /// port name. The walk answers there, and returns -1 for the shape it cannot read: two switched legs the
     /// same distance from where the common leg lands, which is what a boiler injection circuit is.
     /// </para>

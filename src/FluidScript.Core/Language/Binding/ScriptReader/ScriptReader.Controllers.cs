@@ -12,18 +12,18 @@ namespace FluidScript.Core.Language.Binding;
 
 /// <content>A controller written as one declaration (<c>D-168</c>, <c>19</c> §Controllers).</content>
 /// <remarks>
-/// Language 1 says a controller in two statements — the declaration with its gains, and a <c>control</c> line
-/// naming what it moves and reads — and the binder reads both. The declaration keeps what belongs to the
-/// controller whatever it is wired to (<c>type</c>, <c>kp</c>, <c>ti</c>, <c>td</c>, <c>action</c>); the control
-/// line takes what is read in the units of what it moves or measures (<c>setpoint</c>, <c>band</c>,
-/// <c>differential</c>, <c>output</c>, <c>curve</c>).
+/// The binder reads a controller as two records — the declaration with its gains, and the loop naming what it
+/// moves and reads (<see cref="BindingRun.ControlLine"/>). The declaration keeps what belongs to the controller
+/// whatever it is wired to (<c>type</c>, <c>kp</c>, <c>ti</c>, <c>td</c>, <c>action</c>); the loop takes what is
+/// read in the units of what it moves or measures (<c>setpoint</c>, <c>band</c>, <c>differential</c>,
+/// <c>output</c>, <c>curve</c>).
 /// </remarks>
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
-    /// <summary>What the controller's declaration keeps; the rest go on its control line.</summary>
+    /// <summary>What the controller's declaration keeps; the rest go on its loop.</summary>
     private static readonly ImmutableHashSet<string> DeclaredSettings = ["type", "kp", "ti", "td", "action"];
 
-    /// <summary>Files a declaration in its circuit, and for a controller the control line it implies under it.</summary>
+    /// <summary>Files a declaration in its circuit, and for a controller the loop it describes under it.</summary>
     private void Declare(BindingRun.CircuitBlock circuit, ComponentDeclarationSyntax declaration, ImmutableArray<ParameterSyntax> body)
     {
         if (_kinds.GetValueOrDefault(declaration.Name.Text)?.Keyword != "controller")
@@ -79,7 +79,7 @@ internal sealed partial class Language2Reader
             if (!allowed.Contains(Key(setting)))
             {
                 Report(
-                    Language2Diagnostics.ControllerSettingNotOfType,
+                    BlockDiagnostics.ControllerSettingNotOfType,
                     setting.Name.Span,
                     ("controller", name),
                     ("type", typeWritten),
@@ -92,14 +92,14 @@ internal sealed partial class Language2Reader
         if (kept.FirstOrDefault(static setting => Key(setting) == "band") is not null
             && kept.FirstOrDefault(static setting => Key(setting) == "kp") is { } kp)
         {
-            Report(Language2Diagnostics.BandAndGain, kp.Name.Span, ("controller", name));
+            Report(BlockDiagnostics.BandAndGain, kp.Name.Span, ("controller", name));
             kept.Remove(kp);
         }
 
         if (NameResolution.Normalize(typeWritten) != "pi")
         {
             Report(
-                Language2Diagnostics.ControllerTypeNotRun,
+                BlockDiagnostics.ControllerTypeNotRun,
                 typeSetting?.Value.Span ?? declaration.Kind.Span,
                 ("controller", name),
                 ("type", typeWritten));
@@ -108,15 +108,15 @@ internal sealed partial class Language2Reader
         return kept;
     }
 
-    /// <summary>The control line a controller's <c>moves</c> and <c>reads</c> imply, in the short form (<c>D-61</c>).</summary>
+    /// <summary>The loop a controller's <c>moves</c> and <c>reads</c> describe (<c>D-61</c>).</summary>
     /// <returns>
-    /// The line, or <see langword="null"/> when <c>moves</c> or <c>reads</c> is missing (<c>FS1521</c>) or unreadable, and
-    /// for a <c>curve</c> controller reading a driver or the clock, which a control line cannot name: that
-    /// controller binds as a declaration, and <c>FS1810</c> already says it is not run.
+    /// The loop, or <see langword="null"/> when <c>moves</c> or <c>reads</c> is missing (<c>FS1521</c>) or unreadable, and
+    /// for a <c>curve</c> controller reading a driver or the clock, which a loop cannot read: that controller binds
+    /// as a declaration, and <c>FS1810</c> already says it is not run.
     /// </returns>
     /// <remarks>
-    /// The line reports against the declaration, from where it begins to its last setting, or to what it reads; the
-    /// controller is named at the end of what it reads, where the short form would write it.
+    /// The loop reports against the declaration, from where it begins to its last setting, or to what it reads; the
+    /// controller is named by a zero-length span at the end of what it reads.
     /// </remarks>
     private BindingRun.ControlLine? ControlOf(ComponentDeclarationSyntax declaration, List<ParameterSyntax> settings)
     {

@@ -37,7 +37,7 @@ public sealed class SourceTextTests
     [Trait("Category", "Unit")]
     public void APositionResolvesToItsLineAndColumn()
     {
-        var source = new SourceText("fluidscript 1\ncircuit a\nlet x = 1\n");
+        var source = new SourceText("fluidscript 2\ncircuit a\nlet x = 1\n");
 
         Assert.Equal(new LinePosition(0, 0), source.GetLinePosition(0));
         Assert.Equal(new LinePosition(0, 12), source.GetLinePosition(12));
@@ -71,7 +71,7 @@ public sealed class SourceTextTests
     [Trait("Category", "Unit")]
     public void TextIsKeptExactly()
     {
-        const string Text = "  fluidscript 1  \r\n\r\n";
+        const string Text = "  fluidscript 2  \r\n\r\n";
         var source = new SourceText(Text);
 
         Assert.Equal(Text, source.Text);

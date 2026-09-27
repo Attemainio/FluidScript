@@ -22,7 +22,7 @@ public sealed partial class ComponentRegistry
             Sized("ki", Dimension.Dimensionless, -1e6, 1e6, precision: 6),
             Sized("kd", Dimension.Dimensionless, -1e6, 1e6, precision: 4),
 
-            // Language 2's controller (`D-168`, `19` §Controllers). Tuning left out is estimated when a run
+            // The controller declaration's settings (`D-168`, `19` §Controllers). Tuning left out is estimated when a run
             // starts, which is `34`'s and P6.3's; the direction is measured from the plant, so `action` is a
             // check and not a setting.
             Symbol("type", ["P", "PI", "PID", "onoff", "curve"], "PI", "D-168: a controller that states no type is PI"),

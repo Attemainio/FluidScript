@@ -21,10 +21,9 @@
 # left the system deficient by exactly one -- fixable only by moving the datum somewhere unnatural.
 #
 # `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in.t=50` on a 60 C header is a
-# demand its valve can actually meet. Both ends of each attachment are written out because
-# `supply`/`return` cannot express a mixing subcircuit: the rule takes the first unconnected inlet,
-# and on this shape that is the valve's outlet, which wires the consumer's return to the *supply*
-# header and leaves every header branch carrying zero.
+# demand its valve can actually meet. Both ends of each tap are written out: a consumer joins the
+# header through the nodes both circuits name, `N3` and `N5` for the AHU and `N4` and `N6` for the
+# radiators, so its supply and its return are each a connection the script states.
 #
 # `S-41`: the datum being on `N1` was not enough on its own. `D-86` fixed the three places that decide
 # whether mass crosses a boundary and missed `IsClosed`, so this circuit still read as *open* -- with

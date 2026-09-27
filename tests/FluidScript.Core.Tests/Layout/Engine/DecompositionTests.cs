@@ -101,8 +101,8 @@ public sealed class DecompositionTests
     [Fact]
     public void AnOpenFormIsTheHeaderBetweenItsInletAndOutlet()
     {
-        // The language 1 tour's `expressions` circuit and the `ahu` block it fed (C19), written in language 2 with the
-        // block's attachment as its connections (`D-175`): NB1 feeds NJ1, whose two paths -- HE2's chain and the ahu
+        // An `expressions` circuit and the `ahu` block it feeds (C19), the block joined by its connections
+        // (`D-175`): NB1 feeds NJ1, whose two paths -- HE2's chain and the ahu
         // block -- meet at NJ2 before NB2; TV2, fed from NJ1's third port, mixes into RB1 and hangs off NJ1.
         var scene = Solve(OpenForm);
         var plan = Enumerable.Range(1, 4).Select(fragment => Plan(scene, fragment)).First(static p => p.Count > 0 && p[0].StartsWith("open form", StringComparison.Ordinal));

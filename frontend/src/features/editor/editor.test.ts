@@ -79,7 +79,7 @@ describe('highlighting', () => {
 });
 
 describe('inline diagnostics', () => {
-  const doc = 'fluidscript 1\nHE1 heat_exchanger powr=30\n';
+  const doc = 'fluidscript 2\nHE1 heat_exchanger powr=30\n';
 
   it('squiggle errors and warnings, skip infos, and carry the code and the related places', () => {
     const state = EditorState.create({ doc });
@@ -117,7 +117,7 @@ describe('inline diagnostics', () => {
     view.dispatch({ selection: { anchor: 5 } });
 
     fix!.actions![0]!.apply(view, fix!.from, fix!.to);
-    expect(view.state.doc.toString()).toBe('fluidscript 1\nHE1 heat_exchanger power=30\n');
+    expect(view.state.doc.toString()).toBe('fluidscript 2\nHE1 heat_exchanger power=30\n');
     expect(view.state.selection.main.head).toBe(5);
 
     undo(view);
@@ -172,18 +172,18 @@ describe('format', () => {
     ];
     const view = new EditorView({
       state: EditorState.create({
-        doc: 'fluidscript 1\nHE1    pump\nPU1   pump\n',
+        doc: 'fluidscript 2\nHE1    pump\nPU1   pump\n',
         extensions: [history()],
       }),
     });
     view.dispatch({ selection: { anchor: 36 } }); // the end of the last line
 
     expect(await formatDocument(view, client)).toBe(true);
-    expect(view.state.doc.toString()).toBe('fluidscript 1\nHE1 pump\nPU1 pump\n');
+    expect(view.state.doc.toString()).toBe('fluidscript 2\nHE1 pump\nPU1 pump\n');
     expect(view.state.selection.main.head).toBe(31); // the cursor rode along with its text
 
     undo(view);
-    expect(view.state.doc.toString()).toBe('fluidscript 1\nHE1    pump\nPU1   pump\n');
+    expect(view.state.doc.toString()).toBe('fluidscript 2\nHE1    pump\nPU1   pump\n');
   });
 
   it('does nothing when the document changed while the host was answering', async () => {

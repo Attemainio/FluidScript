@@ -15,7 +15,7 @@ These look alike in a script and are not the same thing:
 | **Pressure datum** | The arbitrary zero every pressure is measured from. Carries no engineering meaning | Exactly **one** per hydraulically connected part |
 | **Pressure boundary** | A real constraint: something outside the model holds this node at this pressure, and lets mass in or out to do it | **Any number**, including none |
 
-Writing `N1 node p=300` gives you a boundary condition. The first one in a connected part *also*
+Writing `N1 node p = 300` gives you a boundary condition. The first one in a connected part *also*
 serves as its datum, so a circuit with a stated pressure needs nothing more.
 
 A closed loop usually has none, and that is the common case — the whole tutorial circuit has none. So
@@ -29,8 +29,8 @@ That is information, not a warning. Every pressure in the result is then relativ
 shows them that way. The node chosen is the one with the most connections, so it does not move when
 you edit an unrelated line.
 
-**Two stated pressures are normal.** The cooling loop states `N1 inlet t=6 p=300` and
-`N3 outlet p=280`, and it must: those two are what push water through its primary side. What is *not*
+**Two stated pressures are normal.** The cooling loop states `N1 inlet t = 6 p = 300`
+and `N3 outlet p = 280`, and it must: those two are what push water through its primary side. What is *not*
 normal is two pressures with nothing between them that could make them differ — two nodes wired
 straight together, where the second is not a boundary at all but a second, contradictory datum:
 
@@ -63,17 +63,17 @@ Here is the tutorial's cooling loop, counted in full:
 | Pressure at each of 6 nodes | 6 | Mass balance at `N1`, `N2`, `N3` and `3WV` | 4 |
 | Temperature at each of 6 nodes | 6 | Energy balance at each node | 6 |
 | Mass entering at `N1` and leaving at `N3` | 2 | The two stated pressures | 2 |
-| `PU1.head` | 1 | `HE1 out.t=50` | 1 |
-| `3WV.position` | 1 | `HE1 in.t=20` | 1 |
+| `PU1.head` | 1 | `HE1 out.t = 50` | 1 |
+| `3WV.position` | 1 | `HE1 in.t = 20` | 1 |
 | **Total** | **20** | **Total** | **20** |
 
-Notice the last two rows on each side. `HE1 in.t=20` is not a fact about the exchanger — it is a
+Notice the last two rows on each side. `HE1 in.t = 20` is not a fact about the exchanger — it is a
 *demand* on the circuit: make the water arriving here 20 °C. Something has to move to meet it, and on
 this circuit the only thing that can is how the three-way valve splits the flow. So stating it turns
 `3WV.position` from a number the sizing step would have chosen into a number the solver has to find.
 
 **The demand and the freedom arrive together, which is why the count stays balanced.** Delete
-`in.t=20` and both rows disappear.
+`in.t = 20` and both rows disappear.
 
 ## Promotion, and what can absorb what
 
@@ -111,8 +111,8 @@ sits.
 
 For pressure the tool picks a node itself, because a pressure measured from an arbitrary zero is
 still a correct answer. For temperature it cannot: 20 °C and 60 °C are different physics. So a closed
-circuit must state one temperature somewhere — an exchanger's `in` or `out`, or a plain `N1 node
-t=20` — and if it states none you get:
+circuit must state one temperature somewhere — an exchanger's `in` or `out`, or a plain
+`N1 node t = 20` — and if it states none you get:
 
 ```
 FS2211  This circuit is under-specified by 1. Add one of: a temperature on N1, …
@@ -197,7 +197,6 @@ FS2213  Nothing connects 'HE_RAD, TV_RAD, PU_RAD' to the rest of the plant, so t
 | `FS2214` | A loop with no pump | Check whether a pump is on the wrong leg. The loop will carry no flow |
 | `FS2215` | A stated temperature or pressure the fluid cannot be at | Correct the value, or change the fluid |
 | `FS2216` | A two-sided component was tagged into a circuit arbitrarily | Nothing, unless the grouping on the diagram matters to you |
-| `FS2217` | A subcircuit attached to itself | Point `inlet` and `outlet` at the circuit it feeds from |
 | `FS2218` | A pinned flow is held by a pump on another branch of its loop | Nothing, if that pump is meant to drive it. Free a pump on the flow's own branch if one was |
 
 `FS2214` is a warning rather than information on purpose. A loop nothing drives simply carries no

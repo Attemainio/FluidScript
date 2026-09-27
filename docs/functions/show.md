@@ -1,19 +1,24 @@
 # show
 
-Which property the diagram's colour scale follows.
+Which property the diagram's colour scale follows: a setting of the [`project`](project.md) block,
+with `scale` beside it for the scale's range.
 
 ```fluidscript
-fluidscript 1
-show temperature
-show temperature pressure 0..40
+fluidscript 2
+
+project "Plant room":
+  show  = [temperature, pressure]
+  scale = 0..40 C
 ```
 
-Name one or more properties, and optionally the scale's range as `min..max`. With no range the scale
-fits the solved values.
+Name one property, or several as a list. `scale` fixes the range of the first one as `min..max`, the
+unit after it applying to both ends and matching what the property is measured in (`0..40 C` on a
+temperature is [`FS1514`](diagnostics.md) on a pressure drop). With no `scale` the range fits the
+solved values.
 
 ## What it resolves to
 
-The first `show` line is used. Each property can be written long or short — the same spellings a
+Each property can be written long or short — the same spellings a
 [port's state](syntax.md#a-ports-state) and a [property](properties.md) use:
 
 | Long | Short | Also | Where it is read |
@@ -36,7 +41,7 @@ scales.
 With no `show` at all the diagram follows `temperature`. The scale's range is the solved minimum and
 maximum, rounded outward to legend ticks; the ends are first settled to the legend's own precision, so
 an inlet stated at 45 °C that solves a hair under 45 does not open an empty band down to 40, and a plant
-sitting on its pressure datum reads `all 0 kPa`. A stated `min..max` is used as written and fixes the
+sitting on its pressure datum reads `all 0 kPa`. A stated `scale` is used as written and fixes the
 first property's range. Before a solve the range is empty and everything draws in the neutral colour.
 
 The properties you list are the ones the legend's switcher offers, after which `temperature`,
@@ -50,9 +55,9 @@ None of these stops the diagram: a `show` that cannot be followed falls back to 
 
 | Code | When |
 |---|---|
-| `FS1210` | A name the scale does not know: `show speed`. The name is skipped; the message lists what is available. |
-| `FS1213` | The same property twice in one line. The second is ignored. |
-| `FS1214` | A second `show` line. Only the first is read. |
+| `FS1210` | A name the scale does not know: `show = speed`. The name is skipped; the message lists what is available. |
+| `FS1213` | The same property twice in one list. The second is ignored. |
+| `FS1214` | A second `show` setting. Only the first is read. |
 
 Which parts of a plant are coloured, how a pipe's gradient is drawn and what the legend does are in
 [the canvas](../advanced/the-canvas.md#the-colour-scale).

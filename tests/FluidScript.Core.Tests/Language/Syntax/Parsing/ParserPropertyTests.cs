@@ -9,7 +9,7 @@ namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
 /// The parser's structural invariants over the whole corpus: it keeps every token and it never throws. Line
-/// recovery is <c>FluidScript2ParserTests.AnUnreadableLineCostsOnlyItself</c>.
+/// recovery is <c>FluidScriptParserTests.AnUnreadableLineCostsOnlyItself</c>.
 /// </summary>
 /// <remarks>
 /// The losslessness assertion is the lexer's, re-run over the parsed tree (<c>D-55</c>). It is what
@@ -73,7 +73,7 @@ public sealed class ParserPropertyTests
         // rather than computed at each of forty sites (D-55). The test is what keeps that true.
         foreach (var sample in ScriptCorpus.Samples())
         {
-            var result = FluidScript2Parser.Parse(new SourceText(sample.Text));
+            var result = FluidScriptParser.Parse(new SourceText(sample.Text));
             foreach (var statement in result.Root.Statements)
             {
                 var span = statement.Span;
@@ -90,7 +90,7 @@ public sealed class ParserPropertyTests
     private static void AssertLossless(string name, string text)
     {
         var source = new SourceText(text);
-        var result = FluidScript2Parser.Parse(source);
+        var result = FluidScriptParser.Parse(source);
 
         var rebuilt = new StringBuilder(text.Length);
         var position = 0;

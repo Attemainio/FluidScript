@@ -9,7 +9,7 @@ namespace FluidScript.Core.Language.Binding;
 /// The block reaches the binder as it was written, its values in the form the evaluator reads, and the binder binds
 /// it to a <see cref="Symbols.RunSymbol"/>.
 /// </remarks>
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
     private BlockSyntax ReadRun(BlockSyntax run) =>
         run with

@@ -153,7 +153,7 @@ public sealed class RunSnapshotTests
         var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3109");
 
         Assert.Equal(DiagnosticSeverity.Error, error.Severity);
-        // The run path's message was language 1's ("a schedule") until one template per code (step 5).
+        // The message names the run's event, the only thing that can move a parameter in time besides a controller.
         Assert.StartsWith("'3WV.position' is driven by TC1; an event in a run cannot also move it", error.Message, StringComparison.Ordinal);
     }
 

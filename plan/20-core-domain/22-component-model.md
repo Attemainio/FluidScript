@@ -390,7 +390,7 @@ secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 `secondary.in.flow=0.9`) and read back the same way (`HX1.secondary.in.t`); every port takes `p`, the
 touching node's pressure (*Every port has a pressure*, below). The model keys the second side
 `in2`/`out2`; the wire's port id is `in[2]`/`out[2]` (`D-120`). `in2` was the spelling scripts before
-P5.13 wrote, which language 2 no longer reads (`L-79`). Lowering computes exactly one mode;
+P5.13 wrote, which the language no longer reads (`L-79`). Lowering computes exactly one mode;
 there is no script `mode=` parameter:
 
 | Mode | Trigger, in precedence order | Flow groups | Behaviour |
@@ -656,7 +656,7 @@ The equations do not change: `ṁ_a = ṁ_b + ṁ_c` with signed flows covers bo
 makes a negative solved flow a legal answer. What changes is that **the arrangement is read from the
 topology, not declared**: the port whose connections carry flow toward the valve at the design point
 is its inlet, and `25-layout-hints` reports which so the renderer draws the arrows. A valve whose
-solved flows contradict the nominal direction written in `connections` still produces `FS4009` — that
+solved flows contradict the nominal direction its connection lines are written in still produces `FS4009` — that
 is a real finding — but a mixing valve wired as a mixing valve does not.
 
 `position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
@@ -846,11 +846,11 @@ parameters and validation data rather than defaults disguised as physics.
 ## 7 · `t_sensor` / `p_sensor` / `flow_sensor` — placed observers
 
 An instrument is a component, and a controller reads one (`D-61`). This is the distinction the model
-lacked: `in=50` on a heat exchanger is a **specification** — what the design asks for — and `TE1` is a
-**measurement** — what the model produced. `measure=NB2.t` blurred the two, and a plant drawing shows
-where its instruments are.
+lacked: `in.t = 50` on a heat exchanger is a **specification** — what the design asks for — and `TE1` is a
+**measurement** — what the model produced. A controller reading `NB2.t` with no instrument blurs the two,
+and a plant drawing shows where its instruments are.
 
-```fluidscript lang=2
+```fluidscript
 circuit "heating":
   TE1  t_sensor  at N2
 ```
@@ -877,8 +877,8 @@ this kind, not a different one.
 **A sensor sits at a node with one or two connections, never at a junction** (`D-150`, `FS1548`).
 Where three pipes meet, the node's one temperature is the perfect mix of streams no instrument on any
 of the three pipes reads, and "the flow at this node" names two or three different numbers; which pipe
-is meant is the script's to say, with a node on it. A `control` line's `measure=` naming a node
-directly is held to the same rule, because it reads the same number. Such a line reads the node
+is meant is the script's to say, with a node on it. A controller whose `reads` names a node's property
+directly is held to the same rule, because it reads the same number. Such a controller reads the node
 through a sensor all the same: the binder puts one there (I8, `D-151`), so every measurement a
 controller makes is a sensor on the drawing.
 
@@ -888,8 +888,8 @@ invisible — which is why it went unstated until an implementation had to pick 
 chosen when a flow sensor could still sit on a tee, where it was the only well-defined reading; it
 stays the implementation's definition and no longer has a case where it matters.
 
-**Its measured property is registry data (`MeasuredProperty`)**, which is what lets `control TV1 with
-TE1 by PID1` resolve without a `.t`. A kind naming exactly one measured property makes the bare form
+**Its measured property is registry data (`MeasuredProperty`)**, which is what lets a controller's
+`reads = TE1` resolve without a `.t`. A kind naming exactly one measured property makes the bare form
 unambiguous by construction; a kind naming none makes it `FS1531`.
 
 ## Parameter registry
@@ -924,12 +924,12 @@ runtime (`D-61`):
 | `pump` | `speed` |
 | everything else | *none* |
 
-This is what makes `control TV1 with TE1 by PID1` unambiguous without writing `.position`. `D-43`
+This is what makes a controller's `moves = TV1` unambiguous without writing `.position`. `D-43`
 refused a bare actuator on the grounds that "a valve has more than one thing that could move", and it
 was right about parameters and wrong about actuators: of `position`, `kvs` and `authority`, only
 `position` moves at runtime — `kvs` is a sizing parameter and `authority` a design property. Where the
 registry names exactly one, the bare form is safe **by construction**; where it names none, the bare
-form is `FS1531` and the qualified form is required. `control TV1.position …` stays legal everywhere,
+form is `FS1531` and the qualified form is required. `moves = TV1.position` stays legal everywhere,
 and is the only form for a kind that ever gains a second actuator.
 
 ### Tag codes

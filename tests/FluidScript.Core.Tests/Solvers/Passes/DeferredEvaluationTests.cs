@@ -83,7 +83,7 @@ public sealed class DeferredEvaluationTests
     public async Task ADeferredLetCarriesASolvedValueIntoAParameter()
     {
         // `let tprim = HE1.secondary.out.t` is itself deferred; the parameter reading it is evaluated after it,
-        // in the same pass. `2 K` is a difference in language 2 (`D-172`).
+        // in the same pass. `2 K` is a difference (`D-172`).
         var source = Chained
             .Edited("circuit \"chained\":", "let tprim = HE1.secondary.out.t\n\ncircuit \"chained\":")
             .Edited("secondary.in.t = HE1.secondary.out.t", "secondary.in.t = tprim - 2 K");

@@ -1,10 +1,9 @@
 # does not seed: S-86 -- HX1's heating ring seeds backwards, against its pump (plan/30-solver/defects.md).
 #
-# FluidScript 2: every statement, in one file.
+# The syntax tour: every statement, in one file.
 #
-# The language 2 counterpart of language 1's tour, which went with language 1 (P6.11). Each statement and setting that
-# plan/10-language/19-fluidscript-2.md defines appears at least once, with a comment saying what
-# it does. Unlike the language 1 tour, it is also a plant: a district-heating substation feeding a
+# Each statement and setting that plan/10-language/12-grammar.md defines appears at least once, with
+# a comment saying what it does. It is also a plant: a district-heating substation feeding a
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
 # to that.
 #

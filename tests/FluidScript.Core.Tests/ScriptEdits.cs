@@ -3,8 +3,8 @@ namespace FluidScript.Core.Tests;
 /// <summary>Edits a script's text for a test, failing where the text to replace is not there.</summary>
 /// <remarks>
 /// A <c>Replace</c> that finds nothing changes nothing, and the test then fails far from its cause -- or passes on the
-/// unedited script. The language 1 samples' conversion to language 2 (<c>P6.11</c> package 7) broke several such edits
-/// silently; this says which text went missing.
+/// unedited script. Rewriting the samples (<c>P6.11</c> package 7) broke several such edits silently; this says which
+/// text went missing.
 /// </remarks>
 public static class ScriptEdits
 {

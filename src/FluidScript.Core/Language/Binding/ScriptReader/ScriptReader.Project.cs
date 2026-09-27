@@ -12,13 +12,13 @@ using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
 
     /// <summary>Reads the project block: its title, cases, catalogue and presentation (<c>19</c> §The project block, §Presentation).</summary>
     /// <remarks>
-    /// <c>cases</c> gives the binder its cases with the first as the one it operates at: language 2 has no
-    /// <c>design</c>, and the binder needs an operating case.
+    /// <c>cases</c> gives the binder its cases with the first as the one it operates at: nothing else names an
+    /// operating case, and the binder needs one.
     /// </remarks>
     private void ReadProject(BlockSyntax block)
     {
@@ -47,7 +47,7 @@ internal sealed partial class Language2Reader
                         }
                         else if (Is(setting, "show"))
                         {
-                            // Every `show` is handed on, so a second one is FS1214 as it is in language 1.
+                            // Every `show` is handed on, so the binder reports a second one as FS1214.
                             shows.Add((setting.Span.Start, Names(setting)));
                         }
                         else if (Is(setting, "scale"))
@@ -276,8 +276,8 @@ internal sealed partial class Language2Reader
 
     /// <summary>Reads a <c>style:</c> block into the style tokens the binder classifies (<c>D-171</c>).</summary>
     /// <remarks>
-    /// Each key becomes the token language 1's style line would hold for it, and the binder's merge does the rest:
-    /// a circuit's style line follows its header, so a circuit that states only <c>colour</c> keeps the project's
+    /// Each key becomes a style token the binder classifies, and the binder's merge does the rest: a circuit's
+    /// style is merged over the project's, so a circuit that states only <c>colour</c> keeps the project's
     /// width and pattern, which is the override <c>D-171</c> asks for.
     /// </remarks>
     private ImmutableArray<StyleTokenSyntax> Style(BlockSyntax block)
@@ -303,8 +303,7 @@ internal sealed partial class Language2Reader
         if (Is(setting, "colour") || Is(setting, "color"))
         {
             // The value is checked here, where the setting is known, so a hex that does not parse or a name no
-            // colour has is said against `colour` and its options (`L-77`) -- not as a style line's unplaceable
-            // word (`FS1201`) or a named style this language does not have (`FS1204`).
+            // colour has is said against `colour` and its options (`L-77`).
             return token switch
             {
                 { Kind: TokenKind.StringLiteral } when StyleTokens.Hex(token.StringValue ?? string.Empty) is not null =>

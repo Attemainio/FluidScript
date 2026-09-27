@@ -107,7 +107,7 @@ public sealed record ComponentKindInfo
     /// actuates. Always a key of <see cref="Parameters"/> when it is not null.
     /// </value>
     /// <remarks>
-    /// This is what makes <c>control TV1 with TE1 by PID1</c> unambiguous without writing
+    /// This is what makes a controller's <c>moves = TV1</c> unambiguous without writing
     /// <c>.position</c>. <c>D-43</c> refused a bare actuator because "a valve has more than one thing
     /// that could move", which was right about parameters and wrong about actuators: of
     /// <c>position</c>, <c>kv</c> and <c>authority</c>, only <c>position</c> moves during a solve.
@@ -144,7 +144,7 @@ public sealed record ComponentKindInfo
     /// matching. <strong>An index above the family's bound resolves to nothing.</strong> A family bounded by a
     /// <em>parameter</em> — a tank's <c>layers</c> — has no fixed maximum to check here at all, so
     /// <c>T1.layer[9].t</c> on a five-layer tank resolves and is caught where the layer count is known. The spellings
-    /// <c>D-120</c> replaced (<c>t_in2</c>, <c>t3</c>) are not read: language 2 removed them (<c>L-79</c>).
+    /// <c>D-120</c> replaced (<c>t_in2</c>, <c>t3</c>) are not read (<c>L-79</c>).
     /// </para>
     /// </remarks>
     public PropertyInfo? ResolveProperty(string written)

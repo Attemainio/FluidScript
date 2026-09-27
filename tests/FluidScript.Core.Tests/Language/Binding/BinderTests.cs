@@ -150,24 +150,6 @@ public sealed class BinderTests
         Assert.Equal(ThermalStageRole.Neutral, Model(Text).Circuits[0].Role.Stage);
     }
 
-    [Fact]
-    [Trait("Category", "Unit")]
-    public void AScheduleUnderADynamicFluidIsFine()
-    {
-        var result = Bind(
-            """
-            fluidscript 2
-
-            circuit "demo":
-              fluid = water
-
-            run "Transient":
-              at 60 s  HE1.power = 45
-            """);
-
-        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1107");
-    }
-
     // ---- steps 1-3: declarations, kinds, parameters -----------------------------------------------
 
     [Fact]
@@ -207,9 +189,8 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1502_AKindOneKeystrokeFromAnotherIsAnErrorWithTheFix()
     {
-        // `D-170`: language 2 binds a name only by its exact spelling. `pmp` is one keystroke from `pump`,
-        // which language 1 bound and mentioned as information (`FS1512`); here it binds nothing, and the
-        // close spelling is the suggestion a click accepts.
+        // `D-170`: a name binds only by its exact spelling. `pmp` is one keystroke from `pump`; it binds
+        // nothing, and the close spelling is the suggestion a click accepts.
         var diagnostic = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  PU1  pmp\n", "FS1502");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
@@ -298,8 +279,8 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void FS1514_AStyleValueIsCheckedAgainstItsSetting(string setting, string message)
     {
-        // `L-77`: a value of the right form that means nothing was language 1's generic FS1201, and an unknown
-        // colour word was FS1204's named style, which language 2 does not have. Each is said against its key.
+        // `L-77`: a value of the right form that means nothing, and a colour word no colour has, are each said
+        // against the style setting's key.
         var diagnostic = OnlyDiagnostic($"fluidscript 2\n\ncircuit \"script\":\n  style:\n    {setting}\n  N1 - N2\n", "FS1514");
         Assert.StartsWith(message, diagnostic.Message, StringComparison.Ordinal);
     }
@@ -307,7 +288,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void AComponentHasNoStyleOfItsOwn() =>
-        // `19`: named styles and a component's own style are not in language 2; `style =` on one was FS1204.
+        // `19`: there are no named styles and no component style; `style =` on a component is an unknown parameter.
         OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  P1  pump  style = hot\n  N1 - P1 - N2\n", "FS1503");
 
     // ---- steps 4-5: evaluation --------------------------------------------------------------------

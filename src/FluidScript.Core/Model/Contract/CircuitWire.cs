@@ -21,7 +21,7 @@ public sealed record CircuitWire
     /// <summary>The resolved role's canonical name, or <see langword="null"/> for a name the registry does not know (<c>D-35</c>).</summary>
     public required string? Role { get; init; }
 
-    /// <summary>The parent circuit, or <see langword="null"/> when this one stands alone (<c>D-33</c>).</summary>
+    /// <summary>The circuit this one hangs off, the one whose nodes its components connect to, or <see langword="null"/> when it stands alone (<c>D-33</c>).</summary>
     public required string? ParentCircuit { get; init; }
 
     /// <summary>The parent component this circuit takes flow from.</summary>

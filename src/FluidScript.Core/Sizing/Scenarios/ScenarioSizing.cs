@@ -50,7 +50,7 @@ public static class ScenarioSizing
     /// <param name="cancellationToken">Checked between scenarios, because a session re-sizes on every edit.</param>
     /// <returns>
     /// The merged plant and every case's state in it, or why no case could be solved. A file that
-    /// declares no scenarios takes one ordinary run and reports it as a single case called
+    /// declares no cases takes one ordinary run and reports it as a single case called
     /// <c>design</c>, so a caller needs no branch of its own.
     /// </returns>
     /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>

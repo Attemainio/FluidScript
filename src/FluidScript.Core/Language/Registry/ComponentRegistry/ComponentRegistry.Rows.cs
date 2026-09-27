@@ -27,8 +27,8 @@ public sealed partial class ComponentRegistry
 
     // `D-120` respelled the surface and not the model: a row written `secondary.in.t` is stored as `in2`,
     // which every reader of StatedParameters, every port key and every published property has used
-    // since before the spelling changed. The key was also the old spelling, read with `FS1536` until
-    // language 2 removed it (`L-79`).
+    // since before the spelling changed. The key was also the old spelling, which is no longer read
+    // (`L-79`).
     private static ParameterInfo Keyed(ParameterInfo row, string key) => row with { Key = key };
 
     private static PropertyInfo Keyed(PropertyInfo row, string key) => row with { Key = key };

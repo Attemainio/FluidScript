@@ -45,7 +45,7 @@ internal sealed partial class BindingRun
     /// <summary>Each varying curve's value in each case but the design case.</summary>
     private readonly Dictionary<(string Curve, int Case), double?> _caseCurveValues = [];
 
-    /// <summary>Language 2 curves whose driver is not a <c>let</c>: <c>FS1811</c> has said so, and <c>FS1528</c> would say it again.</summary>
+    /// <summary>Curves whose driver is not a <c>let</c>: <c>FS1811</c> has said so, and <c>FS1528</c> would say it again.</summary>
     private readonly HashSet<string> _unletCurves = new(StringComparer.Ordinal);
 
     /// <summary>The case being evaluated by a case walk, or <see langword="null"/> during the design case's.</summary>
@@ -95,13 +95,13 @@ internal sealed partial class BindingRun
         return elements[design];
     }
 
-    /// <summary>Settles a language 2 curve's driver: a <c>let</c>, or <c>FS1811</c>.</summary>
+    /// <summary>Settles a curve's driver: a <c>let</c>, or <c>FS1811</c>.</summary>
     /// <remarks>The clock is settled before this is reached.</remarks>
     private CurveSymbol DriverLet(CurveSymbol curve, string driver)
     {
         if (!parse.Root.Statements.OfType<LetBindingSyntax>().Any(let => string.Equals(let.Name.Text, driver, StringComparison.Ordinal)))
         {
-            Report(Language2Diagnostics.CurveDriverNotALet, curve.DeclarationSpan, ("curve", curve.Name), ("driver", driver));
+            Report(BlockDiagnostics.CurveDriverNotALet, curve.DeclarationSpan, ("curve", curve.Name), ("driver", driver));
             _unletCurves.Add(curve.Name);
             return curve;
         }
@@ -116,7 +116,7 @@ internal sealed partial class BindingRun
     /// <remarks>
     /// The unit written on the <c>let</c> — <c>[-26, 5] C</c> puts the rows in °C, <c>[2, 3] m3/h</c> in m³/h —
     /// because the rows sit beside it and are read against it. A <c>let</c> that writes no single unit (an
-    /// expression) is read in its dimension's canonical unit, as a <c>design</c> value is; a bare one as it
+    /// expression) is read in its dimension's canonical unit, as a sizing point's value is; a bare one as it
     /// stands. This project's reasoning: <c>19</c> says "the driver's unit" and gives only °C as the example.
     /// </remarks>
     private double? LetNumber(string name)

@@ -36,7 +36,7 @@ internal sealed partial class BindingRun
     /// <summary>The scenario names in the order written, which is what an array binds to (<c>D-143</c>).</summary>
     private readonly List<string> _scenarios = [];
 
-    /// <summary>The scenario <c>design</c> named, with the span to report an unknown one against.</summary>
+    /// <summary>The case the file operates at, the first of <c>cases</c>, with the span it is written at.</summary>
     private (string Name, TextSpan Span)? _designScenario;
 
     private readonly Dictionary<string, double?> _curveValues = new(StringComparer.Ordinal);
@@ -47,7 +47,7 @@ internal sealed partial class BindingRun
     {
         var drafts = new List<CurveDraft>();
 
-        foreach (var line in _language2.FileLines)
+        foreach (var line in _reading.FileLines)
         {
             switch (line)
             {
@@ -196,8 +196,8 @@ internal sealed partial class BindingRun
     /// <summary>Evaluates one curve at its driver's design value.</summary>
     /// <remarks>
     /// Called from step 5's topological walk, so a curve that drives another has already been read.
-    /// A curve with no value here is not a failure: in a dynamic circuit it is a live function of
-    /// time, and only a static circuit reading it is <c>FS1528</c>.
+    /// A curve with no value here is not a failure: in a run it is a live function of time, and only a
+    /// static parameter reading it is <c>FS1528</c>.
     /// </remarks>
     private void EvaluateCurve(ValueId.Curve id)
     {
@@ -215,7 +215,7 @@ internal sealed partial class BindingRun
     /// </returns>
     /// <remarks>
     /// The design value is tried <em>first</em>, and that order is the decision: with
-    /// <c>design tout=-26</c> the chain <c>time → outdoor → heating</c> is not walked at all, which is
+    /// <c>let outdoor = [-26, 5] C</c> the chain <c>time → outdoor → heating</c> is not walked at all, which is
     /// what lets a file carrying a full year of weather data still solve statically.
     /// </remarks>
     private double? DriverValue(CurveSymbol curve)
@@ -280,7 +280,7 @@ internal sealed partial class BindingRun
             foreach (var curve in curves.OrderBy(static curve => curve.Name, StringComparer.Ordinal))
             {
                 // As this reader saw it: a component's own `sized_at` positions the curve for its
-                // parameters even when the file states no `design` at all (`D-94`).
+                // parameters even when the file states no cases at all (`D-94`).
                 if (CurveValueSeenBy(pending.Id, curve.Name) is not null || _unletCurves.Contains(curve.Name))
                 {
                     continue;
@@ -319,11 +319,11 @@ internal sealed partial class BindingRun
         return null;
     }
 
-    /// <summary>A file-wide line as the binder reads it (<c>D-177</c>): a curve, the cases, or the design choice.</summary>
+    /// <summary>A file-wide line as the binder reads it (<c>D-177</c>): a curve, the cases, or the operating case.</summary>
     /// <param name="Span">The line, or a curve's header.</param>
     internal abstract record FileLine(TextSpan Span);
 
-    /// <summary>A curve and its rows; the rows are read as text, which both languages write alike.</summary>
+    /// <summary>A curve and its rows, which the binder reads as the parser left them.</summary>
     internal sealed record CurveDraft(CurveHead Header, List<CurveRowSyntax> Rows) : FileLine(Header.Span);
 
     /// <summary>A curve's header.</summary>
@@ -344,9 +344,9 @@ internal sealed partial class BindingRun
     /// <param name="Span">The line, where a missing design case is reported.</param>
     internal sealed record CaseNames(ImmutableArray<(string Name, TextSpan Span)> Names, TextSpan Span) : FileLine(Span);
 
-    /// <summary>The design choice: the case the file operates at (<c>D-143</c>).</summary>
-    /// <param name="Case">The case named.</param>
-    /// <param name="Span">Where it is written.</param>
+    /// <summary>The case the file operates at: the first <c>cases</c> names (<c>D-143</c>).</summary>
+    /// <param name="Case">The case.</param>
+    /// <param name="Span">Where it is written in the <c>cases</c> setting.</param>
     internal sealed record DesignLine((string Name, TextSpan Span) Case, TextSpan Span)
         : FileLine(Span);
 }

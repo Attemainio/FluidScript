@@ -47,7 +47,7 @@ public static class ModelObservers
     }
 
     /// <summary>Rewrites a property reference that names an instrument into the node property it reads.</summary>
-    /// <param name="reference">What a <c>control</c> line named, such as <c>TE1.t</c> or <c>N2.t</c>.</param>
+    /// <param name="reference">What a controller's <c>reads</c> named, such as <c>TE1.t</c> or <c>N2.t</c>.</param>
     /// <param name="observers">The instruments from <see cref="Collect"/>.</param>
     /// <returns>
     /// The node-level reference the solver can evaluate — <c>N2.t</c> for both of those — or

@@ -8,9 +8,8 @@ public sealed record PortFamilyInfo
     /// <summary>Gets the family's name, such as <c>in</c>: the word before the index.</summary>
     /// <remarks>
     /// A member is written <c>in[n]</c>, with the bare word standing for <c>in[1]</c> (<c>D-120</c>);
-    /// it is stored as <c>in{n}</c>, the key the model has always used; and before <c>D-120</c> it was
-    /// written as that key. <see cref="Name"/>, <see cref="Key"/> and <see cref="LegacyName"/> are the
-    /// three spellings of one port.
+    /// and it is stored as <c>in{n}</c>, the key the model uses. <see cref="Name"/> and <see cref="Key"/>
+    /// are the two spellings of one port.
     /// </remarks>
     public required string Prefix { get; init; }
 
@@ -28,11 +27,6 @@ public sealed record PortFamilyInfo
     /// <param name="index">The member's index.</param>
     /// <returns><c>in1</c>, <c>in2</c>, …</returns>
     public string Key(int index) => string.Create(CultureInfo.InvariantCulture, $"{Prefix}{index}");
-
-    /// <summary>Gets the spelling a script used before <c>D-120</c>, which is the key.</summary>
-    /// <param name="index">The member's index.</param>
-    /// <returns><c>in1</c>, <c>in2</c>, …</returns>
-    public string LegacyName(int index) => Key(index);
 
     /// <summary>Gets the lowest index that exists.</summary>
     public required int MinIndex { get; init; }

@@ -32,7 +32,7 @@ public sealed record LayoutWire
     public required ImmutableArray<string> Inferred { get; init; }
 
 
-    /// <summary>The clearance every component keeps from every other, world units (<c>D-103</c>); the <c>spacing</c> directive or 0.5.</summary>
+    /// <summary>The clearance every component keeps from every other, world units (<c>D-103</c>); the <c>spacing</c> setting or 0.5.</summary>
     public required double Margin { get; init; }
 
     /// <summary>The metric every label box was reserved from (<c>D-73</c>): the renderer's font must fit inside it, and its own table must agree with it.</summary>

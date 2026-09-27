@@ -78,19 +78,18 @@ risk fixtures before the language can parse a `.fluid` script.
 Lexer, parser, AST, binder, unit system, expressions, diagnostics, printer. **No physics whatsoever** —
 a component is a name, a kind, and a bag of typed parameters at this stage.
 
-**Demo script:** `samples/m1-syntax-tour.fluid` — exercises every grammar production, and opens with
-the brief's original example verbatim. `samples/m1-syntax-reference.fluid` holds that example alone,
+**Demo script:** `samples/v2-syntax-tour.fluid` — exercises every statement and setting of the
+language. `samples/m1-syntax-reference.fluid` holds the brief's original example alone,
 which is what the nine-diagnostic count below is asserted against: the tour declares more components
 and infers more nodes, so it cannot carry that count as well.
 
 **Exit criteria**
 
-- [x] The current example, beginning `fluidscript 1`, parses with zero unexpected diagnostics; an
+- [x] The current example, beginning `fluidscript 2`, parses with zero unexpected diagnostics; an
       unversioned unsaved draft gets `FS1701` and cannot be durably saved until fixed.
       — `ParserPropertyTests` over the corpus,
       `ScriptCompatibilityTests.AnUnversionedDraftCompilesAndSolvesButCannotBeSaved`
-- [x] `3WV` (leading digit) binds as an identifier; `style blue 2px fillet --` parses as positional
-      style arguments. — `BinderTests.ADeclarationWithNoParametersBindsWithNone`, `ParserTests`
+- [x] `3WV` (leading digit) binds as an identifier. — `BinderTests.ADeclarationWithNoParametersBindsWithNone`
 - [x] `let dT = 30 dK` followed by `out=20C+dT` evaluates to 50 °C, stored as 323.15 K. — `BinderTests`
 - [x] `power=30` and `power=30 kW` and `power=30000 W` produce the same internal quantity. —
       `BinderTests`, and `D-14`'s bare-number rule applied at assignment
@@ -107,21 +106,24 @@ and infers more nodes, so it cannot carry that count as well.
       **and** the document that range names actually mentions it
 - [x] A script with three `circuit` headers binds three circuits; a header with no number resolves to
       100, 200, 300 in declaration order, and a stated number is kept verbatim (`D-33`). — `BinderTests`
-- [x] `inlet N3` / `outlet N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
-      instead produces a diagnostic naming `inlet`, and **never** a component named `in` of kind `N3`
-      — a test asserts the old silent misparse is gone. —
-      `TopologyBindingTests.ASubcircuitsAttachmentsResolveIntoItsParent`, `ParserTests` (`FS1109`)
-- [x] `project dynamic plant_01` sets the default mode for every circuit; a circuit stating
-      `fluid static` overrides it locally and a differing pair produces a warning, not a silent
-      resolution (`D-37`). — `BinderTests.TheProjectSetsTheDefaultModeAndACircuitOverridesIt` (`FS1517`)
-- [x] `spacing 20` binds into style settings and is absent from every Core layout structure (`D-37`).
+- [x] A connection line in one circuit may name a component declared in another, and that is how two
+      circuits join: the subcircuit's parent is read from those links, with no attachment statement
+      (`D-166`, `D-174`; the M1 criterion on `inlet`/`outlet` attachment lines retired with them). —
+      `LayoutHintsTests.TheDistributionHeaderIsOneGroupOfTwoSubcircuits`
+- [x] A circuit is dynamic or steady per run, never by a project-wide default: a run's `steady` list
+      holds the named circuits quasi-steady and a title it does not know is `FS1404` (`D-169`, `D-174`;
+      the M1 criterion on `project dynamic` and `FS1517` retired with them). —
+      `ScriptReaderTests.ARunIsProjectedOntoItsCaseItsCircuitsAndItsClock`
+- [x] `spacing = 20` in the project block binds into style settings and is absent from every Core
+      layout structure (`D-37`).
       — `BinderTests.SpacingBindsIntoStyleAndNotIntoProject`
-- [x] `PID1 pid kp=3` binds through the registry with no new grammar, and `control
-      actuate=TV1.position measure=N2.t by=PID1 setpoint=20` binds its four named arguments. Transposing two arguments
-      changes the binding, not merely the order (`D-40`). A bare `actuate=TV1` is rejected (`D-43`). —
-      `TopologyBindingTests.AControlLineBindsItsFourNamedArguments`, `.ABareComponentNameIsNotAnActuator`
+- [x] A `controller` block with `kp = 3`, `moves = TV1.position`, `reads = N2.t` and `setpoint = 20`
+      binds through the registry with no new grammar, every field from its named setting. Transposing two
+      settings changes the binding, not merely the order (`D-40`, and `D-168`, which superseded `D-43`'s
+      qualified-only actuator). —
+      `TopologyBindingTests.AControlLineBindsItsFourNamedArguments`
 - [x] Printing a script containing every new statement reproduces it byte for byte. — `PrinterTests`
-      over `samples/m1-syntax-tour.fluid`, which exercises every production in `12`
+      over `samples/v2-syntax-tour.fluid`, which exercises every statement in `12`
 
 The byte-for-byte round trip is the criterion that makes M5 possible. It is much cheaper to get right
 now than to retrofit once the printer has been written loosely.
@@ -134,7 +136,7 @@ explicit minor losses, and the Newton hydraulic solve.
 **Demo scripts:** `samples/m2-cooling-loop.fluid` (the mixing circuit — topology),
 `samples/m2-simple-loop.fluid` (one series loop — sizing and solver arithmetic), and
 `samples/m2-distribution-header.fluid` (three circuits on one supply/return pair — numbering,
-attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-scope.md).
+cross-circuit links, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-scope.md).
 
 **Exit criteria**
 
@@ -356,8 +358,8 @@ source boundaries feeding a five-layer 300 dm³ tank and two consumer boundaries
       independently tabulated plug-displacement reference without changing total capacity.
 - [ ] The PI controller settles without sustained oscillation on the demo case, and anti-windup is
       demonstrated by a test that saturates the actuator.
-- [ ] A `control` binding drives its named actuator from its named measurement; swapping `actuate=`
-      and `measure=` produces a bind-time diagnostic rather than a model that runs backwards (`D-40`).
+- [ ] A controller drives the actuator its `moves` names from the measurement its `reads` names; swapping
+      `moves` and `reads` produces a bind-time diagnostic rather than a model that runs backwards (`D-40`).
 - [ ] Valves and pumps show their 0–1 position as an indicator beside the symbol, with the value also
       available as text for assistive technology (`R-42`, `R-51`).
 - [ ] Switching to another tab during a transient stops that run's rendering and **not** the run:

@@ -284,7 +284,7 @@ internal sealed partial class BindingRun
     }
 
     /// <summary>The style a declaration carries: its circuit's, merged over the project's (<c>D-171</c>).</summary>
-    /// <remarks>A component has no style of its own in language 2 (<c>19</c> §The project block); <c>style =</c> on one is <c>FS1503</c>.</remarks>
+    /// <remarks>A component has no style of its own (<c>19</c> §The project block); <c>style =</c> on one is <c>FS1503</c>.</remarks>
     private StyleSpec? StyleOf(ComponentDeclarationSyntax declaration) => _styleAt.GetValueOrDefault(declaration);
 
     /// <summary>Reads a style block's settings and applies them over the style in force (<c>D-171</c>).</summary>

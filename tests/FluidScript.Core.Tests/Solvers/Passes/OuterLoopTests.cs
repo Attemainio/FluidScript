@@ -540,7 +540,7 @@ public sealed class OuterLoopTests
     {
         // `C-65`, closed by `D-136`. The cooling loop's `3WV` diverts: the secondary's flow enters at
         // `ab` and leaves by `a` (primary return) and `b` (recirculation). Written as a mixing valve the
-        // script names a body built for the other service. Language 2 reads the function from the wiring
+        // script names a body built for the other service. The binder reads the function from the wiring
         // (`D-175`), so the contradiction is refused at bind, FS1805, before anything is solved; the
         // solve's FS4012 is left to a valve whose solved flows run against its wiring (`C-137`).
         // Written as a diverting valve, or as a bare three_way_valve, nothing is claimed and nothing is

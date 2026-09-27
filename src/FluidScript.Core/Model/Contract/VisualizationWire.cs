@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Model.Contract;
 
-/// <summary>The <c>show</c> directive resolved (<c>57</c>).</summary>
+/// <summary>The <c>show</c> setting resolved (<c>57</c>).</summary>
 public sealed record VisualizationWire
 {
     /// <summary>The property the colour scale follows.</summary>

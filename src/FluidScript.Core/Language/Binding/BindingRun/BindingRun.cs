@@ -48,7 +48,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     public BindResult Execute()
     {
-        var circuits = ReadLanguage2();
+        var circuits = ReadScript();
 
         CollectCurves();
         CollectDeclarations(circuits);
@@ -98,17 +98,17 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     // ---- step 0: circuits, and the file-wide settings -------------------------------------------
 
     /// <summary>What the front end read from the tree (<c>D-177</c>); set by step 0, before anything reads it.</summary>
-    private Language2Reading _language2 = null!;
+    private ScriptReading _reading = null!;
 
     /// <summary>Step 0: the tree, read into the binder's records (<c>D-177</c>, <c>D-178</c>).</summary>
     /// <remarks>
     /// The project and its presentation first, then each circuit from the project's style with its own merged over it,
     /// which is what a declaration written in it carries (<c>D-171</c>).
     /// </remarks>
-    private List<CircuitBlock> ReadLanguage2()
+    private List<CircuitBlock> ReadScript()
     {
-        var reading = new Language2Reader(parse, registry).Execute();
-        _language2 = reading;
+        var reading = new ScriptReader(parse, registry).Execute();
+        _reading = reading;
         _diagnostics.AddRange(reading.Diagnostics);
 
         foreach (var project in reading.Projects)
@@ -218,7 +218,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 NumberIsExplicit = explicitNumber,
                 Substance = Substance(block),
                 Mode = mode,
-                Role = RoleOfCircuit(head, name, span),
+                Role = RoleOfCircuit(head),
                 DeclarationSpan = span,
             });
 
@@ -231,10 +231,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// <summary>The role a circuit is drawn in, as its <c>role</c> setting states it (<c>D-35</c>).</summary>
     /// <remarks>
     /// A circuit's title is free text in quotes, so it says nothing about the role; a circuit that states no
-    /// <c>role</c> is neutral without a word. Language 1 read the role from the circuit's name and reported a
-    /// name that was none.
+    /// <c>role</c> is neutral without a word.
     /// </remarks>
-    private CircuitRole RoleOfCircuit(CircuitHead? head, string name, TextSpan span) =>
+    private CircuitRole RoleOfCircuit(CircuitHead? head) =>
         head?.Role is { } stated
             ? RoleOf(stated.Text, stated.Span)
             : CircuitRoleRegistry.Neutral;
@@ -243,7 +242,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     {
         var resolution = CircuitRoleRegistry.Resolve(name);
 
-        // `D-170`: language 2 binds a name only by its spelling, so a near miss is placed neutrally and the
+        // `D-170`: a name binds only by its spelling, so a near miss is placed neutrally and the
         // role it was near is the one-click fix.
         if (resolution.BySimilarity)
         {
@@ -368,7 +367,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return unit is null ? text : $"{text} {unit}";
     }
 
-    /// <summary>One circuit's statements, and the circuit as the binder reads it from either language (<c>D-177</c>).</summary>
+    /// <summary>One circuit's statements, and the circuit as the binder reads it (<c>D-177</c>).</summary>
     /// <param name="Head">The header, or <see langword="null"/> for the implicit circuit a file with none gets.</param>
     /// <param name="Statements">The statements inside it.</param>
     internal sealed record CircuitBlock(CircuitHead? Head, List<StatementSyntax> Statements)
@@ -393,21 +392,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             where T : BlockLine => Statements.SelectMany(LinesAt).OfType<T>();
     }
 
-    /// <summary>A line in a circuit as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
+    /// <summary>A line as the binder reads it (<c>D-177</c>): what the reader settled, with no syntax left to interpret.</summary>
     /// <param name="Span">The line, which what it binds reports against.</param>
     internal abstract record BlockLine(TextSpan Span)
     {
         /// <summary>Gets the ends whose component names the symbol map records, so go-to-definition works from a use.</summary>
         public virtual IEnumerable<LineEnd> Mapped => [];
-
-        /// <summary>Reads a statement that is one line, or <see langword="null"/> for one that is not read as a line.</summary>
-        public static BlockLine? Of(StatementSyntax statement) => statement switch
-        {
-            ConnectionSyntax connection => new ConnectionLine(
-                [.. connection.Endpoints.Select(LineEnd.Of)], connection.Parameters, connection.Span),
-            DisturbanceSyntax disturbance => ChangeLine.Of(disturbance),
-            _ => null,
-        };
     }
 
     /// <summary>A connection line: its ends in order, and the pipe it describes.</summary>
@@ -421,22 +411,22 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         public override IEnumerable<LineEnd> Mapped => Ends;
     }
 
-    /// <summary>A control line (<c>D-61</c>): the named form, or the short form with what it moves, reads and is run by.</summary>
-    /// <param name="Actuator">What the loop moves, in the short form; <see langword="null"/> in the named form.</param>
-    /// <param name="Sensor">What the loop reads, in the short form.</param>
-    /// <param name="Controller">The controller and where it is written, in the short form.</param>
-    /// <param name="Arguments">The named arguments: all four in the named form, the setpoint and tuning in the short.</param>
-    /// <param name="Span">The line.</param>
+    /// <summary>A controller's loop (<c>D-61</c>, <c>D-168</c>): what it moves, what it reads, and the controller that runs it.</summary>
+    /// <param name="Actuator">What the loop moves, from the controller's <c>moves</c>.</param>
+    /// <param name="Sensor">What the loop reads, from the controller's <c>reads</c>.</param>
+    /// <param name="Controller">The controller and where it is named.</param>
+    /// <param name="Arguments">The controller's settings read in the units of what it moves or measures: the setpoint and tuning.</param>
+    /// <param name="Span">The controller's declaration, from where it begins to its last setting.</param>
     internal sealed record ControlLine(
-        LineEnd? Actuator,
-        LineEnd? Sensor,
-        (string Name, TextSpan Span)? Controller,
+        LineEnd Actuator,
+        LineEnd Sensor,
+        (string Name, TextSpan Span) Controller,
         ImmutableArray<ParameterSyntax> Arguments,
         TextSpan Span) : BlockLine(Span)
     {
     }
 
-    /// <summary>A step or ramp in a schedule or a run: the parameter it changes, when, and to what.</summary>
+    /// <summary>A step or ramp in a run: the parameter it changes, when, and to what.</summary>
     /// <param name="Target">The component and parameter changed.</param>
     /// <param name="When">The instant, or the span a ramp takes.</param>
     /// <param name="Value">The value it ends at, or the range it runs through.</param>
@@ -467,7 +457,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             endpoint.Span);
     }
 
-    /// <summary>A circuit's header as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
+    /// <summary>A circuit's header as the binder reads it (<c>D-177</c>).</summary>
     /// <param name="Name">The circuit's quoted title.</param>
     /// <param name="Span">Where the header is written.</param>
     /// <param name="Number">The number written, if any.</param>

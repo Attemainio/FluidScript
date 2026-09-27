@@ -17,7 +17,7 @@ public sealed record SemanticModel
     /// </value>
     public required ImmutableArray<CircuitSymbol> Circuits { get; init; }
 
-    /// <summary>Gets the file-wide settings from the <c>project</c> directive (<c>D-37</c>).</summary>
+    /// <summary>Gets the file-wide settings from the <c>project</c> block (<c>D-37</c>).</summary>
     public required ProjectSettings Project { get; init; }
 
     /// <summary>Gets every component, declared and inferred, in declaration order.</summary>

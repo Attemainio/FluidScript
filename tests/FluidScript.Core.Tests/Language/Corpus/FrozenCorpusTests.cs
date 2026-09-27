@@ -12,16 +12,16 @@ using FluidScript.Fixtures;
 namespace FluidScript.Core.Tests.Language.Corpus;
 
 /// <summary>
-/// The frozen reference for binding language 2 directly (<c>D-178</c>, <c>19</c> §Binding directly, step 6c): every
-/// converted corpus item that binds without a gap, committed as its language 2 text, and a golden of what it binds to.
+/// The frozen corpus (<c>D-178</c>, <c>19</c> §The frozen corpus): every corpus item that binds without a gap,
+/// committed as its script text, and a golden of what it binds to.
 /// </summary>
 /// <remarks>
-/// The goldens were written from the translated path: the translation at the parse, then the binder. The direct front
-/// end replaces it in the binder and must bind every item to the same golden, the translation's diagnostics included. A golden changes only with its reason stated
-/// in the commit, item by item: a span the translation made up, a message <c>L-66</c> names, or a defect fixed.
+/// The goldens hold the binder to the models it gave when the reader was proven, diagnostics included. A golden
+/// changes only with its reason stated in the commit, item by item: a span, a message <c>L-66</c> names, or a defect
+/// fixed.
 /// </remarks>
 [Trait("Category", "Golden")]
-public sealed class Language2CorpusTests
+public sealed class FrozenCorpusTests
 {
     private const string UpdateVariable = "FLUIDSCRIPT_UPDATE_GOLDENS";
 
@@ -59,8 +59,8 @@ public sealed class Language2CorpusTests
         Assert.Equal(File.ReadAllText(path).ReplaceLineEndings("\n"), actual);
     }
 
-    /// <summary>Parses and binds language 2 text as the pipeline does, whichever path that is.</summary>
-    /// <returns>The model, and the parse's diagnostics with the binder's: the translation raises its own at the parse, and the direct path in the binder.</returns>
+    /// <summary>Parses and binds a script as the pipeline does.</summary>
+    /// <returns>The model, and the parse's diagnostics with the binder's.</returns>
     private static (SemanticModel Model, IEnumerable<Diagnostic> Diagnostics) Bind(string text)
     {
         var source = new SourceText(text);
@@ -74,9 +74,8 @@ public sealed class Language2CorpusTests
     }
 
     /// <summary>
-    /// The golden: the model's shape, then what <see cref="ModelShape"/> leaves out because it compares two languages
-    /// and this compares one -- every <c>let</c>, every deferred expression, every <c>show</c> line -- then every
-    /// diagnostic as a user meets it.
+    /// The golden: the model's shape, then what <see cref="ModelShape"/> leaves out -- every <c>let</c>, every
+    /// deferred expression, every <c>show</c> line -- then every diagnostic as a user meets it.
     /// </summary>
     private static string Render((SemanticModel Model, IEnumerable<Diagnostic> Diagnostics) result)
     {

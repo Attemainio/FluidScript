@@ -135,7 +135,7 @@ for no reason", and it is the reason tags may be exported at all. It does not em
 ## Worked example
 
 The cooling loop exports to a light SVG whose `<desc>` names source hash, contract/language/catalogue
-versions, and `show temperature` scale. `HE1` remains id `HE1`, its gradient and legend survive, and
+versions, and `show = temperature` scale. `HE1` remains id `HE1`, its gradient and legend survive, and
 the same SVG rasterized at 300 dpi produces the PNG.
 
 ## Acceptance criteria

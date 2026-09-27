@@ -57,11 +57,11 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
 | `FS1119` | Error | Parser | An index is a whole number in brackets right after the name, such as 'in[2]'. |
 | `FS1121` | Error | Parser | A list is one value per case, separated by commas, such as '[30, 10]'. |
-| `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
-| `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
-| `FS1210` | Warning | Style directive | Nothing to show called '{name}'. Available: {list}. |
-| `FS1213` | Info | Style directive | '{name}' listed twice. |
-| `FS1214` | Warning | Style directive | Only the first 'show' is used. |
+| `FS1202` | Warning | Style | '{a}' overrides the earlier '{b}'. |
+| `FS1203` | Warning | Style | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
+| `FS1210` | Warning | Style | Nothing to show called '{name}'. Available: {list}. |
+| `FS1213` | Info | Style | '{name}' listed twice. |
+| `FS1214` | Warning | Style | Only the first 'show' is used. |
 | `FS1302` | Error | Units | Cannot add two {dimension}s. To offset by a difference, write '{example}'. |
 | `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |
 | `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |
@@ -121,23 +121,23 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
 | `FS1706` | Warning | Compatibility | The version is already stated: this line says FluidScript {major} again. Delete it. |
-| `FS1801` | Error | Language2 | This line is indented unlike the rest of its block. Indent it as the line above it is. |
-| `FS1802` | Error | Language2 | {statement} belongs {place}. |
-| `FS1803` | Error | Language2 | A pipe's length and size describe one link, and this line has {links}. Put the pipe on a line of its own: '{first} - {second} {properties}'. |
-| `FS1804` | Error | Language2 | '{component}' cannot take this connection: {reason}. Name the port, such as '{example}'. |
-| `FS1805` | Error | Language2 | '{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out. |
-| `FS1806` | Error | Language2 | '{word}' is language 1. In language 2, {instead}. |
-| `FS1807` | Error | Language2 | A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'. |
-| `FS1808` | Error | Language2 | '{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}. |
-| `FS1809` | Error | Language2 | '{controller}' states both band and kp, and each says the other. State one. |
-| `FS1810` | Warning | Language2 | '{controller}' is a {type} controller, which the solver does not run yet. |
-| `FS1811` | Error | Language2 | '{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time. |
-| `FS1812` | Error | Language2 | A {head} line opens a block and ends with ':'. |
-| `FS1813` | Error | Language2 | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |
-| `FS1814` | Error | Language2 | '{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits. |
-| `FS1815` | Info | Language2 | '{component}' is wired as {wiring}. |
-| `FS1816` | Error | Language2 | '{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'. |
-| `FS1817` | Warning | Language2 | This event starts at {time}, after '{run}' ends at {duration}, so it never happens. |
+| `FS1801` | Error | Blocks | This line is indented unlike the rest of its block. Indent it as the line above it is. |
+| `FS1802` | Error | Blocks | {statement} belongs {place}. |
+| `FS1803` | Error | Blocks | A pipe's length and size describe one link, and this line has {links}. Put the pipe on a line of its own: '{first} - {second} {properties}'. |
+| `FS1804` | Error | Blocks | '{component}' cannot take this connection: {reason}. Name the port, such as '{example}'. |
+| `FS1805` | Error | Blocks | '{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out. |
+| `FS1806` | Error | Blocks | '{word}' does not start a line this way; {instead}. |
+| `FS1807` | Error | Blocks | A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'. |
+| `FS1808` | Error | Blocks | '{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}. |
+| `FS1809` | Error | Blocks | '{controller}' states both band and kp, and each says the other. State one. |
+| `FS1810` | Warning | Blocks | '{controller}' is a {type} controller, which the solver does not run yet. |
+| `FS1811` | Error | Blocks | '{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time. |
+| `FS1812` | Error | Blocks | A {head} line opens a block and ends with ':'. |
+| `FS1813` | Error | Blocks | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |
+| `FS1814` | Error | Blocks | '{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits. |
+| `FS1815` | Info | Blocks | '{component}' is wired as {wiring}. |
+| `FS1816` | Error | Blocks | '{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'. |
+| `FS1817` | Warning | Blocks | This event starts at {time}, after '{run}' ends at {duration}, so it never happens. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |
@@ -234,31 +234,31 @@ given to something else.
 <!-- BEGIN GENERATED: retired-diagnostic-codes -->
 | Code | Why it is no longer reported |
 |---|---|
-| `FS1101` | A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174). |
-| `FS1102` | A connection above language 1's 'connections' line. Language 2 has no sections (D-174). |
-| `FS1103` | A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174). |
-| `FS1106` | A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174). |
-| `FS1107` | A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174). |
-| `FS1109` | 'in' or 'out' where language 1's 'inlet'/'outlet' attachment line was meant. Language 2 has no attachment lines (D-174). |
-| `FS1110` | A malformed language 1 'inlet'/'outlet' attachment line. Language 2 has none (D-174). |
-| `FS1111` | A malformed language 1 'control' line. Language 2 writes a loop as one controller declaration (D-168, D-174). |
-| `FS1112` | Language 1's 'project' or 'spacing' line after the first circuit. Language 2 writes both in the project block (D-174). |
-| `FS1113` | Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174). |
-| `FS1118` | Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174). |
-| `FS1120` | Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174). |
-| `FS1201` | A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174). |
-| `FS1204` | A named style used that language 1's 'style name = ...' never defined. Language 2 has no named styles and no component style (19, D-174). |
-| `FS1205` | A named style defined twice in language 1. Language 2 has no named styles (19, D-174). |
-| `FS1508` | Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174). |
+| `FS1101` | A second 'connections' or 'schedule' section in one circuit. Retired (D-174), not reused: a circuit has no sections. |
+| `FS1102` | A connection above a circuit's 'connections' line. Retired (D-174), not reused: connection lines go anywhere in the circuit block. |
+| `FS1103` | A statement in the wrong section of a circuit. Retired (D-174), not reused: a statement belongs to a block, and one in the wrong block is FS1802. |
+| `FS1106` | A step or ramp outside a 'schedule' section. Retired (D-169, D-174), not reused: an event belongs to a run, and one outside it is FS1802. |
+| `FS1107` | A schedule in a circuit with no time to run in. Retired (D-169, D-174), not reused: events belong to a run, which has its duration. |
+| `FS1109` | 'in' or 'out' where an 'inlet'/'outlet' attachment line was meant. Retired (D-174), not reused: circuits join through a component both name. |
+| `FS1110` | A malformed 'inlet'/'outlet' attachment line. Retired (D-174), not reused: there are no attachment lines. |
+| `FS1111` | A malformed 'control' line. Retired (D-168, D-174), not reused: a loop is one controller declaration. |
+| `FS1112` | A 'project' or 'spacing' line after the first circuit. Retired (D-174), not reused: both are settings of the project block. |
+| `FS1113` | A 'spacing' line given a quantity. Retired (D-174), not reused: spacing is a project setting, and a unit on it is FS1514. |
+| `FS1118` | A 'design' line with no values. Retired (D-174), not reused: there is no design line; the first case is the operating one. |
+| `FS1120` | A 'scenarios' line with no names. Retired (D-174), not reused: the project block names its cases, 'cases = [...]'. |
+| `FS1201` | A token of a one-line style that was no style. Retired (L-77, D-174), not reused: each style setting is checked against its key, which is FS1514. |
+| `FS1204` | A named style used and never defined. Retired (D-174), not reused: there are no named styles and no component style (19). |
+| `FS1205` | A named style defined twice. Retired (D-174), not reused: there are no named styles (19). |
+| `FS1508` | Statements before any circuit, read into an implicit circuit. Retired (L-70, D-174), not reused: a component is declared inside a circuit block, and one outside is FS1802. |
 | `FS1509` | Meant 'more than one circuit header', which is now legal: a script may declare several numbered circuits. Two circuits claiming one number is a different condition and took a new code rather than inheriting this one. |
-| `FS1512` | A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174). |
-| `FS1517` | Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174). |
-| `FS1518` | A language 1 attachment line naming no component. Language 2 has no attachment lines (D-174). |
-| `FS1520` | A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174). |
-| `FS1526` | A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174). |
-| `FS1527` | A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174). |
-| `FS1536` | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79). |
-| `FS1543` | Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174). |
-| `FS1547` | Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174). |
-| `FS2217` | A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174). |
+| `FS1512` | A name bound to the registered spelling it was near, with a note. Retired (D-170), not reused: only the exact spelling binds, and the near one is offered as the fix. |
+| `FS1517` | A circuit's own mode contradicting the project's. Retired (D-169, D-174), not reused: a run states which circuits it holds steady. |
+| `FS1518` | An attachment line naming no component. Retired (D-174), not reused: there are no attachment lines. |
+| `FS1520` | A circuit with an inlet attachment and no outlet, or the reverse. Retired (D-174), not reused: there are no attachment lines. |
+| `FS1526` | A circuit attached to two parent circuits. Retired (D-174), not reused: there are no attachment lines. |
+| `FS1527` | A curve driven by a name that was no role, curve or design value. Retired (D-167, D-174), not reused: a curve's driver is a let or time, and anything else is FS1811. |
+| `FS1536` | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note. Retired (18, L-79), not reused: those spellings are not read. |
+| `FS1543` | Scenarios with no 'design' line. Retired (D-174), not reused: the first case is the operating one. |
+| `FS1547` | A project 'start=' with no dynamic circuit to read it. Retired (D-169, D-174), not reused: 'start' is a run setting. |
+| `FS2217` | An attachment to a component of the attaching circuit itself. Retired (D-174), not reused: there are no attachment lines. |
 <!-- END GENERATED: retired-diagnostic-codes -->

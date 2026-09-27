@@ -55,7 +55,7 @@ public static partial class Lowering
 
         public ImmutableArray<IFlowComponent> Components => [.. _elements];
 
-        /// <summary>Every <c>control</c> line's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
+        /// <summary>Every controller's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
         public ImmutableArray<Setpoint> Setpoints => [.. _setpoints];
 
         /// <summary>The ports the script itself named, as <c>component.port</c> (<c>D-88</c>).</summary>

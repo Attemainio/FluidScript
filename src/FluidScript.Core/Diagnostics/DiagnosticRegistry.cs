@@ -112,7 +112,7 @@ public static class DiagnosticRegistry
         .. StyleDiagnostics.All,
         .. BinderDiagnostics.All,
         .. CompatibilityDiagnostics.All,
-        .. Language2Diagnostics.All,
+        .. BlockDiagnostics.All,
         .. FluidDiagnostics.All,
         .. TopologyDiagnostics.All,
         .. SolverDiagnostics.All,
@@ -136,81 +136,81 @@ public static class DiagnosticRegistry
             + "new code rather than inheriting this one."),
         new RetiredDiagnostic(
             "FS1101",
-            "A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174)."),
+            "A second 'connections' or 'schedule' section in one circuit. Retired (D-174), not reused: a circuit has no sections."),
         new RetiredDiagnostic(
             "FS1102",
-            "A connection above language 1's 'connections' line. Language 2 has no sections (D-174)."),
+            "A connection above a circuit's 'connections' line. Retired (D-174), not reused: connection lines go anywhere in the circuit block."),
         new RetiredDiagnostic(
             "FS1103",
-            "A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174)."),
+            "A statement in the wrong section of a circuit. Retired (D-174), not reused: a statement belongs to a block, and one in the wrong block is FS1802."),
         new RetiredDiagnostic(
             "FS1106",
-            "A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174)."),
+            "A step or ramp outside a 'schedule' section. Retired (D-169, D-174), not reused: an event belongs to a run, and one outside it is FS1802."),
         new RetiredDiagnostic(
             "FS1107",
-            "A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174)."),
+            "A schedule in a circuit with no time to run in. Retired (D-169, D-174), not reused: events belong to a run, which has its duration."),
         new RetiredDiagnostic(
             "FS1109",
-            "'in' or 'out' where language 1's 'inlet'/'outlet' attachment line was meant. Language 2 has no attachment lines (D-174)."),
+            "'in' or 'out' where an 'inlet'/'outlet' attachment line was meant. Retired (D-174), not reused: circuits join through a component both name."),
         new RetiredDiagnostic(
             "FS1110",
-            "A malformed language 1 'inlet'/'outlet' attachment line. Language 2 has none (D-174)."),
+            "A malformed 'inlet'/'outlet' attachment line. Retired (D-174), not reused: there are no attachment lines."),
         new RetiredDiagnostic(
             "FS1111",
-            "A malformed language 1 'control' line. Language 2 writes a loop as one controller declaration (D-168, D-174)."),
+            "A malformed 'control' line. Retired (D-168, D-174), not reused: a loop is one controller declaration."),
         new RetiredDiagnostic(
             "FS1112",
-            "Language 1's 'project' or 'spacing' line after the first circuit. Language 2 writes both in the project block (D-174)."),
+            "A 'project' or 'spacing' line after the first circuit. Retired (D-174), not reused: both are settings of the project block."),
         new RetiredDiagnostic(
             "FS1113",
-            "Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174)."),
+            "A 'spacing' line given a quantity. Retired (D-174), not reused: spacing is a project setting, and a unit on it is FS1514."),
         new RetiredDiagnostic(
             "FS1118",
-            "Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174)."),
+            "A 'design' line with no values. Retired (D-174), not reused: there is no design line; the first case is the operating one."),
         new RetiredDiagnostic(
             "FS1120",
-            "Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174)."),
+            "A 'scenarios' line with no names. Retired (D-174), not reused: the project block names its cases, 'cases = [...]'."),
         new RetiredDiagnostic(
             "FS1201",
-            "A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174)."),
+            "A token of a one-line style that was no style. Retired (L-77, D-174), not reused: each style setting is checked against its key, which is FS1514."),
         new RetiredDiagnostic(
             "FS1204",
-            "A named style used that language 1's 'style name = ...' never defined. Language 2 has no named styles and no component style (19, D-174)."),
+            "A named style used and never defined. Retired (D-174), not reused: there are no named styles and no component style (19)."),
         new RetiredDiagnostic(
             "FS1205",
-            "A named style defined twice in language 1. Language 2 has no named styles (19, D-174)."),
+            "A named style defined twice. Retired (D-174), not reused: there are no named styles (19)."),
         new RetiredDiagnostic(
             "FS1508",
-            "Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174)."),
+            "Statements before any circuit, read into an implicit circuit. Retired (L-70, D-174), not reused: a component is declared inside a circuit block, and one outside is FS1802."),
         new RetiredDiagnostic(
             "FS1512",
-            "A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174)."),
+            "A name bound to the registered spelling it was near, with a note. Retired (D-170), not reused: only the exact spelling binds, and the near one is offered as the fix."),
         new RetiredDiagnostic(
             "FS1536",
-            "A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79)."),
+            "A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note. Retired (18, L-79), not reused: those spellings are not read."),
         new RetiredDiagnostic(
             "FS1517",
-            "Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174)."),
+            "A circuit's own mode contradicting the project's. Retired (D-169, D-174), not reused: a run states which circuits it holds steady."),
         new RetiredDiagnostic(
             "FS1518",
-            "A language 1 attachment line naming no component. Language 2 has no attachment lines (D-174)."),
+            "An attachment line naming no component. Retired (D-174), not reused: there are no attachment lines."),
         new RetiredDiagnostic(
             "FS1520",
-            "A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174)."),
+            "A circuit with an inlet attachment and no outlet, or the reverse. Retired (D-174), not reused: there are no attachment lines."),
         new RetiredDiagnostic(
             "FS1526",
-            "A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174)."),
+            "A circuit attached to two parent circuits. Retired (D-174), not reused: there are no attachment lines."),
         new RetiredDiagnostic(
             "FS1527",
-            "A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174)."),
+            "A curve driven by a name that was no role, curve or design value. Retired (D-167, D-174), not reused: a curve's driver is a let or time, and anything else is FS1811."),
         new RetiredDiagnostic(
             "FS1543",
-            "Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174)."),
+            "Scenarios with no 'design' line. Retired (D-174), not reused: the first case is the operating one."),
         new RetiredDiagnostic(
             "FS1547",
-            "Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174)."),
+            "A project 'start=' with no dynamic circuit to read it. Retired (D-169, D-174), not reused: 'start' is a run setting."),
         new RetiredDiagnostic(
             "FS2217",
-            "A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174)."),
+            "An attachment to a component of the attaching circuit itself. Retired (D-174), not reused: there are no attachment lines."),
     ];
 }

@@ -7,21 +7,21 @@ namespace FluidScript.Core.Language.Binding;
 /// <summary>One circuit and everything settled about it before topology.</summary>
 public sealed record CircuitSymbol
 {
-    /// <summary>Gets the identifier written in the header, which is also the source of the role.</summary>
+    /// <summary>Gets the title written in the header, <c>circuit "Heating":</c>, or the document's name for a file with no header.</summary>
+    /// <remarks>Free text: the role is the <c>role</c> setting's, never the name's.</remarks>
     public required string Name { get; init; }
 
     /// <summary>Gets the circuit's designation, the leading part of every tag it owns.</summary>
     /// <value>
-    /// As written, or resolved as the lowest unused multiple of 100 in declaration order when the
-    /// header omitted it (<c>D-33</c>).
+    /// As its <c>number</c> setting states it, or resolved as the lowest unused multiple of 100 in declaration
+    /// order when the circuit states none (<c>D-33</c>).
     /// </value>
     public required int Number { get; init; }
 
     /// <summary>Gets whether the number was written or resolved.</summary>
     /// <remarks>
-    /// The printer needs this to reproduce the source byte for byte: printing a resolved number would
-    /// rewrite <c>circuit coolingLoop</c> as <c>circuit coolingLoop 100</c> the first time anything
-    /// touched the file.
+    /// A write-back needs this to reproduce the source byte for byte: printing a resolved number would add
+    /// <c>number = 100</c> to a circuit that never stated one the first time anything touched the file.
     /// </remarks>
     public required bool NumberIsExplicit { get; init; }
 

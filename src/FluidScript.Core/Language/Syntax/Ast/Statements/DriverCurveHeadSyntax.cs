@@ -5,7 +5,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 
-/// <summary>A language 2 curve header, <c>curve heat_demand: outdoor extrapolated</c>.</summary>
+/// <summary>A curve header, <c>curve heat_demand: outdoor extrapolated</c>.</summary>
 /// <param name="Keyword">The word <c>curve</c>, an identifier recognised by position.</param>
 /// <param name="Name">The curve's name.</param>
 /// <param name="Colon">The colon between the name and the driver.</param>

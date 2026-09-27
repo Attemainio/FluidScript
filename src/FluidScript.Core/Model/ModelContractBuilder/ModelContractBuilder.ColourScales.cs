@@ -18,7 +18,7 @@ public static partial class ModelContractBuilder
     // ---- visualization -------------------------------------------------------------------------------------
 
     /// <summary>
-    /// The <c>show</c> directive resolved against what was solved (<c>57</c>, <c>D-117</c>): one scale per
+    /// The <c>show</c> setting resolved against what was solved (<c>57</c>, <c>D-117</c>): one scale per
     /// available property, each with its domain, and every element's place on each. Core maps because it
     /// holds every value (<c>D-03</c>, <c>D-103</c>); the frontend owns the colours and, with every scale
     /// on the wire, switches between them without a request (<c>57</c> invariant 6).
@@ -92,7 +92,7 @@ public static partial class ModelContractBuilder
 
             foreach (var second in shows.Skip(1))
             {
-                raised.Add(Diagnostic.Create(StyleDiagnostics.SecondShowDirective, second.Span));
+                raised.Add(Diagnostic.Create(StyleDiagnostics.SecondShowSetting, second.Span));
             }
 
             var named = ImmutableArray.CreateBuilder<string>();

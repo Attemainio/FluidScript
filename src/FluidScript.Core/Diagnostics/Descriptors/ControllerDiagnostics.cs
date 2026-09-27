@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Diagnostics.Descriptors;
 
-/// <summary>Everything a <c>control</c> line can report about the design solve.</summary>
+/// <summary>Everything a controller can report about the design solve.</summary>
 /// <remarks>
 /// <para>
 /// The <c>FS32xx</c> range (<c>plan/30-solver/34-controllers.md</c>). The codes here are the two the

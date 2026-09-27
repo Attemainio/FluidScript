@@ -3,8 +3,7 @@ namespace FluidScript.Core.Language.Syntax.Lexing;
 /// <summary>What one token is.</summary>
 /// <remarks>
 /// The set is exactly <c>plan/10-language/12-grammar.md</c>'s <c>token</c> production, plus
-/// <see cref="EndOfFile"/> and <see cref="Unknown"/>, and language 2's <see cref="DateLiteral"/>
-/// (<c>plan/10-language/19-fluidscript-2.md</c>). There is no <c>Percent</c>: <c>%</c> is a unit
+/// <see cref="EndOfFile"/> and <see cref="Unknown"/>. There is no <c>Percent</c>: <c>%</c> is a unit
 /// symbol and the language has no modulo operator (<c>D-51</c>).
 /// </remarks>
 public enum TokenKind
@@ -49,7 +48,7 @@ public enum TokenKind
     /// <summary>A <c>..</c>: a range, or the dotted line pattern.</summary>
     DotDot,
 
-    /// <summary>A <c>,</c>, which occurs only between a function call's arguments.</summary>
+    /// <summary>A <c>,</c>, between a function call's arguments or a list's items.</summary>
     Comma,
 
     /// <summary>An opening parenthesis.</summary>

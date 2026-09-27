@@ -111,7 +111,7 @@ The one serialized shape every consumer receives (`26`).
 | `symbols` | array of [`Symbol`](#symbol) | The symbol definitions the components reference (`D-20`, `D-24`). |
 | `connections` | array of [`Connection`](#connection) | Every adjacency, in the model's connection order, keyed `c{n}`. |
 | `layout` | [`Layout`](#layout) | The layout hints, serialized from `25`'s contract field for field. |
-| `visualization` | [`Visualization`](#visualization) | The `show` directive's resolution (`57`). |
+| `visualization` | [`Visualization`](#visualization) | The `show` setting's resolution (`57`). |
 | `bindings` | array of [`Binding`](#binding) | Evaluated `let` values. |
 | `diagnostics` | array of [`Diagnostic`](#diagnostic) | Every diagnostic the pipeline produced, ordered by severity then offset (`44`). |
 | `solve` | [`Solve`](#solve) or `null` | What the solve did, or `null` when nothing was solved. |
@@ -157,7 +157,7 @@ One circuit.
 | `substance` | string | The fluid keyword. |
 | `mode` | string | The solve mode: `steady` or `transient`. |
 | `role` | string or `null` | The resolved role's canonical name, or `null` for a name the registry does not know (`D-35`). |
-| `parentCircuit` | string or `null` | The parent circuit, or `null` when this one stands alone (`D-33`). |
+| `parentCircuit` | string or `null` | The circuit this one hangs off, the one whose nodes its components connect to, or `null` when it stands alone (`D-33`). |
 | `inletAnchorId` | string or `null` | The parent component this circuit takes flow from. |
 | `outletAnchorId` | string or `null` | The parent component this circuit returns flow to. |
 | `solved` | boolean | Whether every component in this circuit has a state (invariant 7). |
@@ -222,7 +222,7 @@ One adjacency.
 | `circuitOf` | object of string | Owning circuit per component. |
 | `distributionGroups` | array of [`DistributionGroup`](#distributiongroup) | Subcircuits sharing one parent, in declaration order. |
 | `inferred` | array of string | Components the language added. |
-| `margin` | number | The clearance every component keeps from every other, world units (`D-103`); the `spacing` directive or 0.5. |
+| `margin` | number | The clearance every component keeps from every other, world units (`D-103`); the `spacing` setting or 0.5. |
 | `labelMetric` | [`LabelMetric`](#labelmetric) | The metric every label box was reserved from (`D-73`): the renderer's font must fit inside it, and its own table must agree with it. |
 | `extent` | array of number | The bounds of the whole drawing as `[x, y, width, height]`, world units, outer boxes and routes included. |
 | `placements` | array of [`Placement`](#placement) | Where every component sits, in `Order` then the non-flow elements. |
@@ -230,7 +230,7 @@ One adjacency.
 
 ### `Visualization`
 
-The `show` directive resolved (`57`).
+The `show` setting resolved (`57`).
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -478,7 +478,7 @@ One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y`
 | `labelBox` | array of number | The box the label reserves, `[x, y, width, height]`, from the declared metric (`D-73`): height is the label size, width the advance times the characters. The renderer draws the text centred in it. |
 | `labelClear` | boolean | Whether the label sits clear of every symbol, label and line; when `false` the renderer draws a leader from the label to its owner (`53`). |
 | `source` | string | `computed`; `pinned` is reserved for a placement the script states. |
-| `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style: the script's named or anonymous style (`D-104`); absent when the theme's defaults apply throughout. Absent when not applicable. |
+| `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style: the component's circuit's style merged over the project's (`D-104`, `D-171`); absent when the theme's defaults apply throughout. Absent when not applicable. |
 | `scale` | number or `null` | Where the component's representative value sits on the active colour scale, 0 to 1; `null` when not computed. The same as `Scales[visualization.active].At`. |
 | `scales` | object of [`ScalePosition`](#scaleposition) | The component's position on every available scale, keyed by property (`D-117`): the switcher needs no request. |
 

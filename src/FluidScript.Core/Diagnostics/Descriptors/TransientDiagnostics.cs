@@ -87,13 +87,13 @@ public static class TransientDiagnostics
         DiagnosticSeverity.Error,
         "Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}.");
 
-    /// <summary>A schedule target is also a control line's actuator.</summary>
+    /// <summary>A run's event targets what a controller moves.</summary>
     /// <value><c>FS3109</c>, error.</value>
     /// <remarks>
-    /// A parameter has one owner in a run: the schedule or the controller (<c>D-140</c>). A schedule that
+    /// A parameter has one owner in a run: its events or the controller (<c>D-140</c>). An event that
     /// moved an actuator would fight the controller for it at every step, and whichever wrote last
-    /// would win, which is neither a disturbance nor a control loop. The schedule is refused; move the
-    /// setpoint instead, which is what a schedule on a controlled loop means.
+    /// would win, which is neither a disturbance nor a control loop. The event is refused; move the
+    /// setpoint instead, which is what an event on a controlled loop means.
     /// </remarks>
     public static DiagnosticDescriptor ScheduledActuator { get; } = new(
         "FS3109",

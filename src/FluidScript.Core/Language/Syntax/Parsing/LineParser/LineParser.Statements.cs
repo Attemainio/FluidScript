@@ -19,17 +19,9 @@ internal sealed partial class LineParser
         var parameters = ImmutableArray.CreateBuilder<ParameterSyntax>();
         failed = false;
 
+        // A sizing point is a setting per driver, `sized_at.outdoor = -5 C` (`D-175`): an ordinary parameter here.
         while (Current is { Kind: TokenKind.Identifier } nameToken)
         {
-            // The one bare identifier a parameter list may end in front of: a declaration's sizing
-            // point begins here and the caller reads it (`D-94`). Language 2 writes it as a setting per
-            // driver, `sized_at.outdoor = -5 C` (`D-175`), which is an ordinary parameter here.
-            if (nameToken.Text is "sized_at"
-                && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals or TokenKind.Dot })
-            {
-                break;
-            }
-
             var parameter = ParseParameter(nameToken);
             if (parameter is null)
             {
@@ -66,8 +58,8 @@ internal sealed partial class LineParser
         var equals = Advance();
         var explained = diagnostics.Count;
 
-        // A value may be a list with a unit after it, or a range (`ParseLanguage2Value`).
-        var value = ParseLanguage2Value();
+        // A value may be a list with a unit after it, or a range (`ParseValue`).
+        var value = ParseValue();
 
         if (value is null)
         {

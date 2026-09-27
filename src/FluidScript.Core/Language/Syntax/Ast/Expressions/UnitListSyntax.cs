@@ -4,7 +4,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Syntax.Ast.Expressions;
 
-/// <summary>A language 2 list followed by one unit for all its items: <c>[85, 70] C</c>.</summary>
+/// <summary>A list followed by one unit for all its items: <c>[85, 70] C</c>.</summary>
 /// <param name="List">The bracketed list, one item per case in the order <c>cases</c> names them.</param>
 /// <param name="Unit">
 /// The unit's tokens as written: one identifier (<c>C</c>, <c>kW</c>), or three touching tokens for a slashed

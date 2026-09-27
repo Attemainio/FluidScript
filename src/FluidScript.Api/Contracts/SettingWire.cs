@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Api.Contracts;
 
-/// <summary>One setting a language 2 block takes, as an editor offers it (<c>19</c>, <c>52</c>, <c>A-9</c>).</summary>
+/// <summary>One setting a block takes, as an editor offers it (<c>19</c>, <c>52</c>, <c>A-9</c>).</summary>
 public sealed record SettingWire
 {
     /// <summary>The setting as a script writes it before its <c>=</c>.</summary>

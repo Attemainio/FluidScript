@@ -326,21 +326,21 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' and {count} others are not connected to the rest of the circuit.");
 
-    /// <summary>A <c>control</c> line missing one of its four named arguments.</summary>
+    /// <summary>A controller missing its <c>moves</c>, <c>reads</c> or <c>setpoint</c>.</summary>
     /// <value><c>FS1521</c>, an error.</value>
     public static DiagnosticDescriptor ControlMissingArgument { get; } = new(
         "FS1521",
         DiagnosticSeverity.Error,
         "A controller needs {list}. Missing: {missing}.");
 
-    /// <summary>An <c>actuate=</c> naming something the controller cannot move.</summary>
+    /// <summary>A controller's <c>moves</c> naming something the controller cannot move.</summary>
     /// <value><c>FS1522</c>, an error.</value>
     public static DiagnosticDescriptor ParameterNotControllable { get; } = new(
         "FS1522",
         DiagnosticSeverity.Error,
         "'{param}' of '{component}' cannot be controlled.");
 
-    /// <summary>A <c>by=</c> naming something that is not a controller.</summary>
+    /// <summary>A loop run by something that is not a controller.</summary>
     /// <value><c>FS1523</c>, an error.</value>
     public static DiagnosticDescriptor NotAController { get; } = new(
         "FS1523",
@@ -556,13 +556,13 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
 
-    /// <summary>A curve read in a static circuit whose driver has no design value.</summary>
+    /// <summary>A curve read by a static parameter whose driver has no design value: only a run has it.</summary>
     /// <value><c>FS1528</c>, an error.</value>
     /// <remarks>
     /// An error rather than a default, per <c>D-58</c>: guessing zero, or the table's first row, would
     /// put a number in front of an engineer that nothing chose. The curve and driver named are the one
-    /// the expression referenced and its own driver, not the far end of the chain, so the suggested
-    /// <c>design</c> line is one the user can write as it stands.
+    /// the expression referenced and its own driver, not the far end of the chain, so the let the message
+    /// asks for is one the user can write as it stands.
     /// </remarks>
     public static DiagnosticDescriptor CurveWithoutDesignPoint { get; } = new(
         "FS1528",
@@ -584,7 +584,7 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{curve}' needs at least two rows to interpolate between.");
 
-    /// <summary>A bare <c>control</c> endpoint whose kind names no single parameter or property.</summary>
+    /// <summary>A bare <c>moves</c> or <c>reads</c> whose kind names no single parameter or property.</summary>
     /// <value><c>FS1531</c>, an error.</value>
     /// <remarks>
     /// The other half of <c>D-61</c>'s amendment to <c>D-43</c>. Where the registry names exactly one
@@ -708,7 +708,7 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block.");
 
-    /// <summary><c>design</c> naming a case that was not declared (<c>D-143</c>).</summary>
+    /// <summary>A run's <c>from</c> naming a case that was not declared (<c>D-143</c>).</summary>
     /// <value><c>FS1542</c>, an error listing the declared names.</value>
     public static DiagnosticDescriptor UnknownDesignScenario { get; } = new(
         "FS1542",
@@ -726,18 +726,18 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}' is declared twice. Each case needs its own name.");
 
-    /// <summary>A <c>start=</c> on the project line that is not a timestamp (<c>D-149</c>).</summary>
+    /// <summary>A run's <c>start</c> that is not a time (<c>D-149</c>, <c>D-169</c>).</summary>
     /// <value><c>FS1545</c>, an error.</value>
     /// <remarks>
-    /// Read by the same reader as a time curve's rows, ISO 8601 or Unix seconds, and quoted when it is a
-    /// date, because <c>2026-01-15</c> unquoted is a subtraction.
+    /// Read by the reader a time curve's rows use, from a date, <c>2026-01-15 06:00</c>, or a quoted timestamp; an
+    /// event's date that cannot be read is reported the same way.
     /// </remarks>
     public static DiagnosticDescriptor StartUnreadable { get; } = new(
         "FS1545",
         DiagnosticSeverity.Error,
         "start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00.");
 
-    /// <summary>A dynamic circuit reads a curve that runs on the clock, and the project states no start (<c>D-149</c>).</summary>
+    /// <summary>A run reads a curve that runs on the clock, and states no start (<c>D-149</c>).</summary>
     /// <value><c>FS1546</c>, a warning on each reading parameter.</value>
     /// <remarks>
     /// The run reads every time curve at <c>start + t</c>, and <c>D-149</c> makes the start the script's
@@ -755,7 +755,7 @@ public static class BinderDiagnostics
     /// A node carries one state, the perfect mix of what arrives, so a junction's reading is never
     /// ambiguous to the solver -- but it is to the engineer: the streams arriving are not yet mixed and a
     /// real instrument sees the mix only some way downstream. Which pipe is meant is the script's to
-    /// say, by a node on it. One rule for a sensor's <c>at</c> and for <c>measure=</c>, which read the
+    /// say, by a node on it. One rule for a sensor's <c>at</c> and for a controller's <c>reads</c>, which read the
     /// same number.
     /// </remarks>
     public static DiagnosticDescriptor MeasuredJunction { get; } = new(

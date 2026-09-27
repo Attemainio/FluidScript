@@ -72,7 +72,7 @@ public sealed record RunSnapshot
     /// <summary>The schedule, in start-time order.</summary>
     public required ImmutableArray<ScheduledChange> Schedule { get; init; }
 
-    /// <summary>Every control line's setpoint, applied to the design solve or not.</summary>
+    /// <summary>Every controller's setpoint, applied to the design solve or not.</summary>
     public required ImmutableArray<Setpoint> Setpoints { get; init; }
 
     /// <summary>How long, how often a frame, and the integrator's bounds.</summary>

@@ -41,7 +41,7 @@ public sealed record KindWire
     /// <summary>Indexed property families.</summary>
     public required ImmutableArray<IndexedPropertyWire> IndexedProperties { get; init; }
 
-    /// <summary>The parameter a <c>control</c> line may actuate, or <see langword="null"/>.</summary>
+    /// <summary>The parameter a controller's <c>moves</c> may actuate, or <see langword="null"/>.</summary>
     public required string? ActuatedParameter { get; init; }
 
     /// <summary>The property a sensor of this kind measures, or <see langword="null"/>.</summary>

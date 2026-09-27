@@ -13,17 +13,16 @@ using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Transient;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Language.Translation;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
-/// Language 2 as the binder reads it (<c>plan/10-language/19-fluidscript-2.md</c> §Reading language 2 into the
-/// binder): each shape binds to what its language 1 spelling binds to, and a language 2 twin of a sample binds to the
-/// sample's model (invariant 6). Written against the translation (packages 3 and 4); since package 6 the same tests
-/// hold the binder's own reader.
+/// A script as the binder reads it (<c>plan/10-language/19-fluidscript-2.md</c> §Reading the tree into the binder):
+/// each statement shape binds to the model it means, and the reader's decisions -- ports by the flow, a controller's
+/// loop, cases and drivers, runs -- are held to what they were when they were proven.
 /// </summary>
-public sealed class Language2TranslatorTests
+public sealed class ScriptReaderTests
 {
-    /// <summary>Binds as the pipeline does, with the parser's and the translation's diagnostics ahead of the binder's.</summary>
+    /// <summary>Binds as the pipeline does, with the parser's diagnostics ahead of the reader's and the binder's.</summary>
     private static BindResult Bind(string text, string name = "script")
     {
         var source = new SourceText(text);
@@ -169,7 +168,7 @@ public sealed class Language2TranslatorTests
     [Trait("Category", "Unit")]
     public void AKelvinIsATemperatureDifference()
     {
-        // D-172: `dt = 20 K` is what language 1 writes `dt=20 dK`; there, `20 K` is FS1303.
+        // D-172: a whole `K` is a difference, so `dt = 20 K` means what `dt = 20 dK` does.
         var result = Clean("""
             fluidscript 2
             circuit "c":
@@ -882,7 +881,7 @@ public sealed class Language2TranslatorTests
     [Fact]
     [Trait("Category", "Unit")]
     public void TheReferenceScriptBindsWithNoError() =>
-        Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScript2ParserTests.Reference);
+        Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScriptParserTests.Reference);
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -1057,7 +1056,7 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ALanguage1GainIsNotALanguage2Setting()
+    public void KiIsNotAControllerSetting()
     {
         var diagnostic = Only(Controlled("""
                 ki = 0.01
@@ -1075,7 +1074,7 @@ public sealed class Language2TranslatorTests
     [Trait("Category", "Unit")]
     public void TheReferenceRunBindsItsSettingsAndEvents()
     {
-        var model = Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScript2ParserTests.Reference).Model;
+        var model = Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScriptParserTests.Reference).Model;
         var run = Assert.Single(model.Runs);
 
         Assert.Equal("Cold morning", run.Title);
@@ -1166,6 +1165,26 @@ public sealed class Language2TranslatorTests
         Assert.Equal("This event starts at 2 h, after 'r' ends at 1 h, so it never happens.", late.Message);
     }
 
+    /// <summary>A curve of time whose format cannot read a date is one diagnostic on its header (<c>D-60</c>).</summary>
+    /// <remarks>Until the language sweep this code was listed as unreachable and no test watched it fire.</remarks>
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("\"yyyy HH:mm\"", "it has no day (d)")]
+    [InlineData("\"dd yyyy HH:mm\"", "it has no month (M)")]
+    [InlineData("12", "it is not a quoted string")]
+    public void ACurveFormatThatCannotReadADateIsFS1534(string format, string reason)
+    {
+        var bad = Only($$"""
+            fluidscript 2
+
+            curve weather: time format={{format}}
+              2026-01-15 06:00   -18
+              2026-01-15 12:00    -9
+            """, "FS1534");
+
+        Assert.StartsWith($"'weather' has a format that cannot read a date: {reason}.", bad.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>A fluid written as a mixture is refused, and the plain fluid is still read (<c>L-73</c>).</summary>
     /// <remarks>Before, <c>water(30 %)</c> bound as plain water with nothing said.</remarks>
     [Fact]
@@ -1246,7 +1265,7 @@ public sealed class Language2TranslatorTests
     [Trait("Category", "Unit")]
     public void ANearMissParameterBindsNothingAndOffersTheFix()
     {
-        // D-170: language 1 reads `haed=15` as `head` under an information notice (FS1512).
+        // D-170: a name binds only by its spelling, so `haed` binds nothing and `head` is offered as the fix.
         var diagnostic = Only("""
             fluidscript 2
             circuit "c":
@@ -1320,8 +1339,8 @@ public sealed class Language2TranslatorTests
     [Trait("Category", "Unit")]
     public void ATitleIsNotARole()
     {
-        // Language 1 reads a role from the circuit's name and says so when it cannot (FS1519); a quoted title
-        // is free text, so a circuit that states no role is neutral without a word.
+        // A quoted title is free text, so a circuit that states no role is neutral without a word, and FS1519
+        // (a name that is no role) has nothing to say.
         var result = Clean("""
             fluidscript 2
             circuit "Anything at all":
@@ -1374,7 +1393,7 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void Language2IsTheCurrentMajor()
+    public void TwoIsTheCurrentMajor()
     {
         var result = ScriptCompatibility.Inspect(new SourceText("fluidscript 2\nproject \"p\":\n  catalog = steel_en10255@2026.1\n"));
 
@@ -1387,22 +1406,22 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheTranslatedTreeIsNeverTheOnePrinted()
+    public void APipedConnectionPrintsBackAsWritten()
     {
-        // The printer prints the language 2 tree; the translation's tokens exist for the binder alone.
+        // The printer prints the parse tree; the tokens the reader makes exist for the binder alone.
         const string Text = "fluidscript 2\ncircuit \"c\":\n  fluid = water\n  PU1 pump\n  N1 - PU1   12 m  DN25\n";
-        var parse = FluidScript2Parser.Parse(new SourceText(Text));
+        var parse = FluidScriptParser.Parse(new SourceText(Text));
 
         Assert.Equal(Text, SyntaxPrinter.Print(parse));
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheLanguage2TourBindsWithNothingToReport()
+    public void TheSyntaxTourBindsWithNothingToReport()
     {
-        // samples/v2-syntax-tour.fluid holds every language 2 statement; it is the positive half of the
+        // samples/v2-syntax-tour.fluid holds every statement; it is the positive half of the
         // diagnostics audit (package 4), so nothing in it is an error or a warning.
-        var tour = Assert.Single(ScriptCorpus.InLanguage(2), static source => source.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
+        var tour = Assert.Single(ScriptCorpus.Samples(), static source => source.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
         var result = Bind(tour.Text, tour.Name);
 
         Assert.True(
@@ -1482,12 +1501,12 @@ public sealed class Language2TranslatorTests
         Assert.Equal(dimension, e.Dimension?.Name);
     }
 
-    /// <summary>The declaration ceiling counts a language 2 file's components inside their circuits (<c>07</c>, <c>L-69</c>).</summary>
+    /// <summary>The declaration ceiling counts a file's components inside their circuits (<c>07</c>, <c>L-69</c>).</summary>
     [Fact]
     [Trait("Category", "Unit")]
     public void TheDeclarationCeilingCountsComponentsInsideCircuits()
     {
-        var parse = FluidScript2Parser.Parse(new SourceText("""
+        var parse = FluidScriptParser.Parse(new SourceText("""
             fluidscript 2
 
             circuit "a":

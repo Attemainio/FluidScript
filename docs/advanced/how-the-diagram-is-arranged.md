@@ -177,9 +177,9 @@ FS2403  'radiators' is named as a radiator circuit but its stated duties make it
 
 Fix the name, or the sign, whichever was wrong.
 
-**Circuits and their branches.** A subcircuit that joins its parent through `inlet` and `outlet`, or
-through two connections to the parent's nodes, is a branch off that parent. Several branches on one
-parent are a distribution group, reported with the drawing so that branches built the same way --
+**Circuits and their branches.** A circuit whose connection lines join another circuit's nodes at two
+places is a branch off that circuit, its parent. Several branches on one parent are a distribution
+group, reported with the drawing so that branches built the same way --
 the same kinds in the same sequence -- can be drawn the same way. Renaming every component in one
 branch changes nothing; inserting a valve in one of them does, and only that branch widens.
 
@@ -191,8 +191,8 @@ On a level pipe a sensor stands above it, on a vertical one to its left; a three
 on three sides has one place left for its controller. The pipes around make room for it: the run a
 sensor's node sits on is drawn long enough for the circle and a margin either side, and nothing else
 comes within a margin of it. The one signal line is the controller's measurement, and it always comes from a sensor: one you
-placed, or the one FluidScript adds when a `control` line measures a node directly
-([`control`](../functions/control.md)). Nothing moves aside for it: it leaves the sensor by any side
+placed, or the one FluidScript adds when a controller `reads` a node directly
+([`controller`](../functions/controller.md)). Nothing moves aside for it: it leaves the sensor by any side
 but the one its short line takes, crosses whatever pipes lie between, and takes the fewest bends and
 then the shortest way into the controller.
 

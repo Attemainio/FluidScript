@@ -222,6 +222,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-177` | Accepted | 2026-09-26 | The direct binder reads language 2 into small records of its own; sides resolve to the registry's ports; language 2 has no schedule roles |
 | `D-178` | Accepted | 2026-09-26 | Language 2 is bound directly against a frozen corpus, in one step, and language 1 is deleted behind it |
 | `D-179` | Accepted | 2026-09-26 | Values are read as language 2 writes them; an exchanger's ports keep their registry id and gain their language spelling |
+| `D-180` | Accepted | 2026-09-27 | One language, so nothing is numbered after it: the spec, the code and `docs/` describe language 2 alone |
 <!-- index:end -->
 
 ---
@@ -8117,3 +8118,44 @@ depends on a respelling pass.
 
 **Constrains.** `19` §Values and §Diagnostics; `13`'s `K`; `L-75`; `C-140` (the wire's `dK`, which rule 1 does not
 change because the canonical unit is pinned to the contract version).
+
+## D-180 · One language, so nothing is numbered after it: the spec, the code and `docs/` describe language 2 alone
+
+**Accepted · 2026-09-27** (the user's calls on the final sweep of `P6.11`: current text cleaned and history kept, `12`
+rewritten as the grammar, every "2" name renamed with a contract bump, retired codes kept with one neutral line, and
+`docs/` rewritten in the same sweep) · extends `D-174` · constrains [`12`](../10-language/12-grammar.md),
+[`19`](../10-language/19-fluidscript-2.md), [`16`](../10-language/16-diagnostics.md),
+[`26`](../20-core-domain/26-model-contract.md), every `defects.md`, `docs/`
+
+**What was wrong.** `D-174` removed language 1 from the code and said nothing of the text around it. After the
+switch the repository still described it: `12` was language 1's grammar under a "superseded" banner, types and a
+diagnostic area were named for telling two languages apart (`Language2Reader`, `FluidScript2Parser`, the area
+`Language2`), open defect rows and contract documents compared language 2 with a language no file can be written
+in, and `docs/` still taught `connections`, `design` and `scenarios` with `fluidscript 1` examples.
+
+**The rule.**
+
+1. **Current text describes one language.** Every contract document, every open defect row and every trap, `docs/`,
+   code, comments and tests describe the language as it is, without comparing it to language 1. History is not
+   rewritten: closed defect rows, `09`'s entries for what shipped, and this log say what happened in the words of
+   the time.
+2. **`12` is the grammar.** It holds the lexical rules, the statements, the blocks and the grammar; `19` keeps the
+   language's design reasoning and how the binder reads it.
+3. **Nothing is named for its major.** `Language2Reader` is `ScriptReader`, `FluidScript2Parser` is
+   `FluidScriptParser`, `Language2Diagnostics` is `BlockDiagnostics`, and the diagnostic areas are `Blocks`
+   (`FS18xx`) and `Style` (`FS12xx`). The area is on the metadata's wire, so the contract is `4.0` (`26`). The
+   version line still says `fluidscript 2`, because that is the major a file declares (`18`).
+4. **Retired codes stay registered and listed**, so none is reused and an old code can be looked up; each says
+   *retired (`D-174`), not reused*, and what the language does instead.
+
+**Why.** The spec and the docs are read as the truth about the language. Text that compares the language with one
+nobody can write costs every reader a translation, and a type named for its major is a claim that there is another.
+
+**Rejected.** *Rewrite history too*: closed rows would stop explaining the change they record, and the log may not be
+edited. *Delete `12` and let `19` be the grammar*: `19` would stay a document of four jobs, and the language chapter
+would lose its grammar number. *Keep the names*: no risk, but the code would keep saying there is a language 1.
+*`3.2`*: a renamed value is a removed one, which `26` makes a major.
+
+**Constrains.** `12`, `16`'s range table, `19`, `26` §Versioning, the open rows and traps of every `defects.md`,
+`docs/` (package 9 is done in this sweep), and the names of `ScriptReader`, `FluidScriptParser`, `BlockDiagnostics`
+and their tests.

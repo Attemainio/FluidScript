@@ -66,10 +66,10 @@ names.
 | Term | Script | C# | Meaning |
 |---|---|---|---|
 | **Circuit** | `circuit` | `Circuit` | A named, numbered, connected set of components sharing one fluid and solved together. A script may declare several (`D-33`). |
-| **Circuit number** | `circuit AHU 101` | `CircuitNumber` | The integer designating a circuit on a drawing. Stated in the header, or resolved automatically as the lowest unused multiple of 100 in declaration order (`D-33`). |
-| **Subcircuit** | `circuit` + `inlet`/`outlet` | `Circuit` | A circuit declared in the same script that attaches to a parent circuit at two explicitly named nodes. It is an ordinary circuit with a parent, not a distinct type. **Not a subsystem** — see below (`D-33`). |
+| **Circuit number** | `number = 101` | `CircuitNumber` | The integer designating a circuit on a drawing. Stated by the circuit's `number` setting, or resolved automatically as the lowest unused multiple of 100 in declaration order (`D-33`). |
+| **Subcircuit** | `circuit` | `Circuit` | A circuit declared in the same script whose components link to another circuit's nodes, and to no other circuit's: that circuit is its parent. It is an ordinary circuit with a parent, not a distinct type, and nothing joins it but its links (`D-166`, [`25`](../20-core-domain/25-layout-hints.md)). **Not a subsystem** — see below (`D-33`). |
 | **Inlet** / **Outlet** | `inlet`, `outlet` | `BoundaryRole.Inlet` / `Outlet` | The boundary nodes where fluid enters and leaves the model (`D-64`, spelled so by `D-115`). Each has exactly one connection. Not *supply* and *return*, which name the two pipes of a hydronic circuit and the layout's route layers. |
-| **Circuit role** | the header's name | `CircuitRole` | A circuit's classification — `ahu`, `radiator`, `hot_water`, `ground_loop` — resolved from the header name through a registry by `D-15`'s three stages, never a keyword. Feeds `D-31` thermal classification (`D-35`). |
+| **Circuit role** | `role = radiator` | `CircuitRole` | A circuit's classification — `ahu`, `radiator`, `hot_water`, `ground_loop` — resolved from the circuit's `role` setting through a registry by `D-15`'s three stages, never a keyword. Feeds `D-31` thermal classification (`D-35`). |
 | **Distribution header** | — | — | The supply and return line pair that a set of subcircuits attaches to. **Supply header** carries flow out, **return header** carries it back. |
 | **Tag** | — | `Tag` | The derived equipment designation `<circuit><code><ordinal>` — `400PU01`. Core-computed metadata carried in the model contract. **Never an identifier**: the component's name is what the user wrote (`D-34`). |
 | **Tag code** | — | `TagCode` | The one-to-three-letter code for a component kind within a tag — `PU`, `HE`, `TV`, `S`. A registry field on the kind, not a hard-coded table (`D-34`). |
@@ -88,7 +88,7 @@ names.
 | **Tank layer** | — | `TankLayer` | One equal-volume, perfectly mixed and isothermal control volume in a tank. Layers are indexed bottom to top; their stack represents stratification. |
 | **Elevation** | `elevation` | `Elevation` | The absolute height of a component above the project datum, in metres (`D-70`). A property of position: a component has one and every port of it sits there. Only a **pipe** and a bare connection span two, and a pipe's **rise** is `z(out) − z(in)` from what it connects — a pipe states no elevation of its own. Omitted, it is inherited from whatever the component is wired to without a pipe in between, and 0 only where nothing states one (`D-95`); never sized. |
 | **Rise** | — | `Rise` | A pipe's outlet height minus its inlet height, derived from the elevations of its two ends. Carries `ρgΔz` in the pipe's momentum row and `−ṁgΔz` in its energy injection. Was `pipe.elevation` before `D-70`; the word moved because a rise is not a position. |
-| **Level** | `in1_level`…`out16_level` | `NormalizedLevel` | A tank port's position between the vessel's bottom (0) and top (1), used only to pick the layer the port talks to. Thermal metadata, not metres: no hydrostatic term is formed from it. Was `in1_elevation` before `D-70`; renamed so that `elevation` means one thing. |
+| **Level** | `in.level`, `in[2].level`…`out[16].level` | `NormalizedLevel` | A tank port's position between the vessel's bottom (0) and top (1), used only to pick the layer the port talks to. Thermal metadata, not metres: no hydrostatic term is formed from it. Was `in1_elevation` before `D-70`; renamed so that `elevation` means one thing. |
 | **Pressure datum** | — | — | The node whose pressure anchors the field. Exactly one per connected component, arbitrary, often auto-picked. **Not** the same as a pressure boundary condition. |
 | **Pressure boundary** | `p` on a node | — | A real constraint holding a node at a pressure, admitting an unknown external flux. A circuit may have any number. |
 | **Gauge pressure** | bare pressure, `kPa`, `bar`, `kPag`, `barg` | — | Pressure relative to the model's recorded atmosphere; the v1 script/UI default. |
@@ -129,8 +129,8 @@ names.
 | **Steady state** | `SteadyStateSolution` | The equilibrium: all time derivatives zero. |
 | **Transient** | `TransientSolution` | Time-domain evolution from an initial state under changing boundary conditions. |
 | **Frame** | `TransientFrame` | One solved instant of a transient run: simulation time plus every component's state. |
-| **Controller** | `Controller` | A non-flow model element that measures one resolved property and actuates one writable parameter during a transient. Script keyword `controller`; `pi`, `pid` and `p` are aliases, never names (`D-40`). Its declaration carries the algorithm and gains; the `control` binding carries what it measures, actuates and targets. |
-| **Schedule** | `Schedule` | The ordered set of time-based disturbances declared after the `schedule` section marker. |
+| **Controller** | `Controller` | A non-flow model element that measures one resolved property and actuates one writable parameter during a transient. Script keyword `controller`; `pi`, `pid` and `p` are aliases, never names (`D-40`). Its one declaration carries the algorithm and gains and, by named settings, what it moves, reads and targets (`D-168`). |
+| **Schedule** | `Schedule` | The ordered set of time-based disturbances a run plays: its overrides and its `at` and `over` events ([`19`](../10-language/19-fluidscript-2.md) §Runs). |
 | **Residual** | `Residual` | How far an equation is from being satisfied at the current guess. The solver drives these to zero. |
 | **Unknown** | `Unknown` | One scalar the solver is free to change. The count of unknowns must equal the count of equations. |
 | **Well-posed** | — | Unknowns equal equations, the Jacobian is non-singular, and every branch is reachable from the pressure datum. |
@@ -142,15 +142,15 @@ names.
 | Term | C# | Meaning |
 |---|---|---|
 | **Script** | — | The source text. |
-| **Statement** | `Statement` | One logical line: a header, a declaration, a connection, or a binding. |
+| **Statement** | `Statement` | One line, or a block head with its indented body: a block, a declaration, a connection, a setting, a `let`, a curve or an event ([`12`](../10-language/12-grammar.md)). |
 | **Declaration** | `ComponentDeclaration` | A statement introducing a named component with optional parameters. |
 | **Binding** | `LetBinding` | A `let` statement naming a value. |
 | **Reference** | `MemberReference` | `HE1.dp` — reading a resolved property of another component. |
 | **Trivia** | `Trivia` | Whitespace, blank lines, and `#` comments (`D-13`). Preserved through the round trip (`R-25`). |
 | **Diagnostic** | `Diagnostic` | A coded, spanned message: error, warning, or info. |
 | **Span** | `TextSpan` | A start offset and length into the script. What an editor squiggle is drawn from. |
-| **Project directive** | `project` | — | The global statement naming the project and setting the default solve mode for every circuit in the file. Follows the version directive (`D-37`). |
-| **Control binding** | `control` | `ControlBinding` | The statement joining a controller definition to the parameter it actuates and the property it measures, with named arguments. Distinct from the controller *declaration*, which carries the algorithm and gains (`D-40`). |
+| **Project block** | — | The `project` block: the project's title and its study settings — `cases`, `catalog` and the presentation. Follows the version line (`D-37`, `D-171`). |
+| **Control binding** | `ControlBinding` | What a controller's `moves`, `reads` and `setpoint` bind: the parameter it actuates, the property it measures and its target, each by a named setting of the controller's one declaration (`D-40`, `D-168`). |
 
 ### Rendering
 
@@ -178,7 +178,7 @@ names.
 | **Transform class** | `TransformClass` | Which transforms a kind admits, a fact about the kind and hard (`28` A4, `D-108`): `free` (four quarter turns, mirrored or not), `standing` (no turn; the two mirrors and both -- every exchanger, the heat pump), `upright` (identity and the left-right mirror -- the tank). |
 | **Flow-oriented graph** | — | The circuit graph with every connection directed by its ports' nominal flow vectors (`28` A3): roles, then propagation, never the solved flow. `28` B's H9 (every flow loop clockwise) and H10 (heat left to right) are measured on it. |
 | **Fallback column** | `group fallback` | Where the layout engine puts a component no rule covers yet: a column below everything placed, its connections drawn as plain L's, never guessed (`28`, `29`). |
-| **Equipment list** | `EquipmentList` | The per-circuit table of every device and its design-point values, projected from the model contract and exported for a contractor. **Never "equipment schedule"** — `schedule` is the time-domain block keyword. Post-v1 ([`73-equipment-list`](../70-future/73-equipment-list.md)). |
+| **Equipment list** | `EquipmentList` | The per-circuit table of every device and its design-point values, projected from the model contract and exported for a contractor. **Never "equipment schedule"** — a schedule is a run's time-domain disturbances. Post-v1 ([`73-equipment-list`](../70-future/73-equipment-list.md)). |
 | **Active document** | — | The one open document that performs presentation work — layout, colour, DOM. Others retain their state, and a running transient in one keeps receiving and reconstructing frames (`D-39`, `D-42`). |
 
 ## Banned and confusable terms
@@ -190,14 +190,14 @@ names.
 | "temperature drop" for a heat exchanger | **temperature difference** | "Drop" implies a loss; a heat exchanger may raise it. |
 | `Cv` | `Kv` | Different unit systems; see above. |
 | "pressure loss" and "pressure drop" mixed | **pressure drop** | Pick one; this is it. |
-| "equipment schedule" | **equipment list** | `schedule` is the time-domain block keyword ([`12-grammar`](../10-language/12-grammar.md)). Two things called a schedule is one too many. |
-| "primary side" / "secondary side" in Core or on the wire | **side 1** / **side 2** (`in`, `out` and `in2`, `out2`) | Which side is which is a solved outcome, not a declaration (`22`). `primary`/`secondary` are display names in the equipment list and nowhere else. |
+| "equipment schedule" | **equipment list** | A schedule is a run's time-domain disturbances ([`19`](../10-language/19-fluidscript-2.md) §Runs). Two things called a schedule is one too many. |
+| "primary side" / "secondary side" in Core or on the wire | **side 1** / **side 2** (ports `in`, `out` and `in[2]`, `out[2]`; keys `in2`, `out2`) | Which way heat flows is a solved outcome, not a declaration (`22`). A script spells the sides `primary.in` / `secondary.in` (`D-179`), and the binder resolves those spellings to the ids; Core, the wire and the layout keep the ids. |
 | "pressure reference" | **pressure datum** or **pressure boundary** | Two different things; the word hid the difference and made every open circuit look over-specified. |
 | "simulation" for a steady-state solve | **solve** | Reserve "simulation" for the transient case. |
 | "pinch" for one exchanger's minimum ΔT | **approach** | "Pinch analysis" is a plant-wide network method and is out of scope; using the word for a single exchanger guarantees the two get conflated. |
 | "plate spacing", "channel gap" | **lamella** | Three words for one dimension. |
 | "hot side" / "cold side" as parameter names | **side 1 / side 2** (`in`/`out` vs `in2`/`out2`) | Which side is hot is a solved outcome. A script that says `hot_in=40` and solves to the cold side is worse than one that says nothing. |
-| "subsystem" for an inline attached circuit | **subcircuit** | A subsystem is an M6 reusable definition; a subcircuit is declared inline and attaches at named nodes. Two concepts, two words, and they must not swap (`D-33`). |
+| "subsystem" for a circuit joined inline | **subcircuit** | A subsystem is an M6 reusable definition; a subcircuit is declared inline and joins its parent through the nodes it links to. Two concepts, two words, and they must not swap (`D-33`). |
 | "name", "id" or "identifier" for `400PU01` | **tag** | The identifier is what the user wrote; the tag is derived. Conflating them is the mistake `D-34` exists to prevent, and it silently breaks every consumer keyed by id. |
 | "circuit id" | **circuit number** | The number is a drawing designation chosen by the engineer, not a system-assigned identity. |
 | "elevation" for a tank port's 0…1 position, or for a pipe's rise | **level** for the port, **rise** for the pipe | `elevation` is an absolute height in metres on a single-height component (`D-70`). A pipe has none, a tank port's fraction is not one, and one word for three quantities is how a 32 m riser lost its return. |

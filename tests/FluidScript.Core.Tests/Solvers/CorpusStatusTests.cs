@@ -37,7 +37,7 @@ public sealed class CorpusStatusTests
         // Solves in one pass: nothing in it needs sizing.
         { "m4-storage-header.fluid", SolveTermination.Converged },
 
-        // `D-141` (P6.0): the control line's setpoint holds `N2` at 20 C in the design solve and chooses
+        // `D-141` (P6.0): the controller's setpoint holds `N2` at 20 C in the design solve and chooses
         // the valve position, so the run's t = 0 is the cooling loop's design state -- 0.2393 kg/s
         // secondary, 0.0763 recirculating, the valve at 0.501, 2.55 m of head. Without that rule the
         // valve defaulted to 1 and `HE1.out.t`'s promotion drove the pump non-finite (`S-75`); with the

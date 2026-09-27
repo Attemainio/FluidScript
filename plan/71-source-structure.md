@@ -116,18 +116,19 @@ FluidScript.Core/
 │   ├── Syntax/
 │   │   ├── Text/     SourceText, LinePosition, TextEdit
 │   │   ├── Lexing/   Lexer, LexResult, Token, TokenKind, Trivia, TriviaKind
-│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser (class folder, S3)
+│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineBlock, LineParser (class folder, S3; its
+│   │   │             Lines partial reads a line, its Blocks partial a block's statements)
 │   │   ├── Printing/ Formatter, SyntaxPrinter
 │   │   └── Ast/      SyntaxNode · Statements/ · Expressions/           (one node per file, S2)
 │   ├── Binding/      Binder, SemanticModel, DependencyGraph, ExpressionEvaluator, ScenarioProjection,
 │   │   │             HeightMap, StyleSpec, NamedColours, Constants
 │   │   ├── BindingRun/  the BindingRun partials                  (class folder: namespace …Binding)
+│   │   ├── ScriptReader/ the ScriptReader partials: the tree into the records the binder binds (`19`)
+│   │   │             (class folder: namespace …Binding; its tests mirror it)
 │   │   └── Symbols/  SymbolMap, CurveSymbols, TopologySymbols
-│   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, ScheduleRoleRegistry,
-│   │                 PropertyTable, NameResolution, InputLimits, Range, SettingRegistry (language 2's
-│   │                 statement words and block settings, `L-86`), SettingInfo, SettingValueKind
-│   ├── Translation/  Language2Translator, TranslationRun (class folder) — language 2's tree into the
-│   │                 statements the binder reads (`19`, added 2026-09-25 with P6.11 package 3a)
+│   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, PropertyTable,
+│   │                 NameResolution, InputLimits, Range, SettingRegistry (the statement words and
+│   │                 block settings, `L-86`), SettingInfo, SettingValueKind
 │   └── Compatibility/ ScriptCompatibility, MajorParser
 ├── Physics/
 │   ├── Units/        unchanged contents
@@ -173,7 +174,7 @@ FluidScript.Core/
 └── Diagnostics/      Diagnostic, DiagnosticDescriptor, DiagnosticSeverity, DiagnosticArea,
     │                 DiagnosticArgument, DiagnosticRegistry, RelatedLocation, RetiredDiagnostic,
     │                 Suggestion, TextSpan
-    ├── Descriptors/  the sixteen *Diagnostics families
+    ├── Descriptors/  the seventeen *Diagnostics families
     └── Explanations/ SolveExplanation/ (class folder, S3), ScenarioExplanation
 ```
 
@@ -269,7 +270,7 @@ changes.
 
 ### What gets no base, and why
 
-- **The sixteen `*Diagnostics` families.** Static descriptor tables; a static class cannot inherit,
+- **The seventeen `*Diagnostics` families.** Static descriptor tables; a static class cannot inherit,
   and the only shared member is `All`.
 - **`SolveExplanation`, `ScenarioExplanation`, `SceneText`.** Three reports with three audiences;
   what they share is `StringBuilder`, and the guideline's "value only to the implementers" applies.

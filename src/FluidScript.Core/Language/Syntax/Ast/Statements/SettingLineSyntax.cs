@@ -4,7 +4,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 
-/// <summary>A language 2 line of <c>name = value</c> pairs.</summary>
+/// <summary>A line of <c>name = value</c> pairs.</summary>
 /// <param name="Assignments">The pairs, in source order; never empty.</param>
 /// <remarks>
 /// One shape serves three places (<c>plan/10-language/19-fluidscript-2.md</c>): a setting of the enclosing

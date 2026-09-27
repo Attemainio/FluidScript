@@ -4,20 +4,37 @@ A finite-volume liquid store. In steady state it is a mixed junction; in a trans
 equal-volume, perfectly mixed layers, indexed from the bottom up.
 
 ```fluidscript
-T1 tank volume=500 dm3 layers=8
+circuit "Buffer":
+  fluid = water
+  S1  inlet  t = 60  flow = 0.12
+  T1  tank  volume = 500 dm3  layers = 8
+  R1  outlet
+
+  S1 - T1 - R1
 ```
 
 ## Ports
 
 Indexed: `in`, `in[2]`…`in[16]` and `out`, `out[2]`…`out[16]`, all bidirectional. `in` and `out`
-always exist (`in[1]` is another way of writing `in`); the higher ones appear when a connection names
-them or a level parameter mentions them. With several ports, name them explicitly:
+always exist (`in[1]` is another way of writing `in`); the higher ones appear when a connection takes
+them or a level parameter mentions them. Written without a port, a tank's inflows take `in`, `in[2]`, …
+and its outflows `out`, `out[2]`, … in the order the connections are written, and where a side has
+more than one stream the compiler says which took which ([`FS1815`](diagnostics.md)). Name a port when
+its level matters, so the connection and the level cannot drift apart:
 
 ```fluidscript
-fluidscript 1
-connections
-T1.in[2] - N4
-T1.out - N5
+circuit "Store":
+  fluid = water
+  S1  inlet  t = 60  flow = 0.12
+  S2  inlet  t = 45  flow = 0.08
+  T1  tank  volume = 300  layers = 5  in.level = 90%  in[2].level = 30%
+  R1  outlet  flow = 0.12
+  R2  outlet  flow = 0.08
+
+  S1 - T1.in
+  S2 - T1.in[2]
+  T1.out - R1
+  T1.out[2] - R2
 ```
 
 Which way fluid actually moves through a port is decided by the solve — an `in` port with reverse flow
@@ -36,8 +53,7 @@ draws from its layer.
 | `elevation` | m | Height above the project datum, for the vessel and every port on it; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 A port's level is written on the port, the way every port state is ([syntax](syntax.md#a-ports-state)):
-`in[3].level=0.9` places the third inlet near the top. The old `in3_level=` and `t3=` spellings are
-no longer read.
+`in[3].level = 0.9` places the third inlet near the top.
 
 **`t` and the indexed `layer[1].t`…`layer[N].t` are mutually exclusive**, and if you use the indexed form you must
 state every layer. Half a profile is an error rather than a guess — the layers you left out have no
@@ -86,12 +102,12 @@ you get no value for it.
 Each layer is a state the solver integrates, and a port delivers the layer its level picks rather
 than a mixed average. After every step the layers are put back in density order if the flow left them
 inverted, pooling only the smallest block that is out of order and conserving its energy exactly. A
-stated profile is a starting disturbance, so the vessel evolves from t = 0 with nothing in the
-schedule. A layer stated at a temperature the fluid does not reach at the vessel's pressure is
+stated profile is a starting disturbance, so the vessel evolves from t = 0 with no event in
+the run. A layer stated at a temperature the fluid does not reach at the vessel's pressure is
 [`FS3108`](diagnostics.md), naming the tank and the layer.
 
 → [Stratified storage](../advanced/stratified-storage.md)
 
 ## See also
 
-[`node`](node.md) · [`schedule`](schedule.md) · [Units](units.md)
+[`node`](node.md) · [`run`](run.md) · [Units](units.md)

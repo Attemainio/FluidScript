@@ -64,7 +64,7 @@ public static class CatalogDiagnostics
         "Catalogue '{name}' has {count} row(s) without two verified public sources, starting at "
         + "'{first}'. An unverified dimension is a wrong design nobody can see.");
 
-    /// <summary>No <c>catalog</c> directive, so the shipped default was used.</summary>
+    /// <summary>No <c>catalog</c> setting, so the shipped default was used.</summary>
     /// <value><c>FS2606</c>, informational.</value>
     /// <remarks>
     /// Information rather than a warning: a new draft has no pin and should not open with a complaint.

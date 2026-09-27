@@ -28,7 +28,7 @@ binding; it never silently interprets old text as the newest language.
 
 The first non-trivia line of every durable `.fluid` file is:
 
-```fluidscript lang=2
+```fluidscript
 fluidscript 2
 
 project:
@@ -36,7 +36,7 @@ project:
 ```
 
 `fluidscript` is followed by one unsigned decimal major. `catalog` is an optional setting of the
-project block (a line of its own in language 1) and names one ASCII catalogue id and an optional
+project block and names one ASCII catalogue id and an optional
 `@major.minor` exact version. An unversioned named catalogue uses
 the application's shipped version and records it in provenance; adding a second id is an error, not a
 preference list. Neither directive accepts expressions. A BOM, blank lines, and comments may precede
@@ -91,14 +91,11 @@ any application that did not already know its version.
 valid only for that preview's source hash and target major. `ApplyMigration` rejects an unknown id or
 an `expectedHash` different from the preview and never searches for a compatible preview implicitly.
 
-**Language 2 is the current major** (`D-174`, since `P6.11` package 7 step 3, 2026-09-26).
-`SupportedVersions.Default` is current 2, supported {2}. A `fluidscript 1` file is an unsupported older major under
-the policy below — viewable as text, never compiled, solved or migrated — because language 1 is dropped, not kept
-behind a migration: no converter ships. A file with no version line is language 2. While language 2 was built beside
-language 1 (`D-164`, 2026-09-25 to 2026-09-26) the default was current 1, supported {1, 2}, and a `fluidscript 2`
-file had a disposition of its own, `SupportedNewer`, removed at the switch; a supported major is now either the
-current one or older. The catalogue pattern matches both language 1's `catalog id@version` line and language 2's
-`catalog = id@version` inside the project block.
+**The current major is 2** (`D-174`). `SupportedVersions.Default` is current 2, supported {2}. A file
+that states another major is unsupported under the policy below — viewable as text, never compiled,
+solved or migrated; no converter ships. A file with no version line is read as the current major. A
+supported major is either the current one or older. The catalogue pattern matches the project block's
+`catalog = id@version`.
 
 ### Policy (`D-27`)
 
@@ -116,41 +113,39 @@ current one or older. The catalogue pattern matches both language 1's `catalog i
   solved/exported metadata. Reopening may warn that the default changed; it never changes an active
   run snapshot.
 
-Backward-compatible additions may ship within major 1. Removing syntax, changing bare-unit meaning,
-renaming a kind/parameter without an alias, **adding a reserved word**, or changing inference
+Backward-compatible additions may ship within a major. Removing syntax, changing bare-unit meaning,
+renaming a kind/parameter without an alias, **adding a statement word**, or changing inference
 semantics requires a new language major and migration. Diagnostic wording and editor completion do not.
 
-**Adding a reserved word is a removal, not an addition**, which is why it belongs in that list rather
-than in the sentence above it. A word that was a legal identifier stops being one: a script that named
-a component `control` parsed before and fails with `FS1004` after. The addition looks purely additive
-from the grammar's side, and that is exactly what makes it easy to ship by mistake.
+**Adding a statement word is a removal, not an addition**, which is why it belongs in that list rather
+than in the sentence above it. A word that was a legal component name stops being one: had `run` been
+added after the fact, a script that named a component `run` would have parsed before and failed with
+`FS1004` after ([`19`](19-fluidscript-2.md) §Lines, blocks and names). The addition looks purely
+additive from the grammar's side, and that is exactly what makes it easy to ship by mistake.
 
 `D-110`'s trailing property list on a connection line (P5.1e, 2026-09-18) is the genuinely additive
 case, and the test is the sentence above: no word stops being an identifier, no bare connection
 changes meaning, and the only lines that read differently are ones that were malformed before. It
-ships within major 1.
+shipped within its major.
 
-`D-120`'s port-state spelling (P5.13a, 2026-09-20) is additive on the same test, with one edge. `[`
+`D-120`'s port-state spelling (P5.13a, 2026-09-20) was additive on the same test, with one edge. `[`
 and `]` were not characters of the language, and `in.t=` was a syntax error, so no well-formed line
 reads differently; `50 in.t=` and `50 in[2]` were fifty inches followed by a syntax error and are now
-a number and a name. The old spellings -- `in=`, `in2=`, `flow2=`, `t3=`, `in1_level=`, `T1.in2`,
-`HX1.t_in2` -- were not removed in major 1: each bound to the same key it always did and raised
-`FS1536`, an information notice whose `Suggestion` replaced the name span with the current spelling,
-so a saved v1 file opened, solved and printed byte for byte. **Removing them was the next major's**, and
-major 2 did (P6.11 package 7 step 6, `L-79`): a language 2 file was never written in them, the corpus
-held none, and `FS1536` is retired. The one thing a pre-`D-120` script can
+a number and a name. The spellings it replaced -- `in=`, `in2=`, `flow2=`, `t3=`, `in1_level=`,
+`T1.in2`, `HX1.t_in2` -- kept binding within their major, each to the same key with an `FS1536`
+notice whose `Suggestion` replaced the name span with the current spelling. **Removing them was the
+next major's** (`L-79`): the current major does not read them, and `FS1536` is retired. The one thing a pre-`D-120` script can
 no longer do is name a component `in`, `out` or `layer` and give it a parameter on the same line
 that happens to be a unit symbol -- which nothing in the corpus did.
 
 The pre-release exemption is the same one `D-32` relies on below: **until a v1 file can be saved, the
-reserved list may grow freely.** `D-33`, `D-37` and `D-40` added `project`, `spacing`, `supply`,
-`return` and `control` under that exemption, `D-115` (2026-09-17) used it to respell those two as `inlet` and
-`outlet`, and `D-70` (2026-09-14) used it for two removals: a
+statement words may change freely.** `D-165`–`D-171` set the current ones under that exemption, and
+`D-70` (2026-09-14) used it for two removals: a
 pipe's `elevation` — a rise, now derived from the heights of what the pipe connects — and the tank's
 `in1_elevation`…`out16_elevation`, renamed `_level` so that `elevation` means one thing. Both are
-`FS1503` on an old script, with the new spelling one edit away. Afterwards, growing the list requires a new major and a
+`FS1503` on an old script, with the new spelling one edit away. Afterwards, adding a statement word requires a new major and a
 migration that renames colliding identifiers — which is mechanical, since the migration knows both the
-old and new reserved sets and every identifier's span.
+old and new sets of statement words and every identifier's span.
 
 A sweep of this repository's own samples is **not** evidence that an addition is safe. It shows the
 change is safe for files we wrote; the files that matter are the ones users wrote, which no sweep can
@@ -186,15 +181,13 @@ without changing existing binding remains backward compatible.
 | `FS1706` | A version line repeats the major an earlier one states | Warning on each repeat; the file reads as its one major (`L-83`, 2026-09-27) |
 
 **`FS1705` was two codes for one trigger, and is now narrower.** It was specified as "version or
-catalogue directive is misplaced or duplicated" — which is exactly [`12-grammar`](12-grammar.md)'s
-`FS1112`, "a file-wide directive after the first `circuit`, or a second of either", already registered
-and already firing. A misplaced line is a *grammar* error: the statement is in the wrong place, and
-`D-53` puts a code in the range that names its subject. What only compatibility can judge is a file
-whose directives name **different majors** — the parser sees two well-formed statements, and the gate
-cannot select semantics from them. That is `FS1705`'s trigger. Two directives naming the *same* major
-was an ordinary duplicate, `FS1112` -- retired with language 1's global directives, and measured
-2026-09-26 to raise nothing in language 2 (`L-83`). Since 2026-09-27 the gate says it, as `FS1706`: it
-already collects every directive, and a repeat is harmless to the model but a line that means nothing.
+catalogue directive is misplaced or duplicated" — which was a grammar code's trigger, `FS1112`, already
+registered and firing, and now retired (`D-174`). A misplaced line is a *grammar* error: the statement
+is in the wrong place, and `D-53` puts a code in the range that names its subject. What only
+compatibility can judge is a file whose directives name **different majors** — the parser sees two
+well-formed statements, and the gate cannot select semantics from them. That is `FS1705`'s trigger. A
+second version line naming the *same* major is `FS1706` (`L-83`): the gate already collects every
+directive, and a repeat is harmless to the model but a line that means nothing.
 
 The narrowing is not a redefinition of the kind [`16-diagnostics`](16-diagnostics.md)'s invariant 7
 forbids: `FS1705` had never been registered or raised, and this table was its only reference.
@@ -204,20 +197,23 @@ migration remains explicit and previewable.
 
 ## Worked example
 
-Opening `fluidscript 1` in an application whose current language is 2 parses with v1 semantics and
-offers “Preview migration to 2”. The preview changes `pressure=3 bar` only if v2 defines a required
-explicit spelling, explains the gauge/absolute effect, and shows before/after diagnostics. Clicking
-Cancel leaves every byte unchanged.
+Opening a file whose version line states a major this application does not support — an older one
+such as `fluidscript 1`, or a newer one such as `fluidscript 3` — shows it as text with `FS1702`: it
+does not compile or solve, Save is withheld, and Save As writes the bytes unchanged. Nothing migrates
+it, because no migration to the current major ships (`D-174`). Closing it leaves every byte unchanged.
+Were a later major to ship a migration from 2, opening a `fluidscript 2` file would parse it under
+major 2's semantics and offer the preview: the diff, the semantic notes and the diagnostics before and
+after, applied only by the user.
 
 ## Acceptance criteria
 
-- [ ] Every saved sample begins with `fluidscript 1` and parses under major 1.
+- [ ] Every saved sample begins with `fluidscript 2` and parses under major 2.
 - [ ] Each supported major has parser, binder, and byte-round-trip fixtures.
 - [ ] Unsupported versions never reach sizing or solve and are never overwritten accidentally.
 - [ ] Migration preview/apply is deterministic, hash-guarded, diffable, and one-step undoable.
 - [ ] Pinned and unpinned catalogue behavior records the exact resolved version.
-- [ ] A v1 fixture containing `T1 container v=300 layers=5` retains the same canonical model and port
-      map under every application release that still supports language 1.
+- [ ] A fixture containing `T1 container v=300 layers=5` retains the same canonical model and port
+      map under every application release that still supports its major.
 
 ## Open questions
 

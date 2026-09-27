@@ -4,7 +4,7 @@ using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Registry;
 
-/// <summary>Language 2's statement words and every block's settings: the one table the parser, the reader and the metadata read (<c>19</c>, <c>L-86</c>).</summary>
+/// <summary>The statement words and every block's settings: the one table the parser, the reader and the metadata read (<c>19</c>, <c>L-86</c>).</summary>
 /// <remarks>
 /// <para>
 /// A component's parameters are the component registry's; everything else a script writes before an <c>=</c> is a
@@ -21,7 +21,7 @@ namespace FluidScript.Core.Language.Registry;
 /// </remarks>
 public static class SettingRegistry
 {
-    /// <summary>Gets the words that open a statement at a line's start (<c>19</c> §Lines, blocks and names).</summary>
+    /// <summary>Gets the words that open a statement at a line's start (<c>12</c> §Statement words and event words).</summary>
     /// <value>A component may not be named one of these; before an <c>=</c> each is a setting's name instead.</value>
     public static ImmutableArray<string> StatementWords { get; } = ["fluidscript", "project", "let", "curve", "circuit", "run"];
 
@@ -67,7 +67,7 @@ public static class SettingRegistry
         new("line", "The line's pattern", SettingValueKind.Word) { Values = ["solid", "dashed", "dotted", "dashdot"] },
     ];
 
-    /// <summary>Gets a controller declaration's settings, which replace the kind's registry parameters in language 2 (<c>D-168</c>).</summary>
+    /// <summary>Gets a controller declaration's settings, which replace the kind's registry parameters (<c>D-168</c>).</summary>
     public static ImmutableArray<SettingInfo> Controller { get; } =
     [
         new("type", "The control law; absent means PI", SettingValueKind.Word) { Values = ["P", "PI", "PID", "onoff", "curve"] },

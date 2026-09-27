@@ -13,26 +13,27 @@ namespace FluidScript.Core.Language.Binding;
 /// <summary>The per-component sizing point (<c>D-94</c>): a curve read where the component says, not where the file does.</summary>
 /// <remarks>
 /// <para>
-/// <c>design tout=-26</c> is the file's sizing point and, in a static solve, its operating point
-/// (<c>D-58</c>). A component may name its own with <c>sized_at tout=-5</c>, and every curve one of
-/// its parameters reads is then evaluated at −5 instead. The value it takes is its <em>capacity</em>:
+/// The driver <c>let</c>'s value in the operating case, <c>let outdoor = [-26, 5] C</c> at the first case, is the
+/// file's sizing point and, in a static solve, its operating point (<c>D-58</c>, <c>D-143</c>). A component may
+/// name its own with <c>sized_at.outdoor = -5 C</c> (<c>D-175</c>), and every curve one of its parameters reads
+/// is then evaluated at −5 instead. The value it takes is its <em>capacity</em>:
 /// below the point it is written at, the machine is flat out and the rest of the plant carries the
 /// difference, which is what a bivalent heat pump and its backup boiler are. In a static solve at the
 /// design day that capacity is also what it delivers, so one number serves both jobs here as well.
 /// </para>
 /// <para>
-/// <strong>It is the same machinery as <c>design</c> with a narrower scope.</strong> The values are
-/// pending expressions with the driver's role as their dimension, so <c>sized_at tout=3 bar</c> is the
-/// same mismatch <c>design tout=3 bar</c> is; a curve is read at the override when its driver has one,
-/// at the file's design value otherwise, and through a driving curve recursively — the chain
-/// <c>tout → outdoor → heating</c> is walked at −5 end to end. Nothing here changes a curve's stored
+/// <strong>It is the same machinery as the operating case with a narrower scope.</strong> The values are
+/// pending expressions with the driver's dimension, so <c>sized_at.outdoor = 3 bar</c> is a dimension
+/// mismatch; a curve is read at the override when its driver has one, at the file's design value otherwise,
+/// and through a driving curve recursively — the chain <c>outdoor → supply → heating</c> is walked at −5 end
+/// to end. Nothing here changes a curve's stored
 /// value: the override lives at the reference, so two components reading one curve at two points
 /// each get their own number.
 /// </para>
 /// <para>
 /// <strong>The fraction is reported, never stated.</strong> A heat pump "sized to 60 % of peak" is the
 /// outcome of choosing a bivalent point on a heating curve, and the number an engineer checks is the
-/// point, not the percentage. So the parameter's basis reads <em>30 kW at tout=−5, 0.6 of the 50 kW
+/// point, not the percentage. So the parameter's basis reads <em>30 kW at outdoor=−5, 0.6 of the 50 kW
 /// the design day asks</em> — both values from the same expression, evaluated twice.
 /// </para>
 /// </remarks>

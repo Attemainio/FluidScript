@@ -4,8 +4,8 @@ namespace FluidScript.Core.Topology.Construction;
 /// <remarks>
 /// <c>load power=24</c> is a 24 kW consumer and reaches the core as −24 kW; <c>heater power=24</c> as
 /// +24 kW; <c>heat_exchanger</c> keeps the sign written. One home, because every path that writes a
-/// duty into the solver -- lowering, a <c>schedule</c> line, a curve followed in time -- has to agree,
-/// and a scheduled load that heated the loop was the cost of two homes.
+/// duty into the solver -- lowering, a run's event, a curve followed in time -- has to agree,
+/// and an event on a load that heated the loop was the cost of two homes.
 /// </remarks>
 public static class ExchangerRoles
 {

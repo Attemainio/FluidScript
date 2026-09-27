@@ -14,16 +14,16 @@ internal sealed partial class LineParser
 {
     /// <summary>Gets the block the line just parsed opens, or <see langword="null"/> when it opens none.</summary>
     /// <value>
-    /// Set by <see cref="ParseLanguage2"/>. A head that failed still opens its block, so the lines indented under
+    /// Set by <see cref="ParseLine"/>. A head that failed still opens its block, so the lines indented under
     /// it are read as its body rather than each reported for being where no block allows them.
     /// </value>
-    public Language2Block? Opens { get; private set; }
+    public LineBlock? Opens { get; private set; }
 
     /// <summary>Gets the <c>:</c> ending the head line just parsed, when it is a block head written with one.</summary>
     /// <value><see langword="null"/> when the line opens no block, lacks its colon, or failed.</value>
     public Token? OpeningColon { get; private set; }
 
-    /// <summary>Parses one language 2 line, read in the block that encloses it.</summary>
+    /// <summary>Parses one line, read in the block that encloses it.</summary>
     /// <param name="context">The block the line is indented under.</param>
     /// <returns>
     /// The statement, never null; a line that cannot be read is a <see cref="MalformedStatementSyntax"/> holding
@@ -33,11 +33,11 @@ internal sealed partial class LineParser
     /// A statement in the wrong block is reported (<c>FS1802</c>) and still parsed as what it is, so the
     /// binder sees it and the one misplaced line costs one message. Every line of a curve's body is a row.
     /// </remarks>
-    public StatementSyntax ParseLanguage2(Language2Block context)
+    public StatementSyntax ParseLine(LineBlock context)
     {
         var explained = diagnostics.Count;
 
-        var statement = context == Language2Block.Curve ? ParseCurveRow() : ClassifyLanguage2(context);
+        var statement = context == LineBlock.Curve ? ParseCurveRow() : Classify(context);
 
         if (!AtEnd)
         {
@@ -58,13 +58,13 @@ internal sealed partial class LineParser
         return statement;
     }
 
-    /// <summary>Decides what a language 2 line is and parses it.</summary>
+    /// <summary>Decides what a line is and parses it.</summary>
     /// <remarks>
-    /// <c>19</c> §Lines, blocks and names: a statement word at the line's start names its statement; otherwise
+    /// <c>12</c> §Classifying a line: a statement word at the line's start names its statement; otherwise
     /// the qualified name the line starts with is followed by <c>=</c> for a setting, <c>-</c> for a
     /// connection, and anything else for a declaration. The lookahead is bounded by the line.
     /// </remarks>
-    private StatementSyntax ClassifyLanguage2(Language2Block context)
+    private StatementSyntax Classify(LineBlock context)
     {
         var first = tokens[0];
         var second = tokens.ElementAtOrDefault(1);
@@ -73,7 +73,7 @@ internal sealed partial class LineParser
         // declaration, the name says so (FS1003) and the fix is to swap the parts.
         if (first.Kind == TokenKind.QuantityLiteral && second is { Kind: TokenKind.Identifier })
         {
-            return ParseLanguage2Declaration(context);
+            return ParseDeclaration(context);
         }
 
         // Only a curve row begins with a number, a minus or a date; outside a curve's body it is FS1115, which
@@ -90,10 +90,10 @@ internal sealed partial class LineParser
             return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
         }
 
-        if (Language1Form(first, second) is { } instead)
+        if (RetiredForm(first, second) is { } instead)
         {
             return Fail(
-                Language2Diagnostics.Language1Statement,
+                BlockDiagnostics.RetiredStatement,
                 LineSpan,
                 new DiagnosticArgument("word", first.Text),
                 new DiagnosticArgument("instead", instead));
@@ -103,21 +103,21 @@ internal sealed partial class LineParser
         {
             case "fluidscript":
                 return second is { Kind: TokenKind.NumberLiteral }
-                    ? ParseLanguage2Version(context)
+                    ? ParseVersionLine(context)
                     : StatementWordAsName(first);
 
             case "project":
-                return ParseTitledHead(context, Language2Block.Project);
+                return ParseTitledHead(context, LineBlock.Project);
 
             case "circuit":
-                return ParseTitledHead(context, Language2Block.Circuit);
+                return ParseTitledHead(context, LineBlock.Circuit);
 
             case "run":
-                return ParseTitledHead(context, Language2Block.Run);
+                return ParseTitledHead(context, LineBlock.Run);
 
             case "let":
                 return second is { Kind: TokenKind.Identifier }
-                    ? ParseLanguage2Let(context)
+                    ? ParseLet(context)
                     : StatementWordAsName(first);
 
             // `curve = heating` is a controller's setting (`19` §Controllers), and a setting's name is never a
@@ -144,19 +144,19 @@ internal sealed partial class LineParser
         {
             TokenKind.Equals => ParseSettingLine(context),
             TokenKind.Minus => ParseChain(context),
-            _ => ParseLanguage2Declaration(context),
+            _ => ParseDeclaration(context),
         };
     }
 
-    /// <summary>Names the language 2 form of a language 1 statement, when the line is one (<c>FS1806</c>).</summary>
-    /// <returns>The advice completing <c>FS1806</c>'s message, or <see langword="null"/> when the line is not language 1's.</returns>
+    /// <summary>Names what the language writes instead, when the line has the shape of a retired statement (<c>FS1806</c>).</summary>
+    /// <returns>The advice completing <c>FS1806</c>'s message, or <see langword="null"/> when the line has no retired shape.</returns>
     /// <remarks>
-    /// Each shape is language 1's exactly, so a language 2 line that merely starts with the same word is not
-    /// caught: <c>control - N1</c> is a connection, <c>fluid = water</c> a setting. The cost is that a
-    /// component may not be declared under one of these words — <c>design valve</c> reads as language 1's
-    /// <c>design</c> — which is the reading far more likely to be meant.
+    /// Each shape is matched exactly, so a line that merely starts with the same word is not caught:
+    /// <c>control - N1</c> is a connection, <c>fluid = water</c> a setting. The cost is that a component may not
+    /// be declared under one of these words — <c>design valve</c> reads as the retired <c>design</c> line — which
+    /// is the reading far more likely to be meant.
     /// </remarks>
-    private string? Language1Form(Token first, Token? second)
+    private string? RetiredForm(Token first, Token? second)
     {
         var third = tokens.ElementAtOrDefault(2);
         var wordAfter = second is { Kind: TokenKind.Identifier };
@@ -192,7 +192,7 @@ internal sealed partial class LineParser
         };
     }
 
-    /// <summary>Reports a statement word written where a name belongs, <c>run pump</c>, with language 1's <c>FS1004</c>.</summary>
+    /// <summary>Reports a statement word written where a name belongs, <c>run pump</c>, as <c>FS1004</c>.</summary>
     private MalformedStatementSyntax StatementWordAsName(Token word) =>
         Fail(ParserDiagnostics.ReservedWordAsName, word.Span, new DiagnosticArgument("word", word.Text));
 
@@ -211,7 +211,7 @@ internal sealed partial class LineParser
         if (!legal)
         {
             Report(
-                Language2Diagnostics.StatementOutsideItsBlock,
+                BlockDiagnostics.StatementOutsideItsBlock,
                 LineSpan,
                 new DiagnosticArgument("statement", statement),
                 new DiagnosticArgument("place", place));
@@ -246,13 +246,13 @@ internal sealed partial class LineParser
         tokens.ElementAtOrDefault(index) is { Kind: TokenKind.Identifier }
         && tokens.ElementAtOrDefault(SkipQualifiedName(index)) is { Kind: TokenKind.Equals };
 
-    /// <summary>Reads a language 2 value: an expression, a range of two, or a list with an optional unit after it.</summary>
+    /// <summary>Reads a value: an expression, a range of two, or a list with an optional unit after it.</summary>
     /// <remarks>
-    /// <c>19</c> §Values: <c>[85, 70] C</c> and <c>30..40 min</c>. The unit after a list is read by
+    /// <c>12</c> §Values: <c>[85, 70] C</c> and <c>30..40 min</c>. The unit after a list is read by
     /// <see cref="TakeUnitSuffix"/>; the unit on a range's upper end is lexed with its number, and applying it
     /// to both ends is the binder's.
     /// </remarks>
-    private ExpressionSyntax? ParseLanguage2Value()
+    private ExpressionSyntax? ParseValue()
     {
         if (Current is { Kind: TokenKind.OpenBracket })
         {
@@ -296,33 +296,33 @@ internal sealed partial class LineParser
             && slash.Span.Start == first.Span.End
             && second.Span.Start == slash.Span.End
             && !StartsNextParameter(_index + 3)
-            && IsLanguage2Unit(first.Text + slash.Text + second.Text))
+            && IsUnitSpelling(first.Text + slash.Text + second.Text))
         {
             return [Advance(), Advance(), Advance()];
         }
 
-        return IsLanguage2Unit(first.Text) ? [Advance()] : [];
+        return IsUnitSpelling(first.Text) ? [Advance()] : [];
     }
 
-    private static bool IsLanguage2Unit(string symbol) =>
+    private static bool IsUnitSpelling(string symbol) =>
         UnitTable.IsSymbol(symbol) && !Lexer.ExcludedUnitSymbols.Contains(symbol);
 
-    /// <summary>Reads what follows a name in a language 2 value: a reference, or a catalogue pinned to a version.</summary>
+    /// <summary>Reads what follows a name in a value: a reference, or a catalogue pinned to a version.</summary>
     /// <param name="name">The name, already consumed.</param>
     /// <remarks>
     /// A unit may follow a reference, <c>heating kW</c>, to give a curve's bare numbers a unit (<c>L-35</c>,
-    /// <c>D-57</c>), and a list's trailing unit reaches a bare name the same way (<c>19</c> §Values). Only a spelling
+    /// <c>D-57</c>), and a list's trailing unit reaches a bare name the same way (<c>12</c> §Values). Only a spelling
     /// the unit table holds is taken, so a name after a name is never read as a unit.
     /// </remarks>
-    private ExpressionSyntax? ParseLanguage2Name(IdentifierSyntax name)
+    private ExpressionSyntax? ParseName(IdentifierSyntax name)
     {
         if (Current is not { Kind: TokenKind.At } at || at.Span.Start != name.Span.End)
         {
-            // `power = heating kW` gives a curve's bare numbers a unit (`L-35`, `D-57`), as in language 1.
+            // `power = heating kW` gives a curve's bare numbers a unit (`L-35`, `D-57`).
             return ParseReference(name) is { } reference ? WithUnit(reference) : null;
         }
 
-        // The version arrives as one number token, as in language 1's `catalog` line.
+        // The version arrives as one number token: `2026.1` lexes as a decimal.
         if (tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.NumberLiteral } number
             || number.Span.Start != at.Span.End
             || !number.Text.Contains('.', StringComparison.Ordinal))

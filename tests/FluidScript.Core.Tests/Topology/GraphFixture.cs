@@ -34,8 +34,8 @@ public static class GraphFixture
     /// <returns>The model its one run describes, or the bound model -- the steady design -- when the script has no run or
     /// several.</returns>
     /// <remarks>
-    /// A language 2 file keeps its mode on a run, so the bound model alone is the steady design; the run makes its
-    /// circuits dynamic and carries its schedule (<see cref="RunProjection"/>).
+    /// A file keeps its mode on a run, so the bound model alone is the steady design; the run makes its circuits
+    /// dynamic and carries its events (<see cref="RunProjection"/>).
     /// </remarks>
     public static SemanticModel BindRun(string source)
     {

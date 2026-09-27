@@ -11,8 +11,8 @@ saved file. A file without it cannot be saved durably: the version is what lets 
 still mean the same thing when the language has moved on.
 
 The current version is **2**, and it is the only one this FluidScript reads. A draft with no version line
-is read as version 2. Version 1, the language before it, was replaced rather than kept alongside: a
-`fluidscript 1` file opens read-only as text, and nothing converts it.
+is read as version 2. A file that states another major opens read-only as text, and nothing converts
+it.
 
 ## Rules
 
@@ -31,7 +31,7 @@ allowed to do with the file. It never guesses.
 | The current version | Everything. |
 | An older version FluidScript still supports | Edit, solve and save. The file is read under *its* rules, not today's, and opening it changes nothing. You are offered a migration; nothing is migrated until you accept it. No version is in this row today. |
 | A version newer than this FluidScript | Read it as text and save a copy. It is not compiled, not solved, and never overwritten. |
-| An older version FluidScript has dropped | The same. Version 1 is in this row. |
+| An older version FluidScript has dropped | The same. A `fluidscript 1` file is in this row. |
 | Nothing at all | Edit and solve as a draft, with `FS1701`. **Save is disabled** until you add the line — one click, and FluidScript inserts the current version for you. |
 
 Two `fluidscript` lines naming *different* versions is `FS1705`. There is no rule about which one
@@ -48,4 +48,4 @@ that can be fixed is before it is written.
 
 ## See also
 
-[`catalog`](catalog.md) · [`project`](project.md) · [`circuit`](circuit.md)
+[`project`](project.md) · [`catalog`](catalog.md) · [`circuit`](circuit.md)

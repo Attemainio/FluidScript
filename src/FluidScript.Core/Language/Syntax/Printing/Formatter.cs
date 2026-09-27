@@ -11,14 +11,14 @@ using FluidScript.Core.Language.Syntax.Text;
 
 namespace FluidScript.Core.Language.Syntax.Printing;
 
-/// <summary>The formatter (<c>17</c>): language 2's canonical layout, on request, as edits.</summary>
+/// <summary>The formatter (<c>17</c>): the canonical layout, on request, as edits.</summary>
 /// <remarks>
 /// <para>
 /// The printer never changes whitespace; this does, and only when the user asks. The layout is this project's own,
 /// since nothing outside it fixes one (<c>17</c> §The formatter's layout). A line is indented two spaces for each block
-/// it sits in, as the parse reads it (<c>19</c> §Lines, blocks and names). Within a line, its <em>fields</em> -- a
+/// it sits in, as the parse reads it (<c>12</c> §Lines and blocks). Within a line, its <em>fields</em> -- a
 /// declaration's name, kind, <c>at</c> and each <c>name = value</c>, each setting on a shared line, each property of a
-/// pipe, an event's target -- are two spaces apart, because in language 2 a value runs to the next <c>name =</c> and
+/// pipe, an event's target -- are two spaces apart, because a value runs to the next <c>name =</c> and
 /// one space would run the pairs together to the eye; a pipe's first property is three spaces past its link, which
 /// sets the pipe apart from the connection it sits on, as the samples were written. An <c>=</c> has one space on each side, a <c>:</c> none before and
 /// one after, and a connection's <c>-</c> one on each side; inside a value the writer's spacing stands, collapsed to one
@@ -54,14 +54,14 @@ public static class Formatter
         ArgumentNullException.ThrowIfNull(source);
 
         var compatibility = ScriptCompatibility.Inspect(source);
-        var languageTwo = compatibility.DetectedMajor is { Value: 2 }
+        var supported = compatibility.DetectedMajor is { Value: 2 }
             || compatibility.Disposition == CompatibilityDisposition.UnversionedDraft;
-        if (!languageTwo)
+        if (!supported)
         {
             return [];
         }
 
-        var lines = Analyse(source, FluidScript2Parser.Parse(source));
+        var lines = Analyse(source, FluidScriptParser.Parse(source));
         AlignRuns(lines);
 
         var edits = ImmutableArray.CreateBuilder<TextEdit>();
@@ -239,16 +239,6 @@ public static class Formatter
                 foreach (var parameter in declaration.Parameters)
                 {
                     yield return parameter.Tokens[0];
-                }
-
-                if (declaration.SizedAtKeyword is { } sizedAt)
-                {
-                    yield return sizedAt;
-                }
-
-                foreach (var point in declaration.SizingPoint.Skip(declaration.SizedAtKeyword is null ? 0 : 1))
-                {
-                    yield return point.Tokens[0];
                 }
 
                 break;

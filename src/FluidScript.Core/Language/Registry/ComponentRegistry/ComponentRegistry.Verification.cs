@@ -7,10 +7,10 @@ namespace FluidScript.Core.Language.Registry;
 public sealed partial class ComponentRegistry
 {
     // Everything asserted here is a rule the data can break silently. A duplicated normalised spelling
-    // would make one kind unreachable depending on registration order; a spelling equal to a statement
-    // word would be unwriteable, because the parser refuses a statement word where a name belongs
-    // (`19`; language 1's `D-40` did the same to `control`); a tag code that lexes as a unit would
-    // produce equipment tags the language reads as numbers.
+    // would make one kind unreachable depending on registration order; a kind spelled as a statement
+    // word would blur the two vocabularies a reader tells a line apart by (`12` §Statement words and
+    // event words); a tag code that lexes as a unit would produce equipment tags the language reads as
+    // numbers.
     private static void Verify(
         ImmutableArray<ComponentKindInfo> kinds,
         ImmutableDictionary<string, ComponentKindInfo> index)
@@ -30,9 +30,8 @@ public sealed partial class ComponentRegistry
 
                 claimed[normalized] = kind.Keyword;
 
-                // Language 1 let a kind's own keyword be a reserved word (`D-64`: `S1 inlet t=5`), since
-                // its statements were told apart by the first token alone. Language 2 refuses a statement
-                // word wherever a name belongs, kind position included, so no spelling may be one.
+                // The parser takes whatever word stands in kind position, so it is the registry that keeps
+                // a kind or alias from being spelled as a statement word.
                 if (SettingRegistry.IsStatementWord(spelling))
                 {
                     throw new InvalidOperationException(

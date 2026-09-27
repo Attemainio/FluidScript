@@ -30,7 +30,7 @@ saved text takes the dot away again, since what decides it is the text, not the 
 keystrokes.
 
 **A draft that states no language version cannot be saved.** The first line of a file is
-`fluidscript 1`, and a file without it could not be read with certainty years from now, so Save
+`fluidscript 2`, and a file without it could not be read with certainty years from now, so Save
 offers to add the line rather than write the file without it. The editor's quick fix on the first
 line does the same.
 
@@ -72,6 +72,6 @@ shows both. There is no button that overwrites the other program's work without 
 
 A file whose first line names a FluidScript version this build does not understand opens
 read-only: you can see it and download it, its bytes stay exactly as they were, and Save is
-refused. A `fluidscript 1` file is one of these: version 2 replaced version 1, and nothing migrates
-it. Migration to the current version is offered as an explicit step only for an older version this build
+refused. A file whose version line names another major is one of these, and nothing migrates it.
+Migration to the current version is offered as an explicit step only for an older version this build
 still reads; none is read today.

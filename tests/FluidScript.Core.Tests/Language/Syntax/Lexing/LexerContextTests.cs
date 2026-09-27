@@ -4,10 +4,10 @@ using FluidScript.Core.Language.Syntax.Text;
 namespace FluidScript.Core.Tests.Language.Syntax.Lexing;
 
 /// <summary>
-/// Where the lexer reads language 2's text differently from what its characters alone suggest
-/// (<c>plan/10-language/19-fluidscript-2.md</c> §Values, units, lists and ranges).
+/// Where the lexer reads a script differently from what its characters alone suggest
+/// (<c>plan/10-language/12-grammar.md</c> §Units and quantities, §Dates and clock times).
 /// </summary>
-public sealed class Language2LexerTests
+public sealed class LexerContextTests
 {
     private static Token[] Significant(string text) =>
         [.. Lexer.Lex(new SourceText(text)).Tokens.Where(static token => token.Kind != TokenKind.EndOfFile)];

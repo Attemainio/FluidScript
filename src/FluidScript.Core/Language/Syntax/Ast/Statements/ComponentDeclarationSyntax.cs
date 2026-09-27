@@ -14,12 +14,11 @@ namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 /// kind accepts one; the parser records it wherever it is written and the binder decides.
 /// </param>
 /// <param name="Parameters">The stated parameters. An omitted one is absence, never null.</param>
-/// <param name="SizedAtKeyword">The <c>sized_at</c> word, or <see langword="null"/> when the component takes the file's design point.</param>
 /// <param name="SizingPoint">
-/// The driver values this component is sized at (<c>D-94</c>), each a <c>driver=value</c> pair as a
-/// <c>design</c> line writes them. Empty when there is no clause. A heat pump written
-/// <c>sized_at tout=-5</c> reads its curve at −5 where the rest of the plant reads it at the design
-/// day; the bivalent point is the engineer's decision and this is where it is written.
+/// The driver values this component is sized at (<c>D-94</c>, <c>D-175</c>), each a <c>driver = value</c> pair.
+/// The parser leaves it empty: a script writes each as a setting, <c>sized_at.outdoor = -5 C</c>, and the reader
+/// moves those here. A heat pump written so reads its curve at −5 where the rest of the plant reads it at the
+/// design day; the bivalent point is the engineer's decision and this is where it is written.
 /// </param>
 public sealed record ComponentDeclarationSyntax(
     IdentifierSyntax Name,
@@ -27,7 +26,6 @@ public sealed record ComponentDeclarationSyntax(
     Token? AtKeyword,
     IdentifierSyntax? AttachedTo,
     ImmutableArray<ParameterSyntax> Parameters,
-    Token? SizedAtKeyword,
     ImmutableArray<ParameterSyntax> SizingPoint) : StatementSyntax
 {
     /// <inheritdoc/>
@@ -39,7 +37,6 @@ public sealed record ComponentDeclarationSyntax(
             ? new[] { at }.Concat(node.Tokens)
             : [],
         .. Parameters.SelectMany(static parameter => parameter.Tokens),
-        .. SizedAtKeyword is { } sizedAt ? new[] { sizedAt } : [],
         .. SizingPoint.SelectMany(static parameter => parameter.Tokens),
     ];
 }

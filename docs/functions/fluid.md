@@ -1,28 +1,26 @@
 # fluid
 
-What a circuit carries, and how it is solved.
+What a circuit carries: a setting of the [`circuit`](circuit.md) block.
 
 ```fluidscript
-fluidscript 1
-circuit coolingLoop
-fluid water
-```
+fluidscript 2
 
-```fluidscript
-fluidscript 1
-circuit storage
-fluid dynamic water
+circuit "Cooling loop":
+  fluid = water
 ```
 
 ## Rules
 
-- `fluid <substance>` names the working fluid for the circuit it appears in.
-- `fluid dynamic` solves in time; `fluid static` solves as a steady state. Either overrides the
-  default [`project`](project.md) set.
+- `fluid = <substance>` names the working fluid of the circuit whose block it is in. It is a circuit
+  setting only: at the top level of the file, or in the project block, it is
+  [`FS1802`](diagnostics.md) or [`FS1503`](diagnostics.md).
+- A circuit that states no fluid carries water.
+- It says nothing about how the circuit is solved. The design solve is steady; a [`run`](run.md)
+  solves in time, and names in its `steady` setting the circuits it holds quasi-steady.
 - A fluid takes no arguments yet. `water(30 %)` would describe a glycol mixture, and mixtures are
   not in this version: it is refused ([`FS2007`](diagnostics.md)) rather than solved as plain water,
   whose heat capacity and viscosity would be several percent off.
-- Air-side substances are deliberately not accepted in this version. A fan-and-duct model needs
+- Air-side substances are deliberately not solved in this version. A fan-and-duct model needs
   humidity balance, condensation, leakage and fan curves; naming an air fluid without them would
   produce a hydronic answer wearing air-side names.
 
@@ -55,4 +53,4 @@ other basis is 0.3 % away, which is small enough to look like rounding and large
 
 ## See also
 
-[`project`](project.md) · [`circuit`](circuit.md) · [`schedule`](schedule.md)
+[`circuit`](circuit.md) · [`run`](run.md) · [`project`](project.md)

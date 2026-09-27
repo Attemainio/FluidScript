@@ -11,7 +11,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
 
     /// <summary>Records every declared component's kind and every name a chain uses, across all circuits.</summary>
@@ -91,7 +91,7 @@ internal sealed partial class Language2Reader
 
     /// <summary>Reads one circuit block: its header, settings, style and body.</summary>
     /// <param name="block">The block.</param>
-    /// <param name="withLets">Whether the file's <c>let</c>s go in this circuit: the first, as language 2 declares them for the file.</param>
+    /// <param name="withLets">Whether the file's <c>let</c>s go in this circuit: the first, since a script declares them for the whole file.</param>
     private BindingRun.CircuitBlock ReadCircuit(BlockSyntax block, bool withLets)
     {
         var head = (CircuitHeadSyntax)block.Head;
@@ -242,7 +242,7 @@ internal sealed partial class Language2Reader
         return null;
     }
 
-    /// <summary>Translates a declaration, gathering a block's parameter lines onto it.</summary>
+    /// <summary>Reads a declaration, gathering a block's parameter lines onto it.</summary>
     /// <param name="declaration">The declaration line.</param>
     /// <param name="body">The <c>name = value</c> pairs indented under it, when it heads a block.</param>
     private ComponentDeclarationSyntax Declaration(
@@ -257,7 +257,7 @@ internal sealed partial class Language2Reader
             if (attachedTo is not null)
             {
                 Report(
-                    Language2Diagnostics.SensorPlacedTwice,
+                    BlockDiagnostics.SensorPlacedTwice,
                     TextSpan.FromBounds(atKeyword!.Span.Start, attachedTo.Span.End),
                     ("sensor", declaration.Name.Text),
                     ("node", attachedTo.Text));
@@ -276,7 +276,6 @@ internal sealed partial class Language2Reader
             AtKeyword = atKeyword,
             AttachedTo = attachedTo,
             Parameters = [.. written.Except(point).Select(Parameter)],
-            SizedAtKeyword = point.Count == 0 ? null : point[0].Name.Head.Name.Token,
             SizingPoint = [.. point.Select(SizingPoint)],
         };
     }
@@ -288,7 +287,7 @@ internal sealed partial class Language2Reader
         && setting.Name.Head.Index is null
         && string.Equals(setting.Name.Head.Name.Text, "sized_at", StringComparison.Ordinal);
 
-    /// <summary><c>sized_at.outdoor = -5 C</c> as language 1's <c>outdoor=-5 C</c> after <c>sized_at</c>: the driver named, its value translated.</summary>
+    /// <summary><c>sized_at.outdoor = -5 C</c> as the binder's sizing point <c>outdoor = -5 C</c>: the driver named, its value in the form the evaluator reads.</summary>
     private ParameterSyntax SizingPoint(ParameterSyntax setting) =>
         setting with { Name = new QualifiedNameSyntax(setting.Name.Parts[0].Name, []), Value = Value(setting.Value) };
 
@@ -297,10 +296,9 @@ internal sealed partial class Language2Reader
 
     /// <summary>Reads a chain as one connection per link, each end with its port as written or as the flow settled it.</summary>
     /// <remarks>
-    /// Language 1 reads <c>A - B - C</c> as two connections (rule I6) and gives an unnamed end a port by preference
-    /// order. Language 2's ports come from the flow direction (<see cref="InferPorts"/>), and a component in the middle
-    /// of a chain takes a different port on each side of it, which one language 1 endpoint cannot say — so the chain
-    /// is written link by link. The pipe of a one-link line stays on that line.
+    /// Ports come from the flow direction (<see cref="InferPorts"/>), and a component in the middle of a chain takes a
+    /// different port on each side of it, which one endpoint for the whole chain could not say — so the chain is read
+    /// link by link. The pipe of a one-link line stays on that line.
     /// </remarks>
     private IEnumerable<BindingRun.ConnectionLine> ReadChain(ConnectionSyntax chain, ImmutableArray<ParameterSyntax> pipe)
     {
@@ -332,7 +330,7 @@ internal sealed partial class Language2Reader
             : new BindingRun.LineEnd(name, endpoint.Component.Span, _inferred.GetValueOrDefault((endpoint.Span.Start, inflow)), endpoint.Span, endpoint.Span);
     }
 
-    /// <summary>Translates a pipe's description after its link, <c>12 m  DN25  roughness = 0.05 mm</c>, into language 1's parameters (<c>D-166</c>, <c>D-110</c>).</summary>
+    /// <summary>Reads a pipe's description after its link, <c>12 m  DN25  roughness = 0.05 mm</c>, as the implicit pipe's parameters (<c>D-166</c>, <c>D-110</c>).</summary>
     private ImmutableArray<ParameterSyntax> Pipe(ImmutableArray<SyntaxNode> properties)
     {
         var parameters = ImmutableArray.CreateBuilder<ParameterSyntax>();
@@ -353,7 +351,7 @@ internal sealed partial class Language2Reader
                     break;
 
                 case IdentifierSyntax other:
-                    Report(Language2Diagnostics.NotAPipeSize, other.Span, ("text", other.Text));
+                    Report(BlockDiagnostics.NotAPipeSize, other.Span, ("text", other.Text));
                     break;
 
                 case ParameterSyntax named:

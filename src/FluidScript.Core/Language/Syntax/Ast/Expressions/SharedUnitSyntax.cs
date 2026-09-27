@@ -11,8 +11,8 @@ namespace FluidScript.Core.Language.Syntax.Ast.Expressions;
 /// <param name="UnitSpan">Where that unit is written.</param>
 /// <remarks>
 /// <para>
-/// The language 2 reader makes this node; the parser never does. A list's trailing unit belongs to each bare item and
-/// a range's upper unit to a bare lower end (<c>19</c> §Values), and the evaluator applies it when the value is
+/// The reader (<c>ScriptReader</c>) makes this node; the parser never does. A list's trailing unit belongs to each bare item and
+/// a range's upper unit to a bare lower end (<c>12</c> §Values), and the evaluator applies it when the value is
 /// evaluated (<c>D-179</c>) -- so the item stays what the author wrote, with no token made up to carry a unit it was
 /// not written with (<c>L-75</c>).
 /// </para>

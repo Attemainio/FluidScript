@@ -111,13 +111,13 @@ flow the exchanger was sized for*, not a thermostat.
 |---|---|---|
 | A stated thermal value on a non-boundary component — `out.t`, `in.t`, a `dt`, a stated exchanger flow | Constraint, exactly as static mode; promotes what `D-130` says | **Released.** Its solved value is the initial condition; the promoted quantity is **frozen** at its design value |
 | A sized value | Sized | Frozen (invariant 4) |
-| A boundary state — `inlet t=`, `p=`, `flow=` | Constraint | Constraint, unless a schedule moves it |
-| An input — `power=` | Constraint | Constraint, unless a schedule moves it |
-| A `control` binding on an unstated actuator | Its setpoint constrains the measurement and promotes the actuator (`D-141`) | The controller drives the actuator |
-| A scheduled parameter | Stated at its design value (frozen if it was sized or promoted) | Moved by the schedule |
+| A boundary state — `inlet t=`, `p=`, `flow=` | Constraint | Constraint, unless an event moves it |
+| An input — `power=` | Constraint | Constraint, unless an event moves it |
+| A controller whose actuator is unstated | Its setpoint constrains the measurement and promotes the actuator (`D-141`) | The controller drives the actuator |
+| A parameter an event targets | Stated at its design value (frozen if it was sized or promoted) | Moved by the event |
 
-**No implicit controllers.** Following a value in time takes a `control` line (`D-40`, `D-43`). A
-`schedule` target that is also a binding's actuator is `FS3109` at bind time.
+**No implicit controllers.** Following a value in time takes a controller declaration (`D-40`, `D-168`).
+An event whose target is also a controller's actuator is `FS3109` at bind time.
 
 **No pump heating in v1.** A pump's shaft work ends up as heat in the water, a fraction of a kelvin
 per pass, and `PumpComponent` writes no energy term (`C-47`). A run therefore shows a closed loop that never
@@ -325,7 +325,7 @@ never longer than `frameInterval`.
 
 ## Disturbances
 
-A transient needs something to disturb it. v1's schedule:
+A transient needs something to disturb it: v1's events, each a line of a run (`19` §Runs):
 
 | Form | Meaning |
 |---|---|
@@ -342,8 +342,8 @@ because `D-69`'s flux member is on `IFlowComponent` rather than on the exchanger
 
 **A curve of time is a disturbance too** (`D-149`). A parameter written as a curve in a dynamic
 circuit — `HE1 heat_exchanger power=heating`, with `heating` driven by `outdoor` and `outdoor` by
-`time` — is read again at every evaluation time at `start + t`, where `start` is the project line's
-`start=`. `CurveClock` holds the drives and evaluates each parameter's own expression with the binder's
+`time` — is read again at every evaluation time at `start + t`, where `start` is the run's
+`start`. `CurveClock` holds the drives and evaluates each parameter's own expression with the binder's
 evaluator; `TransientSolver.Follow` writes the value through `EquationSystem.Schedule` beside the
 schedule, and `NextEvent` lands a step on every row of a time curve. **Measured** on the demand-step loop
 with a weather chain, outdoor −26 → −6 °C over five minutes and `heating` 30 → 15 kW: the rise across
@@ -353,21 +353,20 @@ the final frame is `SteadyAt`'s at the horizon, which reads the same clock.
 **An event replaces what drove its target** (`D-169`, fixed in P6.11 slice 3e). At each evaluation the solver wrote
 the schedule and then the clock's drives, so a parameter both scheduled and following a curve took the curve's value
 at every step and the event never showed. The clock is now written first and the schedule after it: before an
-event's start the curve drives, from it on the event does. **Measured** on the weather loop written in language 2
+event's start the curve drives, from it on the event does. **Measured** on the weather loop
 with `at 10 min HE1.power = 20 kW`: the rise across `HE1` is 15.0 K at 590 s and 20.0 K at the horizon; with the old
-order it stayed at 14.98 K. The same order holds for language 1's `schedule`.
+order it stayed at 14.98 K.
 
-**A language 2 run** (`D-169`) supplies what a language 1 file states on its project line and circuits: the horizon
-and frame (`TransientSettings.Of`), the starting case, `start`, which circuits are dynamic, and the schedule.
+**A run** (`D-169`) supplies the horizon and frame (`TransientSettings.Of`), the starting case, `start`, which
+circuits are dynamic, and the events.
 `RunProjection.Project` turns the model and one run into the model the run solves, and everything in this document
 then runs on it unchanged. An override holds from t = 0: a parameter's is a step at 0, a `let`'s value is evaluated
 by the binder into a step at 0 on every parameter that reads it, and a driver handed to a curve of time re-points
-that driver's curves at it, so they follow the clock through `CurveClock` as a language 1 chain does.
+that driver's curves at it, so they follow the clock through `CurveClock`.
 
-**[`19`](../10-language/19-fluidscript-2.md) §Runs now defines this**, as a run block whose `at` and `over`
-lines are events (language 1's `schedule` section, [`12`](../10-language/12-grammar.md), went with language 1).
-`at` and `over` open a statement only inside a run -- the block classifies them, as position classifies every
-language 2 statement -- and the target is the `component.parameter` shape the expression grammar already
+**[`19`](../10-language/19-fluidscript-2.md) §Runs defines this**, as a run block whose `at` and `over`
+lines are events ([`12`](../10-language/12-grammar.md) has their grammar). `at` and `over` open a statement
+only inside a run -- the block classifies them, as position classifies every statement -- and the target is the `component.parameter` shape the expression grammar already
 parses. The alternative, disturbances configured in the UI outside the script, violates principle P5 and was
 rejected there.
 
@@ -498,10 +497,9 @@ package needed rather than a settled contract:
   built.
 - `Schedule` is on the graph (`CircuitGraph.Schedule`, lowered from the model's disturbances with SI
   times and values, targets the factory dropped left out) and copied into the snapshot in start-time
-  order. `ScheduledChange` carries `FromValue = null` for a step and both ends for a ramp; a single
-  value over a span is a step at the span's end, which is what `12` says and what the binder now does
-  (it used to fill both ends with the one value, which is a hold, not a step).
-- `Controls` is `Setpoints` — the graph's resolved control lines, applied or not — until P6.3 builds
+  order. `ScheduledChange` carries `FromValue = null` for a step and both ends for a ramp; a ramp
+  written with one value is `FS1807` and never reaches it (`19` §Runs).
+- `Controls` is `Setpoints` — the graph's resolved controller bindings, applied or not — until P6.3 builds
   the control law that a `ControlBinding` carries. `Limits` arrives with the integrator in P6.1 with
   `FS3101`–`FS3103`.
 - Two initial vectors the block above folds into `Initial`: `DifferentialInitial`, one value per
@@ -556,11 +554,11 @@ package needed rather than a settled contract:
 | `FS3102` | Step fell below `MinStep` | Error | `The simulation cannot advance past {time} s. Something is changing faster than the model can follow.` |
 | `FS3103` | Algebraic solve failed within a step | Error | `Could not balance the circuit at t = {time} s: {inner}.` |
 | `FS3104` | Horizon reached before settling | Info | `Still changing at {horizon} s. Extend the run to see it settle.` |
-| `FS3105` | A schedule target is a parameter the run cannot move — a boundary state, a size, a parameter the component does not resolve at solve time (`S-77`) | Error | `Cannot change '{target}' — {reason}.` |
+| `FS3105` | An event's target is a parameter the run cannot move — a boundary state, a size, a parameter the component does not resolve at solve time (`S-77`) | Error | `Cannot change '{target}' — {reason}.` |
 | `FS3106` | Energy drift beyond tolerance | Warning | `Energy balance drifted by {pct} % over the run. Results may be unreliable.` |
 | `FS3107` | Non-finite/shape/snapshot/conservation invariant failure | Error | `Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}.` |
 | `FS3108` | A tank layer/profile cannot initialize inside the supported property domain | Error | `Cannot initialize '{tank}' layer {layer} at {state}.` |
-| `FS3109` | A schedule target is also a control binding's actuator | Error | `'{target}' is driven by {controller}; an event in a run cannot also move it.` |
+| `FS3109` | An event's target is also a controller's actuator | Error | `'{target}' is driven by {controller}; an event in a run cannot also move it.` |
 | `FS3110` | A static circuit is carried along in a transient run | Info | `'{circuit}' is static and is solved at each step without states of its own.` |
 
 **Settled (`FS3104`)** means every differential state has changed by less than
@@ -586,7 +584,7 @@ before the unverified frame is emitted (`36`).
 ## Worked example
 
 M4's demo: the **demand-step loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)),
-load stepping 30 → 45 kW at t = 60 s via its `schedule` section, with `nodes=4` on `PB`'s 8 m of DN20
+load stepping 30 → 45 kW at t = 60 s by its run's `at 60 s` event, with `nodes=4` on `PB`'s 8 m of DN20
 recirculation pipe.
 
 **The circuit is the demand-step loop and not the cooling loop, and the difference is the whole

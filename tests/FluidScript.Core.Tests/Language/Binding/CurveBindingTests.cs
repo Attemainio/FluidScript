@@ -170,7 +170,7 @@ public sealed class CurveBindingTests
     public void AnyLetIsADriverOnceItHasAValue()
     {
         // The other half of the same rule. A plant is full of drivers nobody registered; what makes
-        // one usable is that something supplies its number, and in language 2 that is a `let` (`D-167`).
+        // one usable is that something supplies its number, and that is a `let` (`D-167`).
         var model = Model(
             "fluidscript 2\n\nlet flueTemp = 180\n\ncurve recovery: flueTemp\n  100 5\n  200 20\n\n"
             + "circuit \"hr\":\n  number = 100\n\n  HX1  load  in.t = 50  out.t = 30  power = recovery\n");

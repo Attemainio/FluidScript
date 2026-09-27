@@ -1,7 +1,7 @@
 # Properties
 
 Every value you can read back off a component, written `Name.property` — in an expression, in a
-[`let`](let.md) binding, or as the measurement point of a [`control`](control.md) line.
+[`let`](let.md), or as what a [`controller`](controller.md) `reads`.
 
 A property is not a parameter. `power` is both something you set on a heat exchanger and something you
 read off it; `dp` is only ever read. Setting a property is an error that names the parameter you
@@ -14,13 +14,13 @@ instance — is reported rather than silently zero.
 **A `d` in front of a quantity is its change across the component.** `HE1.dt` is the outlet
 temperature less the inlet (negative on a cooler), `HE1.dh` the enthalpy change — the duty per
 kilogram — and `PU1.dp` the pressure drop, inlet less outlet, so it is negative across a pump. The
-declared `dt=20` on an exchanger is still a magnitude whose direction the role word supplies; read
+declared `dt = 20` on an exchanger is still a magnitude whose direction the role word supplies; read
 back as `.dt` it is signed. `dn` is a pipe size, not "delta n".
 
-**A port's state is a property of the port.** `HX1.in[2].t` is the temperature entering the
+**A port's state is a property of the port.** `HX1.secondary.in.t` is the temperature entering the
 exchanger's second side, `T1.out.t` the temperature at a tank's first outlet, `T1.layer[3].t` its
-third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long — `HX1.in[2].temperature`
-— and the old flat names (`HX1.t_in2`, `T1.t3`, `T1.in2_t`) are no longer read. The [syntax page](syntax.md#a-ports-state) has the rule.
+third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long —
+`HX1.secondary.in.temperature`. The [syntax page](syntax.md#a-ports-state) has the rule.
 
 <!-- BEGIN GENERATED: component-properties -->
 | Kind | Property | Unit | Available |
@@ -116,4 +116,4 @@ third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long �
 
 ## See also
 
-[Units](units.md) · [`let`](let.md) · [`control`](control.md)
+[Units](units.md) · [`let`](let.md) · [`controller`](controller.md)

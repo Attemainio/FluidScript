@@ -15,14 +15,14 @@ internal sealed partial class LineParser
 {
     private const string AtTopLevel = "at the top level, not indented under a block";
 
-    private StatementSyntax ParseLanguage2Version(Language2Block context)
+    private StatementSyntax ParseVersionLine(LineBlock context)
     {
-        Place(context == Language2Block.TopLevel, "The version line", AtTopLevel);
+        Place(context == LineBlock.TopLevel, "The version line", AtTopLevel);
         return ParseVersion();
     }
 
     /// <summary>Parses a <c>project</c>, <c>circuit</c> or <c>run</c> head: the word, an optional quoted title, and <c>:</c>.</summary>
-    private StatementSyntax ParseTitledHead(Language2Block context, Language2Block kind)
+    private StatementSyntax ParseTitledHead(LineBlock context, LineBlock kind)
     {
         var keyword = Current!;
 
@@ -34,25 +34,25 @@ internal sealed partial class LineParser
 
         Advance();
         Opens = kind;
-        Place(context == Language2Block.TopLevel, $"A '{keyword.Text}' block", AtTopLevel);
+        Place(context == LineBlock.TopLevel, $"A '{keyword.Text}' block", AtTopLevel);
 
         var title = Current is { Kind: TokenKind.StringLiteral } ? Advance() : null;
         TakeOpeningColon(keyword.Text);
 
         return kind switch
         {
-            Language2Block.Project => new ProjectHeadSyntax(keyword, title),
-            Language2Block.Circuit => new CircuitHeadSyntax(keyword, title),
+            LineBlock.Project => new ProjectHeadSyntax(keyword, title),
+            LineBlock.Circuit => new CircuitHeadSyntax(keyword, title),
             _ => new RunHeadSyntax(keyword, title),
         };
     }
 
-    private StyleHeadSyntax ParseStyleHead(Language2Block context)
+    private StyleHeadSyntax ParseStyleHead(LineBlock context)
     {
         var keyword = Advance();
-        Opens = Language2Block.Style;
+        Opens = LineBlock.Style;
         Place(
-            context is Language2Block.Project or Language2Block.Circuit,
+            context is LineBlock.Project or LineBlock.Circuit,
             "A 'style:' block",
             "inside the project block or a circuit's");
 
@@ -73,13 +73,13 @@ internal sealed partial class LineParser
 
         if (AtEnd)
         {
-            Report(Language2Diagnostics.HeadWithoutColon, LineSpan, new DiagnosticArgument("head", head));
+            Report(BlockDiagnostics.HeadWithoutColon, LineSpan, new DiagnosticArgument("head", head));
         }
     }
 
-    private StatementSyntax ParseLanguage2Let(Language2Block context)
+    private StatementSyntax ParseLet(LineBlock context)
     {
-        Place(context == Language2Block.TopLevel, "A 'let' line", AtTopLevel);
+        Place(context == LineBlock.TopLevel, "A 'let' line", AtTopLevel);
 
         var keyword = Advance();
         var name = TakeIdentifier();
@@ -89,7 +89,7 @@ internal sealed partial class LineParser
         }
 
         var equals = Advance();
-        var value = ParseLanguage2Value();
+        var value = ParseValue();
         return value is null ? Malformed() : new LetBindingSyntax(keyword, name, equals, value);
     }
 
@@ -98,10 +98,10 @@ internal sealed partial class LineParser
     /// The block opens before anything can fail, so the rows under a malformed header are still read as rows
     /// rather than each reported for being outside a curve.
     /// </remarks>
-    private StatementSyntax ParseDriverCurveHead(Language2Block context)
+    private StatementSyntax ParseDriverCurveHead(LineBlock context)
     {
-        Opens = Language2Block.Curve;
-        Place(context == Language2Block.TopLevel, "A curve", AtTopLevel);
+        Opens = LineBlock.Curve;
+        Place(context == LineBlock.TopLevel, "A curve", AtTopLevel);
 
         var keyword = Advance();
         var name = TakeIdentifier();
@@ -147,15 +147,15 @@ internal sealed partial class LineParser
     }
 
     /// <summary>Parses a line of <c>name = value</c> pairs: a block's setting, a component's parameter line, or a run's override.</summary>
-    private StatementSyntax ParseSettingLine(Language2Block context)
+    private StatementSyntax ParseSettingLine(LineBlock context)
     {
         Place(
-            context != Language2Block.TopLevel,
+            context != LineBlock.TopLevel,
             "A setting",
             "inside the block it sets: a project, a circuit, a run, a style or a component");
 
-        // `colour = #2f6f9f`: the `#` began a comment, so the value is missing; say so as language 1's style line does,
-        // before the parameters are read, whose failure would add FS1104 for the same line.
+        // `colour = #2f6f9f`: the `#` began a comment, so the value is missing; say so before the parameters
+        // are read, whose failure would add FS1104 for the same line.
         if (tokens[^1] is { Kind: TokenKind.Equals } equals && HexComment(equals) is { } hex)
         {
             return Fail(ParserDiagnostics.BareHexColour, LineSpan, new DiagnosticArgument("hex", hex));
@@ -167,9 +167,9 @@ internal sealed partial class LineParser
     }
 
     /// <summary>Parses <c>NAME kind</c>, its parameters, and the <c>:</c> that makes it a block's head.</summary>
-    private StatementSyntax ParseLanguage2Declaration(Language2Block context)
+    private StatementSyntax ParseDeclaration(LineBlock context)
     {
-        Place(context == Language2Block.Circuit, "A component declaration", "inside a circuit block");
+        Place(context == LineBlock.Circuit, "A component declaration", "inside a circuit block");
 
         var name = TakeIdentifier();
         if (name is null)
@@ -193,7 +193,7 @@ internal sealed partial class LineParser
 
         var kind = new IdentifierSyntax(Advance());
 
-        // `TE1 temperature_sensor at N2` places an observer on a node, as in language 1 (`D-61`).
+        // `TE1 temperature_sensor at N2` places an observer on a node (`D-61`).
         Token? atKeyword = null;
         IdentifierSyntax? attachedTo = null;
 
@@ -217,10 +217,10 @@ internal sealed partial class LineParser
         if (Current is { Kind: TokenKind.Colon } && _index == tokens.Length - 1)
         {
             OpeningColon = Advance();
-            Opens = Language2Block.Declaration;
+            Opens = LineBlock.Declaration;
         }
 
-        return new ComponentDeclarationSyntax(name, kind, atKeyword, attachedTo, parameters, null, []);
+        return new ComponentDeclarationSyntax(name, kind, atKeyword, attachedTo, parameters, []);
     }
 
     /// <summary>Parses a chain, <c>A - B - C</c>, and the pipe written after a one-link chain (<c>D-166</c>).</summary>
@@ -229,9 +229,9 @@ internal sealed partial class LineParser
     /// (<c>DN25</c>, checked against the catalogue by the binder), and <c>name = value</c> any other property.
     /// On a longer chain it is <c>FS1803</c> and the line is kept, so the chain still binds.
     /// </remarks>
-    private StatementSyntax ParseChain(Language2Block context)
+    private StatementSyntax ParseChain(LineBlock context)
     {
-        Place(context == Language2Block.Circuit, "A connection line", "inside a circuit block");
+        Place(context == LineBlock.Circuit, "A connection line", "inside a circuit block");
 
         // Where the endpoint before the latest dash began: `N1 - HX-1 - N2` fails at `1`, and the name is `HX-1`.
         var previous = _index;
@@ -293,7 +293,7 @@ internal sealed partial class LineParser
         {
             var described = TextSpan.FromBounds(properties[0].Span.Start, properties[^1].Span.End);
             Report(
-                Language2Diagnostics.PipeOnAChain,
+                BlockDiagnostics.PipeOnAChain,
                 described,
                 new DiagnosticArgument("links", links.Count.ToString(CultureInfo.InvariantCulture) + " links"),
                 new DiagnosticArgument("first", source.ToString(first.Span)),
@@ -326,13 +326,12 @@ internal sealed partial class LineParser
 
     /// <summary>Parses an event, <c>at T target = value</c> or <c>over T1..T2 target = v1..v2</c>.</summary>
     /// <remarks>
-    /// Built on language 1's <see cref="DisturbanceSyntax"/>. A ramp needs both ends of both spans
-    /// (<c>FS1807</c>), where language 1 reads a single value as a step at the span's end; the line is kept,
-    /// so the target still resolves.
+    /// Read as a <see cref="DisturbanceSyntax"/>. A ramp needs both ends of both spans (<c>FS1807</c>), since a
+    /// single value would read as a step at the span's end; the line is kept, so the target still resolves.
     /// </remarks>
-    private StatementSyntax ParseEvent(Language2Block context)
+    private StatementSyntax ParseEvent(LineBlock context)
     {
-        Place(context == Language2Block.Run, "An event", "inside a run block");
+        Place(context == LineBlock.Run, "An event", "inside a run block");
 
         var keyword = Advance();
         var when = ParsePointOrRange();
@@ -356,7 +355,7 @@ internal sealed partial class LineParser
                 ? ("its time", $"over 30..40 min {written} = {source.ToString(value.Span)}")
                 : ("its value", $"{written} = 30..45");
             Report(
-                Language2Diagnostics.RampWithOneValue,
+                BlockDiagnostics.RampWithOneValue,
                 LineSpan,
                 new DiagnosticArgument("half", half),
                 new DiagnosticArgument("example", example));

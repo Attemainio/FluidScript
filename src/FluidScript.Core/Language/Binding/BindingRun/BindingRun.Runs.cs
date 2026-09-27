@@ -13,7 +13,7 @@ using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Binding;
 
-/// <content>A language 2 run (<c>D-169</c>, <c>19</c> §Runs), bound once the model it runs against is complete.</content>
+/// <content>A run (<c>D-169</c>, <c>19</c> §Runs), bound once the model it runs against is complete.</content>
 /// <remarks>
 /// A run changes nothing in the model. Its settings, its events and its overrides are held on a
 /// <see cref="RunSymbol"/>, and <see cref="RunProjection"/> applies them for the one run the interface plays.
@@ -32,7 +32,7 @@ internal sealed partial class BindingRun
 
     private void BindRuns()
     {
-        foreach (var block in _language2.Runs)
+        foreach (var block in _reading.Runs)
         {
             if (block.Head is RunHeadSyntax head)
             {
@@ -104,7 +104,7 @@ internal sealed partial class BindingRun
                 if (bound.From is { } at && at.SiValue > run.Duration)
                 {
                     Report(
-                        Language2Diagnostics.EventAfterRun,
+                        BlockDiagnostics.EventAfterRun,
                         change.Span,
                         ("time", Elapsed(at.SiValue)),
                         ("run", run.Title),
@@ -413,7 +413,7 @@ internal sealed partial class BindingRun
 
         if (start is not { } origin)
         {
-            Report(Language2Diagnostics.ClockTimeWithoutStart, date.Span, ("time", date.Literal.Text), ("run", run));
+            Report(BlockDiagnostics.ClockTimeWithoutStart, date.Span, ("time", date.Literal.Text), ("run", run));
             return null;
         }
 

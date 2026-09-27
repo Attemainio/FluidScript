@@ -9,7 +9,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Binding;
 
-internal sealed partial class Language2Reader
+internal sealed partial class ScriptReader
 {
     /// <summary>Reads a value as the evaluator reads it: a list's trailing unit, or a range's upper one, on each bare number it describes.</summary>
     /// <remarks>
@@ -62,8 +62,8 @@ internal sealed partial class Language2Reader
         _ => item,
     };
 
-    /// <summary>Translates <c>20..90 C</c> into a range whose ends are evaluated one by one.</summary>
-    /// <remarks>A unit written on the upper end only applies to both (<c>19</c> §Values): <c>30..40 min</c> is thirty minutes to forty.</remarks>
+    /// <summary>Reads <c>20..90 C</c> as a range whose ends are evaluated one by one.</summary>
+    /// <remarks>A unit written on the upper end only applies to both (<c>12</c> §Values): <c>30..40 min</c> is thirty minutes to forty.</remarks>
     private RangeSyntax Range(RangeExpressionSyntax range)
     {
         var (from, to) = Ends(range);

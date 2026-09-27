@@ -11,14 +11,14 @@ using FluidScript.Core.Language.Syntax.Ast.Statements;
 namespace FluidScript.Core.Language.Binding;
 
 /// <content>
-/// Binding steps 6 through 11, plus the schedule step <c>15</c>'s order never had: materialize
-/// indexed ports, bind connections, apply the inference rules, bind attachments, control bindings and
-/// disturbances, validate, and assign tags last.
+/// Binding steps 6 through 11: materialize indexed ports, bind connections, apply the inference rules,
+/// place observers, bind control bindings, validate, and assign tags last.
 /// </content>
 /// <remarks>
-/// This half has no notion of expressions, exactly as steps 0–5 have none of topology. The two
-/// exceptions are deliberate and narrow: a <c>setpoint=</c> and a schedule's times and values are
-/// quantities, and evaluating them here is cheaper than a third pass existing only for them.
+/// This half has no notion of expressions, exactly as steps 0–5 have none of topology. The one
+/// exception is deliberate and narrow: a <c>setpoint</c> is a quantity, and evaluating it here is
+/// cheaper than a third pass existing only for it. A run's events are bound after the model is complete
+/// (<c>BindingRun.Runs.cs</c>).
 /// </remarks>
 internal sealed partial class BindingRun
 {
@@ -56,7 +56,6 @@ internal sealed partial class BindingRun
         PropagatePortPressures();
         BindObservers();
         BindControlBindings(blocks);
-        BindSchedule(blocks);
         Validate();
         ResolveOwnership();
         AssignTags();

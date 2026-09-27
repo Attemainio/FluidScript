@@ -138,10 +138,10 @@ with twenty components does not vibrate. Saturation is reserved for status and s
 "contrast where it is needed" means in practice.
 
 **Fluid colour is derived from a solved property by default** — temperature unless the script says
-otherwise — interpolating cold → hot across the circuit's own range, and overridden by the `style`
-directive ([`12-grammar`](../10-language/12-grammar.md)). A diagram then reads at a glance: the hot leg
+otherwise — interpolating cold → hot across the circuit's own range, and overridden by a `style:`
+block ([`12-grammar`](../10-language/12-grammar.md)). A diagram then reads at a glance: the hot leg
 is warm-coloured without anyone specifying it. The ramp, the domain, the legend, and the `show`
-directive that selects the property are owned by
+setting that selects the property are owned by
 [`57-state-visualization`](57-state-visualization.md); this document supplies only the seven `--fluid-*`
 stops it interpolates between.
 
@@ -162,7 +162,7 @@ in the editor the user already uses.
 
 | FluidScript token | VS Code role | Light+ | Dark+ |
 |---|---|---|---|
-| Keyword (`circuit`, `fluid`, `let`, `connections`, `dynamic`) | keyword | `#0000FF` | `#569CD6` |
+| Keyword (the statement words `circuit`, `let`, `curve`, `run`, `at`) | keyword | `#0000FF` | `#569CD6` |
 | Component kind (`heat_exchanger`, `pump`) | type / class | `#267F99` | `#4EC9B0` |
 | Component identifier in declaration position (`HE1`, `3WV`) | variable declaration | `#001080` | `#9CDCFE` |
 | Parameter name (`power`, `kv`) | parameter | `#001080` @ 85 % | `#9CDCFE` @ 85 % |
@@ -256,7 +256,7 @@ survives zoom and the UI scale does not.
 | `--canvas-branch-stride` | — | Superseded by `D-103`: columns are sized the same way |
 
 The old values (20, 8, 120, 160) were in a world unit that never existed: `D-103` fixed a pump at 1×1,
-and a diagram spaced 20 pumps apart is what `spacing 20` now draws, which is why the samples and
+and a diagram spaced 20 pumps apart is what `spacing = 20` now draws, which is why the samples and
 `docs/functions/spacing.md` say `0.75`.
 
 **Sparse is the default and it is a deliberate cost.** Tight packing fits more on screen and is what a
@@ -339,18 +339,18 @@ The M2 demo in dark theme:
 **Editor** — background `#1E1E1E`, foreground `#D4D4D4`:
 
 ```
-circuit coolingLoop                          # name
+circuit "coolingLoop":                       # name
 ^^^^^^^ #569CD6                                ^^^^ #6A9955 italic
-        ^^^^^^^^^^^ #9CDCFE
+        ^^^^^^^^^^^^^ #CE9178
 
-HE1 heat_exchanger power=30 in=20 out=50
-^^^ #9CDCFE
-    ^^^^^^^^^^^^^^ #4EC9B0
-                   ^^^^^ #9CDCFE
-                         ^^ #B5CEA8
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  ^^^ #9CDCFE
+       ^^^^^^^^^^^^^^ #4EC9B0
+                       ^^^^^ #9CDCFE
+                               ^^ #B5CEA8
 ```
 
-Anyone who has used VS Code reads this without adjusting: blue keyword, teal type, light-blue
+Anyone who has used VS Code reads this without adjusting: blue keyword, orange string, teal type, light-blue
 identifiers, green numbers, green italic comments.
 
 **Canvas** — background `--canvas-bg` (a very dark blue-grey, not the editor's neutral `#1E1E1E`, so
@@ -368,7 +368,7 @@ the two panes are distinguishable at a glance):
 | Grid | `--canvas-grid`, barely visible |
 
 The diagram reads as temperature at a glance — the blue side is cold, the orange side is hot — without
-a legend and without anyone writing a `style` directive. That is `R-26`'s "coloring should be fluid and
+a legend and without anyone writing a `style:` block. That is `R-26`'s "coloring should be fluid and
 HVAC themed" doing actual work, and it sits beside an editor that looks like every other editor,
 which is the split this document exists to hold.
 

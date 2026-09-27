@@ -9,11 +9,11 @@ using FluidScript.Core.Language.Syntax.Text;
 
 namespace FluidScript.Core.Language.Syntax.Parsing;
 
-/// <summary>Turns language 2 script text into a syntax tree, keeping every line.</summary>
+/// <summary>Turns script text into a syntax tree, keeping every line.</summary>
 /// <remarks>
 /// <para>
-/// <c>plan/10-language/19-fluidscript-2.md</c>. The only parser since language 1 was removed (<c>D-174</c>,
-/// P6.11 package 7 step 4).
+/// <c>plan/10-language/12-grammar.md</c> is the grammar it reads, and <c>plan/10-language/19-fluidscript-2.md</c>
+/// the reasoning behind it.
 /// </para>
 /// <para>
 /// <strong>Never throws, for any input</strong> (principle P4), and recovers per line: a line that cannot be
@@ -22,9 +22,9 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 /// appears once in the <see cref="ScriptSyntax"/>, in source order, which is what the printer relies on.
 /// </para>
 /// </remarks>
-public static class FluidScript2Parser
+public static class FluidScriptParser
 {
-    /// <summary>Parses language 2 source text into a syntax tree.</summary>
+    /// <summary>Parses source text into a syntax tree.</summary>
     /// <param name="source">The script source. Any characters at all; may be empty.</param>
     /// <returns>
     /// The tree, always non-null, together with every diagnostic the lexer and the parser produced. A tree
@@ -40,13 +40,13 @@ public static class FluidScript2Parser
         diagnostics.AddRange(lex.Diagnostics);
 
         var open = new Stack<OpenBlock>();
-        open.Push(new OpenBlock(Language2Block.TopLevel, null, null, HeadWidth: -1));
+        open.Push(new OpenBlock(LineBlock.TopLevel, null, null, HeadWidth: -1));
 
         foreach (var line in SplitLines(lex.Tokens))
         {
             var indent = Indentation(source, line[0]);
 
-            // A line at its head's indentation or less is outside the block (`19` §Lines, blocks and names).
+            // A line at its head's indentation or less is outside the block (`12` §Lines and blocks).
             while (open.Count > 1 && indent.Length <= open.Peek().HeadWidth)
             {
                 Close(open);
@@ -59,14 +59,14 @@ public static class FluidScript2Parser
             {
                 block.BodyIndent = indent;
             }
-            else if (block.Kind != Language2Block.Curve
+            else if (block.Kind != LineBlock.Curve
                 && !string.Equals(indent, block.BodyIndent, StringComparison.Ordinal))
             {
                 block = Misindented(open, block, indent, line, diagnostics);
             }
 
             var parser = new LineParser(source, line, diagnostics);
-            var statement = parser.ParseLanguage2(block.Kind);
+            var statement = parser.ParseLine(block.Kind);
 
             if (parser.Opens is { } kind)
             {
@@ -84,7 +84,7 @@ public static class FluidScript2Parser
         }
 
         var root = new ScriptSyntax(open.Peek().Body.ToImmutable(), lex.Tokens[^1]);
-        return new ParseResult(source, root, diagnostics.ToImmutable()) { Language = 2 };
+        return new ParseResult(source, root, diagnostics.ToImmutable());
     }
 
     /// <summary>Decides where a line indented unlike its block's body belongs.</summary>
@@ -112,12 +112,12 @@ public static class FluidScript2Parser
             && block.Body[^1] is ComponentDeclarationSyntax declaration)
         {
             diagnostics.Add(Diagnostic.Create(
-                Language2Diagnostics.HeadWithoutColon,
+                BlockDiagnostics.HeadWithoutColon,
                 declaration.Span,
                 new DiagnosticArgument("head", "declaration")));
 
             block.Body.RemoveAt(block.Body.Count - 1);
-            var nested = new OpenBlock(Language2Block.Declaration, declaration, null, block.BodyIndent.Length)
+            var nested = new OpenBlock(LineBlock.Declaration, declaration, null, block.BodyIndent.Length)
             {
                 BodyIndent = indent,
             };
@@ -126,7 +126,7 @@ public static class FluidScript2Parser
         }
 
         diagnostics.Add(Diagnostic.Create(
-            Language2Diagnostics.InconsistentIndentation,
+            BlockDiagnostics.InconsistentIndentation,
             TextSpan.FromBounds(line[0].Span.Start, line[^1].Span.End)));
         return block;
     }
@@ -161,7 +161,7 @@ public static class FluidScript2Parser
     /// <param name="Head">The head line; <see langword="null"/> only for the top level.</param>
     /// <param name="Colon">The head's <c>:</c>, when it was written.</param>
     /// <param name="HeadWidth">The head's indentation in characters; −1 for the top level, which nothing closes.</param>
-    private sealed record OpenBlock(Language2Block Kind, StatementSyntax? Head, Token? Colon, int HeadWidth)
+    private sealed record OpenBlock(LineBlock Kind, StatementSyntax? Head, Token? Colon, int HeadWidth)
     {
         /// <summary>Gets or sets the indentation of the body's first line, which every later line must repeat.</summary>
         public string? BodyIndent { get; set; }

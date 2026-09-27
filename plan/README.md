@@ -78,14 +78,14 @@ All three sit above the tiers because all three are about the whole project; `70
 | Doc | Owns | Status |
 |---|---|---|
 | [11-language-overview](10-language/11-language-overview.md) | design principles, the inference rules | reviewed |
-| [12-grammar](10-language/12-grammar.md) | lexical + syntactic grammar, AST node shapes | reviewed |
+| [12-grammar](10-language/12-grammar.md) | lexical + syntactic grammar: lines, blocks, statements, values, syntax tree | draft |
 | [13-type-and-unit-system](10-language/13-type-and-unit-system.md) | dimensions, canonical units, coercion | draft |
 | [14-expressions-and-references](10-language/14-expressions-and-references.md) | `let`, arithmetic, member refs, evaluation order | reviewed |
 | [15-semantic-model](10-language/15-semantic-model.md) | binder, semantic model, lowering to the domain graph | draft |
 | [16-diagnostics](10-language/16-diagnostics.md) | `FSxxxx` codes, severities, spans, recovery | reviewed |
 | [17-formatting-and-round-trip](10-language/17-formatting-and-round-trip.md) | printer, write-back, trivia preservation | draft |
 | [18-script-compatibility](10-language/18-script-compatibility.md) | language versions, catalogue pins, compatibility, migration | draft |
-| [19-fluidscript-2](10-language/19-fluidscript-2.md) | language 2: blocks, port inference, cases and drivers, controllers, runs | draft |
+| [19-fluidscript-2](10-language/19-fluidscript-2.md) | language design: why blocks, port inference, cases and drivers, controllers, runs; how the binder reads the tree | draft |
 
 ### 20 · Core domain
 

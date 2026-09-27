@@ -323,7 +323,7 @@ public sealed class TopologyBindingTests
     {
         // `D-150`. Three streams meet at N2 and the node's one state is their mix, which no instrument
         // on any of the three pipes reads; the script has to say which pipe it means. A sensor's `at`
-        // and a controller's `measure=` read the same number, so they are refused alike.
+        // and a controller's `reads` read the same number, so they are refused alike.
         var result = Bind(
             "fluidscript 2\n\ncircuit \"c\":\n  TV1  three_way_valve\n  N1  inlet  t = 6  p = 300\n  N3  outlet  p = 280\n"
             + "  N1 - N2\n  N2 - TV1.a\n  N2 - N3\n"

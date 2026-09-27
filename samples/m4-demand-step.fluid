@@ -2,13 +2,13 @@
 #
 # The cooling loop in time: `PB` puts 8 m of DN20 pipe in four cells on the recirculation branch,
 # so a change at `HE1` reaches the mixing node `N2` 38 s later; `TC1` holds `NS`, on the mixed pipe
-# just past it, at 20 C through the three-way valve; the schedule steps the load from 30 to 45 kW at
+# just past it, at 20 C through the three-way valve; the run steps the load from 30 to 45 kW at
 # t = 60 s. The measurement is `NS` and not `N2` because `N2` is a junction of three pipes, and a
 # junction has no single stream to read (D-150, FS1548).
 #
-# Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
+# Its t = 0 state is the cooling loop's design state (D-141): the controller's setpoint holds
 # `NS` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
-# cells keep the pipe's stated dn (C-113). The run itself arrives with P6.1.
+# cells keep the pipe's stated dn (C-113). The run starts from that state.
 #
 # `HE1` holds 0.5 dm3 a side (C-114): a 30 kW brazed plate unit is around 0.5 m2 of area, and the
 # rule in 22 puts about a litre per square metre in each side. At 0.239 kg/s that is a 2.1 s lag,

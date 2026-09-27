@@ -2,916 +2,800 @@
 id: 12-grammar
 title: Grammar
 tier: 10-language
-status: reviewed
-owns: [lexical grammar, syntactic grammar, reserved words, sections, AST node shapes, trivia model, schedule and catalog syntax, circuit numbering and attachment syntax, global directives, control-binding syntax]
+status: draft
+owns: [lexical grammar, syntactic grammar, token set, statement words, block and indentation rules, statement set, AST node shapes, trivia model]
 depends_on: [02-glossary, 06-decision-log, 11-language-overview, 13-type-and-unit-system]
 traces_to: [R-01, R-03, R-04, R-05, R-39, R-46, R-48, R-49]
 open_questions: 0
-last_review_pass: 6
+last_review_pass: 0
 ---
 
 # Grammar
 
-> **Superseded by [`19`](19-fluidscript-2.md) (`D-174`).** This is language 1's grammar, which `P6.11`
-> package 7 removes from the product; language 2's is `19`. It stays as the record of the syntax
-> language 1 files were written in and the reasoning behind the rules language 2 inherited. Its
-> examples are marked `lang=1` and the corpus no longer checks them.
-
 ## Purpose
 
-The concrete syntax of FluidScript's declarative language (`D-01`): what the lexer produces, what the parser accepts, and what the
-syntax tree looks like. This is the document an implementer types from, and the one the round-trip
-printer ([`17-formatting-and-round-trip`](17-formatting-and-round-trip.md)) is the inverse of.
+The concrete syntax of FluidScript's declarative language (`D-01`): what the lexer produces, which lines
+and blocks the parser accepts, and what the syntax tree looks like. This is the document an implementer
+types from, and the one the round-trip printer ([`17-formatting-and-round-trip`](17-formatting-and-round-trip.md))
+is the inverse of. Why the language is shaped as it is — blocks, cases, port inference, runs — and how the
+binder reads the tree is [`19`](19-fluidscript-2.md).
 
 ## Responsibilities
 
-**Owns.** Lexical rules, the token set, the reserved-word list, the syntactic grammar, AST node
-shapes, and the trivia model.
+**Owns.** The lexical rules and the token set; the statement words; lines, blocks and indentation; the
+syntax of every statement and value; the grammar; the syntax tree's node shapes and its trivia model; the
+codes of the `FS10xx`, `FS11xx` and `FS12xx` ranges (the `FS121x` codes of `show` are allocated to
+[`57`](../50-frontend/57-state-visualization.md), which interprets it).
 
 **Explicitly does not own.** Unit symbols and their meanings
 ([`13-type-and-unit-system`](13-type-and-unit-system.md)), expression evaluation
-([`14-expressions-and-references`](14-expressions-and-references.md)), name resolution
-([`15-semantic-model`](15-semantic-model.md)), diagnostic codes
-([`16-diagnostics`](16-diagnostics.md) — this document names them, that one defines them).
+([`14-expressions-and-references`](14-expressions-and-references.md)), name resolution and binding
+([`15-semantic-model`](15-semantic-model.md)), what a statement means once read — ports, cases,
+controllers, runs ([`19`](19-fluidscript-2.md)), the version line's policy and the catalogue pin
+([`18-script-compatibility`](18-script-compatibility.md)), and the rules every diagnostic message follows
+([`16-diagnostics`](16-diagnostics.md) — this document names its codes, that one defines how they read).
 
 ## Shape of the language
 
-**Line-oriented.** One statement per line. No statement terminator and no line continuation in v1.
-Indentation is trivia and carries no meaning — this is deliberate: significant indentation would make
-canvas write-back (`R-25`) responsible for preserving semantic whitespace, which is the class of bug
-that makes round-tripping unreliable.
+**One statement per line, or a block.** A block is a head line ending in `:` and the lines indented deeper
+than it. There is no statement terminator and no line continuation: a statement never spans two lines, and
+a block is several statements, each on its own line. That is what makes recovery line-granular — a line
+that cannot be read costs that line and nothing else ([Invariants](#invariants)).
 
-**Three sections.** A declaration section (everything before the `connections` keyword), a connection
-section, and an optional `schedule` section for transient disturbances. Each header is a section
-marker, not a block: there are no braces and no `end`.
+**A file is model, then study** (`D-165`): a version line, a `project` block, `let` lines and curves, the
+circuits, then the runs. The order is a convention the printer keeps and nothing enforces; what is
+enforced is where each statement may stand ([What may appear where](#what-may-appear-where)).
 
-## Lexical grammar
+A complete script, which the sections below refer to:
 
-```ebnf
-token          = keyword | identifier | quantity | number | string
-               | "=" | "-" | "." | ".." | "," | "(" | ")" | "[" | "]" | "+" | "*" | "/" | "@" ;
+```fluidscript
+fluidscript 2
 
-trivia         = whitespace | line-comment | newline ;
-line-comment   = "#" , { any-char - newline } ;
-whitespace     = { " " | "\t" } ;
+project "Boiler house":
+  cases   = [cold, mild]
+  catalog = steel_en10255@2026.1
+  show    = temperature
+  style:
+    colour = "#2f6f9f"
+    width  = 2
 
-digit          = "0".."9" ;
-letter         = "A".."Z" | "a".."z" ;
-word-char      = letter | digit | "_" ;
+let outdoor = [-20, 5] C
+let rise    = 20 K
 
-word           = word-char , { word-char } ;      (* classified below *)
-number         = digit , { digit } , [ "." , digit , { digit } ] , [ ("e"|"E") , ["+"|"-"] , digit , {digit} ] ;
-quantity       = number , [ whitespace ] , unit-symbol ;   (* see the whitespace rule below *)
-unit-symbol    = ? longest matching entry of the unit-symbol table ? ;   (* see below *)
-string         = '"' , { any-char - '"' } , '"' ;
+curve demand: outdoor extrapolated
+  -20   60
+   18    0
+
+curve weather: time
+  2026-01-15 06:00   -15
+  2026-01-15 09:00    -8
+
+circuit "Boiler loop":
+  fluid  = water
+  number = 100
+
+  BLR  boiler:
+    out.t = 75 C
+    dp    = 15 kPa
+  PU1  pump
+  MV1  valve3      stroke = 90 s
+  TE1  temperature_sensor
+  RAD  radiator    power = demand
+  TC1  controller:
+    type     = PI
+    moves    = MV1
+    reads    = TE1
+    setpoint = 60 C
+    band     = rise
+    ti       = 120 s
+
+  BLR - MV1                  15 m  DN32
+  MV1 - PU1 - TE1 - RAD - NR
+  NR - MV1
+  NR - BLR                   15 m  DN32
+
+run "Cold start":
+  from     = cold
+  start    = 2026-01-15 06:00
+  duration = 3 h
+
+  outdoor = weather
+  at   20 min       RAD.power    = 40 kW
+  over 1..2 h       TC1.setpoint = 60..55 C
+  at   08:30        TC1.setpoint = 50 C
 ```
 
-### `%` is a unit, never an operator, and a `.` needs a digit after it
+## Lexical structure
 
-Two spellings were each doing two jobs, and `D-51` gave each one job.
+### Characters, whitespace and lines
 
-`%` is a unit symbol for `Dimensionless` and is **not** in the token set above:
-[`14-expressions-and-references`](14-expressions-and-references.md) has no modulo operator. A unit
-symbol is recognised after a number, so `10 % 3` would otherwise lex as the quantity `10 %` followed
-by a stranded `3` — `D-50`'s `-` collision with the sides reversed, and separating the readings needs
-lookahead past the following token, which invariant 5 forbids.
+The script is read character by character into tokens and trivia, and every character lands in exactly
+one of them ([invariant 1](#invariants)). The language's characters are ASCII:
 
-**A `.` joins a number only when a digit follows it.** `30.5` is one number; `30.` is the number `30`
-followed by a `.` token; `30..60` is `30`, `..`, `60`. Without the restriction, maximal munch takes
-`30.` and leaves `.60`, so the range production sees one dot where it needs two and an unspaced
-`over 30..60` does not parse. Every range written in this specification happens to space its `..`,
-which is why the two productions contradicted each other for six review passes.
+| Characters | Role |
+|---|---|
+| `A`–`Z`, `a`–`z`, `_`, `0`–`9` | Names and numbers |
+| `"` | Opens and closes a string |
+| `#` | Starts a comment |
+| space, tab | Whitespace: separates tokens, and at a line's start is its indentation |
+| `\n`, `\r\n`, `\r` | End a line |
+| `=` `-` `+` `*` `/` `.` `..` `,` `(` `)` `[` `]` `@` `:` | Operators and punctuation ([below](#operators-and-punctuation)) |
+| a byte-order mark before the first character | Whitespace: some editors save one, and it is not indentation |
+
+Any other character outside a string or a comment — `|`, `;`, a non-ASCII letter — is an `Unknown` token and
+`FS1002`, kept in the tree so the printer loses nothing. `%` and `°` are characters of unit symbols and are
+recognised only as part of one, after a number ([Units and quantities](#units-and-quantities)); anywhere else
+they are `FS1002` too.
+
+**No token spans a line** ([invariant 6](#invariants)). A string, a comment and a unit all end at the line
+break, which is what keeps one bad line from taking the lines after it.
 
 ### Comments
 
-`#` begins a comment that runs to end of line (`D-13`). `#` is therefore **not** available as an
-operator, and a hex colour in a `style` directive is written as a quoted string — `style "#2f6f9f"` —
-because `#2f6f9f` would otherwise comment out the rest of the line. `string` is already a legal
-`style-token`, so that costs no new syntax.
+`#` begins a comment that runs to the end of the line (`D-13`), anywhere outside a string. `#` is therefore
+not available as an operator, and a hex colour is written quoted — `colour = "#2f6f9f"` — because a bare
+`#2f6f9f` would comment out the rest of the line. A setting whose value is missing because a hex-shaped
+comment took it, `colour = #2f6f9f`, is `FS1203`, which says what happened: the line is legal and silent
+otherwise, and the diagram would render in the default colour.
 
-**This replaces the brief's `|`.** `|` reads well as a margin rule when comments are column-aligned,
-which is why the brief used it, and it is genuinely awkward to type on most keyboard layouts —
-`AltGr`+a key on the Nordic and German layouts this project's author uses, a chorded key on many
-others. `#` is unshifted or single-shifted nearly everywhere, and it is what every reader already
-recognises as a comment from shell, Python, YAML, and TOML. `D-13` records the trade in full.
+`#` was chosen over the `|` of the original brief because it is unshifted or single-shifted on nearly every
+keyboard layout and is what readers already know from shell, Python, YAML and TOML; `|` needs `AltGr` on the
+Nordic and German layouts. `D-13` records the trade. `|` is left unallocated — not an operator, not a
+comment, `FS1002` — so reclaiming it later for a table or pipeline form is a non-breaking addition.
 
-`|` is now free and is left unallocated: it is not an operator, not a comment, and produces `FS1002`.
-Reclaiming it later for a table or pipeline form is then a non-breaking addition.
+### Names
 
-### Word classification — the sharp edge
+A **name** is letters, digits and underscores: `PU1`, `heat_demand`, `secondary`. It may start with a
+digit — `3WV` is a legal component name (`R-01`) — which collides with numbers and quantities, since
+`30kW` is also letters and digits. The lexer settles it by scanning the number first and asking what
+follows:
 
-A `word` may start with a digit: `3WV` is a legal identifier (`R-01`, and the brief requires it). This
-collides with quantity literals, since `30kW` is also a word by the rule above. Classification:
+1. A number followed by a **unit symbol** that ends before a non-word character is a quantity: `20C`,
+   `2px`, `30kW`.
+2. A number followed by other word characters is **one name**, when the number is itself spellable inside
+   a name: `3WV` (`W` is a unit, `WV` is not, and a unit is matched whole). A number holding a decimal
+   point or an exponent sign is not spellable, so `1.5x` is the number `1.5` followed by the name `x` —
+   both readings are errors further up, and the rule makes them the *same* error every time.
+3. A number followed by spaces and then a unit symbol is a quantity, under the conditions of
+   [Units and quantities](#units-and-quantities).
+4. Otherwise a number is a number.
 
-1. If the word is a **reserved word**, it is a keyword.
-2. Otherwise, if the word matches `number` exactly, it is a number literal — **unless** the *next*
-   word is a known unit symbol not immediately followed by `=`, in which case the two combine into one
-   quantity literal (rule 5).
-3. Otherwise, if the word matches `number , unit-symbol` where the suffix is a **known unit symbol**
-   from [`13-type-and-unit-system`](13-type-and-unit-system.md), it is a quantity literal.
-4. Otherwise it is an identifier.
-5. **A unit symbol may be separated from its number by horizontal whitespace**, provided it is not
-   immediately followed by `=`. `30 K` is one quantity; `30 in=20` is a number followed by a parameter
-   named `in`.
+**The consequence, stated plainly:** a component may not be named so that it reads as a quantity. `3K` is
+three kelvin, and written where a name belongs it is `FS1003`, whose fix swaps the parts (`K3`). It is a
+wart; the alternative — a space before every unit — costs `2px` and `20C`, which is worse.
 
-So `3WV` → rule 4 (`WV` is not a unit). `2px` → rule 3 (`px` is a unit). `30` → rule 2. `20C` → rule 3.
-`45 mm` → rule 5. `30 in=20` → rule 2, because `in` is followed by `=`.
+**Hyphens are not part of a name.** `-` is the connection operator (`N1 - N2`) and the subtraction operator
+(`t - rise`), both legal unspaced, so it never joins two words: `HX-1` is `HX`, `-`, `1`. Admitting `-` into
+names would make `N1-N2` one name that the binder silently creates a node for (`15`'s rule I1) — a wrong
+answer that compiles. Because a hyphenated name is what a user coming from HTML, CSS or a `/docs` file name
+will type, the parser recognises the shape and says so — for a component's name (`HX-1 pump`), a name in
+a chain (`N1 - HX-1 - N2`) and a kind that starts with a digit (`V1 3-way-valve`): `FS1108`,
+*'3-way-valve' — a name cannot contain '-'. Write '3_way_valve'.* A kind that starts with a letter,
+`V1 three-way-valve`, reads as the kind `three` followed by text the line cannot hold, `FS1114`. Case and underscores are
+normalised when a kind or parameter is resolved (`D-15`'s first stage, which `D-170` keeps), so only the
+hyphen needs a diagnostic.
 
-### Rule 5 exists because every `let` in the tree depends on it
+A name binds **only by its exact spelling** (`D-170`); how kinds, parameters and properties resolve, and
+that component names are case-sensitive, is [`15`](15-semantic-model.md)'s and [`19`](19-fluidscript-2.md)'s.
 
-`let cp = 4.18 kJ/(kg*K)` and `let dT = 30 dK` are written with spaces everywhere in this
-specification under `D-26`, and without rule 5 they are syntax errors. The EBNF above always permitted the space;
-rules 1–4 could not see across one, and
-[`13-type-and-unit-system`](13-type-and-unit-system.md) previously asserted the opposite. Rule 5 is
-that contradiction resolved — the permissive reading, because `4.18kJ/(kg*K)` is materially harder to
-read than `4.18 kJ/(kg*K)`.
+### Numbers
 
-**The `=` clause is what makes the permissive reading safe.** `in` is the inch symbol and a port
-name in the brief's own line:
+`30`, `1.5`, `4.18`, `1e5`, `2.5E-3`. Every number is non-negative: `-26` is a minus and a number, and a
+negative value is a unary minus in an expression.
 
-```fluidscript lang=1
-HE1 heat_exchanger power=30 in.t=20 out.t=50
-```
+**A `.` joins a number only when a digit follows it** (`D-51`). `30.5` is one number; `30.` is `30` and a
+`.`; `30..60` is `30`, `..`, `60`. Without the restriction maximal munch takes `30.` and leaves `.60`, and an
+unspaced range does not parse. **An exponent is one only when digits follow** its `e` and sign, so
+`1exchanger` is a name, not `1e` followed by `xchanger`.
 
-Without the clause, `30 in` is thirty inches and that line means nothing like what it says. One token
-of lookahead is enough to tell them apart, and it is the only lookahead in the lexer. `D-120` widened
-the clause without adding lookahead: a spaced unit is also refused before `[` and before `.` followed
-by a word character, so `30 in.t=` and `30 in[2]` are a number and a name. `30 in.` alone -- a dot
-with nothing after it -- is still inches followed by a stray dot, which is what it is.
+**`%` is a unit, never an operator** (`D-51`). There is no modulo operator
+([`14`](14-expressions-and-references.md)), and `%` is the unit of a dimensionless fraction: `output =
+10..100 %`. A unit symbol is recognised after a number, so `10 % 3` would lex as the quantity `10 %` and a
+stranded `3`; telling that apart from a remainder needs lookahead past the following token, which
+[invariant 5](#invariants) forbids. `D-50` met the same collision for `-` and resolved it the other way,
+by dropping the unit.
 
-**The consequence, stated plainly:** a component may not be named such that it parses as a quantity.
-`3K` is three kelvin, not a component named `3K`. This is checked at declaration and produces `FS1003`
-with the suggestion to rename (`K3` works). It is a genuine wart. The alternative — requiring a space
-before every unit — costs the brief's `2px` and `20C` forms, which is worse. The permissive rule and
-identifier collision diagnostic are therefore fixed for v1.
+### Units and quantities
 
-### Rules 1--4 classify a *word*, and a number is not always one
+A **quantity** is a number and the unit symbol after it, with or without spaces between: `600 kPa`,
+`12 m`, `30kW`, `4.18 kJ/(kg*K)`. The symbols are exactly the entries of
+[`13`](13-type-and-unit-system.md)'s table, and the lexer matches them as a table lookup, not a
+sub-grammar:
 
-`word-char` is `letter | digit | "_"`, so `4.18` and `1e+5` are not words: they hold characters a name
-cannot. The classifier therefore scans the number first, maximally, and only then asks what follows:
+- **Longest entry first** (maximal munch). `kJ/(kg*K)` and `m3/h` are single entries, and the lexer never
+  reads their `/`, `*` or parentheses as tokens; `kJ/kg` must not win where `kJ/(kg*K)` fits, nor `m` where
+  `m3/h` does.
+- **Only immediately after a number.** Everywhere else the same characters are operators. That is what
+  resolves the one genuine ambiguity in the language:
 
-> If word characters follow the number and no unit symbol matches, the number and that run are **one
-> identifier** — but only when the number is itself spellable inside a name. A number holding a decimal
-> point or an exponent sign is not, so it stands alone and the word after it lexes separately.
+  ```text
+  let cp   = 4.18 kJ/(kg*K)      -> one quantity
+  let mdot = Q / (cp * rise)     -> a division and a product
+  ```
 
-`3WV` and `3E1x` are one identifier each; `1.5x` is the number `1.5` followed by the name `x`, because
-no name can contain a `.`. Both readings are errors further up, and the rule exists so that they are
-the *same* error every time rather than depending on which of rules 1--4 was consulted first.
+  On the first line `kJ/(kg*K)` matches an entry at the position after a number; on the second nothing
+  numeric precedes the `/`. Without the rule the two lines are indistinguishable, and the two readings of
+  the first differ by a factor of 4180.
+- **A symbol ends at a non-word character**, so `30kWx` is a name, not thirty kilowatts and an `x`.
+- **Two symbols are never recognised**: `in` (the inch) and `t` (the tonne). They are the names a script
+  writes most — a port and a temperature — and the table keeps them only so a conversion stays defined.
 
-### `unit-symbol` is a table lookup, not a sub-grammar
+**A unit may stand apart from its number** (`D-26`), because `4.18 kJ/(kg*K)` is materially easier to
+read than `4.18kJ/(kg*K)`, and every `let` in this specification is written that way. **A spaced unit is
+refused when what follows it starts the next parameter**: an `=` (after spaces too), a `[`, or a `.`
+before a word. `h` is an hour and an enthalpy, so in `flow = 5 h = 2000` the `h` is the next parameter and
+`5` is a bare number; in `power = 30 in.t = 20` — were `in` a unit — the `.t` would do the same (`D-120`
+widened the clause to `[` and `.` without adding lookahead). A range's `..` is not a `.` before a word, so
+`50 m..60 m` still ends a unit. Only the spaced form asks: `30C` is thirty degrees whatever follows it.
 
-The accepted symbols are exactly the entries of
-[`13-type-and-unit-system`](13-type-and-unit-system.md)'s table, matched **longest-first (maximal
-munch)** against the text at that position. Compound symbols such as `kg/s`, `m3/h`, `l/min` and
-`kJ/(kg*K)` are **single atomic entries** in that table; the lexer never parses their internal `/`, `*`
-or parentheses as tokens.
+**The unit table is part of the grammar.** Rule 1 of [Names](#names) is table-driven, so adding a unit
+symbol can reclassify a name a script already uses — `3WV` would become a quantity were `WV` added. The
+table is therefore append-only with review, and a test asserts that no sample's names collide with it.
 
-That is what resolves the one genuine ambiguity in the language:
+**`K` is a temperature difference** (`D-172`, `D-179`): `band = 20 K`, `rise = 5 K`. `C` and `°C` are
+absolute temperatures. Which symbols exist and what dimension each carries is [`13`](13-type-and-unit-system.md)'s;
+the lexer knows only the spellings.
 
-```fluidscript lang=1
-let cp   = 4.18 kJ/(kg*K)
-let mdot = Q / (cp * dT)
-```
+A bare number carries no unit: `30` in `power = 30` acquires kilowatts when it is bound to `power`, whose
+dimension declares that canonical unit (`D-07`, `D-14`). The lexer does not know about parameters, and
+must not.
 
-On the first line, `kJ/(kg*K)` matches a table entry at the position immediately following a number, so
-it lexes as one `unit-symbol` and the line is a single quantity literal. On the second, nothing numeric
-precedes the `/`, so no unit-symbol match is attempted and `/`, `(`, `*`, `)` lex as operators.
-**A unit symbol is recognised only immediately after a number**; everywhere else the same characters
-are operators. Without that rule the two lines are indistinguishable, and the two readings of the first
-differ by a factor of 4180.
+### Dates and clock times
 
-Maximal munch is load-bearing rather than a tidiness preference: `kJ/kg` must not win over `kJ/(kg*K)`
-where the longer entry matches, and `m` must not win over `m3/h`.
+A **date** is written unquoted: `2026-01-15`, `2026-01-15 06:00`, `2026-01-15 06:00:30`, or with a `T`,
+`2026-01-15T06:00`. A **clock time** is `06:30` or `06:30:15`. Each is one token, lexed by its fixed shape —
+four digits, a hyphen, two, a hyphen, two, then optionally spaces or a `T` and a clock time — and neither
+may run on into a word character, so `2026-01-15x` is not a date. No one means `2026-01-15` as 2026 − 1 −
+15, and a clock time is the only place two digits meet a colon, so the shape costs no expression anything.
 
-Rule 3 is **table-driven on the unit set**, which means adding a unit symbol can reclassify an existing
-identifier. That is a breaking change to the language and must be treated as one: the unit table is
-append-only-with-review, and a test asserts that no sample script's identifiers collide.
+A date or a clock time may stand wherever a value may: a run's `start`, an event's time, the first column
+of a curve of time. What a clock time means is [`19`](19-fluidscript-2.md) §Runs.
 
-### Reserved words
+### Strings and titles
 
-`fluidscript` · `project` · `circuit` · `fluid` · `dynamic` · `static` · `spacing` · `style` · `show` · `let` ·
-`catalog` · `connections` · `schedule` · `inlet` · `outlet` · `control` · `curve` · `design` · `scenarios`
+A **string** is `"…"` on one line, with no escapes. It holds a block's **title** — `circuit "Boiler loop":` —
+a quoted hex colour, a curve's `format`, and the circuit titles a run's `steady` lists. A title is never a
+reference: `"Boiler loop"` names the circuit for people and for the model, and no line refers to it by
+that string except `steady`. A string with no closing quote before the end of its line is `FS1001`, and ends
+at the line break.
 
-Eight words were added for `D-33`, `D-37`, `D-40`, `D-57`, `D-58` and `D-143`: `project`, `spacing`,
-`inlet`, `outlet` (spelled `supply` and `return` until `D-115`), `control`, `curve`, `design` and
-`scenarios`. Each introduces a statement, so each must be recognisable
-from the first token — the same standard the original eleven meet.
+### Operators and punctuation
 
-`scenarios` is plural where every other reserved word is singular, and deliberately: `scenario` is
-the word a user will want for a *name* in their own file, and one that collides with its own
-declaration keyword is a trap. The plural also reads as what the line is, a list.
+| Token | Meaning |
+|---|---|
+| `=` | Separates a name from its value |
+| `-` | The link of a connection line; subtraction; unary minus |
+| `+` `*` `/` | Addition, multiplication, division ([`14`](14-expressions-and-references.md)) |
+| `.` | Qualifies a name: `HX1.primary.out.t`, `sized_at.outdoor` |
+| `..` | A range: `30..40 min`, `60..55 C` |
+| `,` | Separates a list's items and a call's arguments, and nothing else |
+| `(` `)` | Group an expression; enclose a call's arguments |
+| `[` `]` | Enclose a list, `[winter, mild]`; or an index touching a name, `in[2]`, `layer[3]` (`D-120`) |
+| `@` | Pins a catalogue's version: `steel_en10255@2026.1` |
+| `:` | Ends a block's head; separates a curve's name from its driver; separates a clock time's fields |
 
-`with`, `by`, `at`, `over` and `extrapolated` are **not** reserved. Each is classified by its position
-inside a statement whose first token already identified it, which is the trade `P6` exists to make:
-reserving a common English word to buy nothing costs every user who wanted it as a name.
+**Spaces are free and there are no commas between settings.** `name = value` takes spaces on either side
+of the `=`, and several pairs may share a line: `t = 85 C   p = 600 kPa`. A comma appears only inside
+brackets and parentheses.
 
-**Adding a reserved word is a breaking language change**, because a word that was a legal identifier
-stops being one ([`18-script-compatibility`](18-script-compatibility.md)). These five ship inside
-major 1 under `18`'s pre-release exemption — no durable v1 file exists yet — and not because a sweep
-of this repository's samples found no collision. That sweep was run and found none, but it is evidence
-about files we wrote, not about files users write. After v1 ships, a sixth reserved word needs a new
-major and a renaming migration.
+### Statement words and event words
 
-Reserved words may not be used as identifiers. The list is deliberately tiny (P6): component *kinds*
-like `heat_exchanger` are **not** reserved — they are looked up in the component registry at bind
-time, so adding a component kind never breaks an existing script that used the name as an identifier.
+The words that open a statement are recognised **by their position at a line's start**, not by the lexer,
+which reserves nothing:
 
-**`node` and `pipe` are no longer reserved**, and that is a correction rather than a relaxation. They
-were reserved on the grounds that "the ambiguity would be real", but no ambiguity exists: neither word
-introduces a directive, so neither can start a statement, and both occur only in `kind-name` position.
-Reserving them made `P1 pipe length=45` unparseable, which is a line in both reference circuits. Every
-kind now resolves the same way, through the registry ([`15-semantic-model`](15-semantic-model.md)).
+| Word | Opens |
+|---|---|
+| `fluidscript` | The version line |
+| `project` | The project block |
+| `let` | A named value |
+| `curve` | A curve |
+| `circuit` | A circuit block |
+| `run` | A run block |
 
-The argument that first carried this was that `kind-name = identifier` "cannot match a keyword token",
-using the production as evidence for its own safety. That production is now `identifier | keyword`
-(`D-64`), so the reasoning had to be replaced by the real one — **position**, below — and the change
-survived losing it (`L-45`).
+`style` opens a block too, but only as `style:` inside a project or a circuit, and `at` and `over` open an
+event only inside a run and only before a time. Neither is a statement word: `at` is an ordinary name
+elsewhere, and places a sensor on a node in a declaration (`TE1 temperature_sensor at N2`).
 
-**A reserved word *may* stand in `kind-name` position, and `inlet` and `outlet` do** (`D-64`). The
-position is what disambiguates, and it always was: a statement whose first token is a reserved word is
-that word's statement, so `inlet N3` is an attachment and `S1 inlet t=5` is a declaration whose kind
-happens to be spelled with a keyword token. The parser therefore accepts an identifier *or* a keyword
-in second position and hands the spelling to the registry, which keeps the parser free of the list of
-kinds — the same reason `node` and `pipe` were unreserved. Only the second position is relaxed: a name
-is still an identifier, so no script can declare a component *called* `inlet`.
+**A component may not be named one of the six**: `run pump` is a run head that fails, and a statement word
+written where a name belongs is `FS1004`. **Before an `=` a statement word is a setting's name**, which no
+statement starts with — a controller's `curve = heating`. The statement words, the event words and every
+block's settings are one Core table, `SettingRegistry`, which the parser, the reader, the editor's lexicon
+and the metadata all read (`L-86`, `A-9`).
 
-**The reverse direction, which is what makes this safe to extend** (`L-45`). Reserving a *new* word
-later is already a breaking change, and the registry adds one constraint on top of it: a reserved word
-may be a kind's **own keyword**, and may not be an **alias**. `ComponentRegistry.Verify` enforces it
-and reports it as a registry error rather than a script diagnostic, because it is a defect in this
-project's tables and never in a user's file.
+**Kinds are not reserved.** `pump`, `radiator` and `controller` are names the binder looks up in the
+component registry ([`15`](15-semantic-model.md)), so adding a kind or a parameter never breaks a script
+that used the word as a name, and never changes this grammar. The one constraint runs the other way: no
+kind and no alias may be spelled as a statement word. `ComponentRegistry.Verify` refuses one, and reports it
+as a defect in this project's tables rather than as a script diagnostic, since no user's file can cause it.
+`time` is the one built-in name: a curve's driver when the curve is of time.
 
-The asymmetry is deliberate. A kind's keyword spelled with a reserved word is a decision the log has
-sanctioned — `D-64` sanctioned exactly two, `inlet` and `outlet` — and position makes it
-unambiguous. An alias is a convenience spelling, so one that collides with a reserved word buys a
-second way to write something already writeable and costs a word the grammar wanted; before `D-64` it
-was worse than useless, because a reserved word never reached kind position at all. So: **only a kind
-the decision log sanctions is reachable by a reserved word**, and adding a reserved word that an
-existing alias claims fails the build rather than silently shadowing the alias.
+**Adding a statement word is a breaking language change**, because a word that was a legal name stops being
+one ([`18-script-compatibility`](18-script-compatibility.md)). The list is kept to the six for that reason.
 
-### Hyphens are not part of a name
-
-`word-char` is `letter | digit | "_"`, so `-` never joins two words: `3-way-valve` lexes as
-`3`, `-`, `way`, `-`, `valve`, and `three-way-valve` as three words with two dashes between them.
-
-**This is deliberate and it is not free.** `-` is the connection operator (`N1 - N2`) and the
-subtraction operator (`Tflow - dTdesign`), and both are unspaced-legal today. Admitting `-` into
-words would make `N1-N2` a single identifier that inference rule I1 would silently create a node
-for — a wrong answer that compiles, which is the worst outcome available. The dash stays an operator.
-
-Because hyphenated kind names are what a user coming from HTML, CSS or `/docs` filenames will
-naturally type, the parser recognises the shape and says so rather than failing obscurely. A
-`kind-name` position followed by `-` and a further word produces `FS1108` with the underscored form as
-a suggested fix:
-
-> *`'3-way-valve'` — a name cannot contain `-`. Write `3_way_valve`.*
-
-Underscores, spacing and case are all normalised away during kind resolution
-([`15-semantic-model`](15-semantic-model.md), `D-15`), so `3_way_valve`, `3WayValve` and `threewayvalve` all
-reach `three_way_valve` without the user learning a canonical spelling. Only the hyphen is lexically
-impossible, and only the hyphen needs a diagnostic.
-
-## Syntactic grammar
+### The lexical grammar
 
 ```ebnf
-script          = version-directive , { statement } ;
-statement       = project-directive | spacing-directive | design-directive | scenarios-directive
-                | circuit-header | attachment | fluid-directive | catalog-directive | style-directive
-                | show-directive | let-binding | component-decl | control-binding
-                | connections-header | connection
-                | schedule-header | disturbance
-                | curve-header | curve-row ;
+token        = name | number | quantity | date | string
+             | "=" | "-" | "+" | "*" | "/" | "." | ".." | "," | "(" | ")"
+             | "[" | "]" | "@" | ":" ;
+trivia       = whitespace | comment | line-break ;
+whitespace   = ( " " | "\t" ) , { " " | "\t" } ;    (* and a byte-order mark before the first character *)
+comment      = "#" , { any-char - line-break } ;
+line-break   = "\r\n" | "\n" | "\r" ;
 
-version-directive   = "fluidscript" , unsigned-integer ;
-project-directive   = "project" , [ "dynamic" | "static" ] , identifier , { parameter } ;
-                                         (* D-149: start="<ISO 8601>" or Unix seconds *)
-spacing-directive   = "spacing" , number ;
-design-directive    = "design" , ( identifier | parameter , { parameter } ) ;
-                                         (* D-143: a bare identifier names the operating scenario.
-                                            driver=value per D-58 remains, for a file with no
-                                            scenarios; D-138's driver=range is withdrawn *)
-scenarios-directive = "scenarios" , identifier , { identifier } ;   (* D-143 *)
-circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
-attachment          = ( "inlet" | "outlet" ) , endpoint ;
-control-binding     = "control" , ( control-short | parameter , { parameter } ) ;
-control-short       = endpoint , "with" , endpoint , "by" , identifier , { parameter } ;
-                      (* D-61: the port half of each endpoint is optional where the registry
-                         names exactly one actuated parameter or measured property *)
-fluid-directive     = "fluid" , [ "dynamic" | "static" ] , identifier ;
-catalog-directive   = "catalog" , identifier , [ "@" , catalog-version ] ;
-catalog-version     = unsigned-integer , "." , unsigned-integer ;
-style-directive     = "style" , [ identifier , "=" ] , { style-token } ;      (* D-104: a name and "=" define *)
-show-directive      = "show" , property-name , { property-name } , [ range ] ;
-property-name       = identifier ;   (* resolved against the property registry — see 57 *)
-let-binding         = "let" , identifier , "=" , expression ;
-connections-header  = "connections" ;
-schedule-header     = "schedule" ;
+digit        = "0".."9" ;
+letter       = "A".."Z" | "a".."z" ;
+word-char    = letter | digit | "_" ;
+digits       = digit , { digit } ;
 
-(* D-57. Three fixed positions -- keyword, name, driver -- then modifiers and named arguments.
-   There is no preposition: the rest of the language has none, and the positions are asymmetric
-   enough that the binder catches a transposition. *)
-curve-header        = "curve" , identifier , curve-driver , { curve-modifier } , { parameter } ;
-curve-driver        = identifier ;   (* "time", another curve, or a registered role -- see 15 *)
-curve-modifier      = identifier ;   (* "extrapolated"; clamped is the default *)
-curve-row           = ( number | timestamp ) , number ;
-
-component-decl      = identifier , kind-name , [ "at" , identifier ] , { parameter }
-                    , [ "sized_at" , parameter , { parameter } ] ;
-                      (* the `at` clause places an observer on a node -- D-61; the `sized_at`
-                         clause names the component's own sizing point, driver=value as on a
-                         `design` line -- D-94. `sized_at` is an identifier the declaration parser
-                         recognises by position, not a keyword: the parameter list stops in front
-                         of a bare `sized_at`, while `sized_at=...` is still a parameter and meets
-                         the registry as one. A clause with no `driver=value` after it is FS1105 *)
-kind-name           = identifier | keyword ;        (* resolved against the registry at bind time;
-                                                       a keyword here is a kind, never a statement -- D-64 *)
-parameter           = qualified-name , "=" , parameter-value ;
-parameter-value     = expression | reference | symbol | scenario-list ;
-                                         (* by the parameter's declared kind — see 15 *)
-scenario-list       = "[" , parameter-value , { "," , parameter-value } , "]" ;
-                                         (* D-143: one value per declared scenario, positionally.
-                                            The brackets and the comma are existing tokens, and a
-                                            list is unambiguous with `in[2]` because an indexed name
-                                            puts its bracket after an identifier, never after "=" *)
-qualified-name      = indexed-name , { "." , indexed-name } ;   (* power; in.t; in[2].flow; layer[3].t -- D-120 *)
-indexed-name        = identifier , [ "[" , unsigned-integer , "]" ] ;
-                      (* the brackets and the integer touch the name on both sides: `in [2]`,
-                         `in[ 2 ]` and `in[a]` are FS1119. `in[1]` is `in` (D-120) *)
-symbol              = identifier ;                  (* e.g. equal_percentage; bound, not evaluated *)
-
-connection          = endpoint , "-" , endpoint , { "-" , endpoint } , { parameter } ;
-                                                    (* trailing pipe properties apply to every
-                                                       connection on the line -- D-110 *)
-endpoint            = identifier , [ "." , qualified-name ] ;   (* component[.port]; the port may be
-                                                                   indexed, `HX1.in[2]`, and a schedule
-                                                                   target may reach a port's state,
-                                                                   `HX1.in[2].t` -- D-120 *)
-
-disturbance         = ( "at" , expression | "over" , range ) , target , "=" , ( expression | range ) ;
-target              = identifier , "." , qualified-name ;   (* component.parameter, `HX1.in[2].t` included *)
-range               = expression , ".." , expression ;
-
-expression          = (* see 14-expressions-and-references *) ;
-style-token         = identifier | quantity | number | string | "-" | "--" | ".." | "-."
-                    | "fill" , "=" , ( identifier | string ) ;                  (* the one keyed token *)
-unsigned-integer    = digit , { digit } ;
-timestamp           = (* one lexical unit; ISO 8601 or Unix seconds unless `format=` says
-                         otherwise, and recognised only inside a curve section -- D-60 *) ;
+name         = ( letter | "_" ) , { word-char }
+             | digits , word-char , { word-char } ;  (* only when no unit symbol matches: Names, rule 2 *)
+number       = digits , [ "." , digits ] , [ ( "e" | "E" ) , [ "+" | "-" ] , digits ] ;
+quantity     = number , [ whitespace ] , unit-symbol ;       (* the spaced form: Units and quantities *)
+unit-symbol  = ? the longest entry of 13's table ending before a non-word character, not "in" or "t" ? ;
+date         = digit , digit , digit , digit , "-" , digit , digit , "-" , digit , digit ,
+               [ ( "T" | [ whitespace ] ) , clock ] ;
+clock        = digit , digit , ":" , digit , digit , [ ":" , digit , digit ] ;
+date-literal = date | clock ;                          (* one token; never followed by a word-char *)
+string       = '"' , { any-char - ( '"' | line-break ) } , '"' ;
 ```
 
-The version directive must be the first non-trivia line. For an unsaved editor draft only, a missing
-directive recovers as current v1 with `FS1701`; [`18-script-compatibility`](18-script-compatibility.md)
-owns durable-file and migration behavior.
+## Lines and blocks
 
-### Sections
+### Lines
 
-Four section markers, each introducing the statements that follow it: none (the declaration
-section), `connections`, `schedule`, and `curve`. There are no braces and no `end`.
+A line is the tokens between two line breaks. A blank line and a line holding only a comment produce no
+tokens — their text rides as trivia on the next token — so **neither ever ends a block**. A line's
+**indentation** is the whitespace before its first token, compared as text: a tab and a space are
+different indentation.
 
-`curve` is the odd one and is deliberately shaped like the others. A curve body is the only multi-line
-construct in the language, and the parser is line-granular with no construct spanning lines — recovery
-rests on that. A section is how the language already says "a header opens a region whose statements are
-classified by position", so the rows cost no new parser concept. Unlike the other three, a curve
-section is **file-wide** rather than circuit-scoped (`D-52` does not apply): a heating curve is shared
-by every circuit that reads it, so it is declared with the other file-wide directives, before the
-first `circuit`.
+### Blocks
 
-| Statement | Declaration section | After `connections` | After `schedule` | After `curve` |
-|---|---|---|---|---|
-| Directives, `let` | ✓ | `FS1103` | `FS1103` | `FS1103` |
-| `project`, `spacing`, `design` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` | `FS1103` |
-| `circuit-header` | ✓ | ✓ — ends the section (`D-52`) | ✓ — ends the section (`D-52`) | ✓ — ends the section |
-| `connections-header` | ✓ | `FS1101` | `FS1103` (`D-56`) | `FS1103` |
-| `schedule-header` | ✓ | ✓ — the usual position (`D-56`) | `FS1101` | `FS1103` |
-| `curve-header` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` | ✓ — ends the previous curve |
-| `attachment` (`inlet`/`outlet`) | ✓ | ✓ | `FS1103` | `FS1103` |
-| `component-decl` | ✓ | ✓ | `FS1103` | `FS1103` |
-| `control-binding` | ✓ | ✓ | `FS1103` | `FS1103` |
-| `connection` | `FS1102` | ✓ | `FS1102` | `FS1102` |
-| `disturbance` | `FS1106` | `FS1106` | ✓ | `FS1106` |
-| `curve-row` | `FS1115` | `FS1115` | `FS1115` | ✓ |
+A **block head** is one of:
 
-A curve section is ended by the next `curve` header or the first `circuit` — nothing else closes it,
-which is why every other statement inside one is `FS1103` rather than an implicit end.
+- a `project`, `circuit` or `run` line, with an optional quoted title, ending in `:`;
+- `style:` inside a project or a circuit;
+- a curve header, `curve NAME: DRIVER` — its `:` separates the name from the driver, and every curve has
+  rows, so it needs no second one;
+- a component declaration whose last token is `:`.
 
-**A row is recognised by its own first token, not by the section it sits in.** Nothing else in the
-language begins with a number or a minus: an identifier may *start* with a digit (`3WV`), but the
-lexer classifies that as an identifier rather than a number, so this costs no lookahead and stays
-inside invariant 7. Classifying by shape is what lets both messages be specific — a row outside a
-curve is `FS1115` and says what the line is, and a declaration *inside* one is `FS1103` and says where
-it is. Reading every line in a curve section as a row instead would turn a forgotten `circuit` header
-into a file of malformed rows, and a curve section sits at the top of the file, so everything below it
-would be swallowed.
+Every following line indented **deeper than the head** belongs to its block, its **body**; the first line
+at the head's indentation or less ends it, and a line shallower still ends every block it is shallower
+than. Blocks nest — a `style:` or a declaration block inside a circuit — and the depth is relative, so two
+levels is the most any script needs. A circuit's statements are scoped to the circuit (`D-52`): they are its
+block's body, and the next line back at the top level ends it.
 
-`attachment` and `control-binding` follow `component-decl` in being legal in both the declaration and
-connection sections, for the same reason: both name components, and a user writing topology naturally
-writes what attaches to what next to the connections it attaches through.
+**A block's lines agree.** The first line of a body sets its indentation, and every other line of that
+body repeats it exactly. A line indented between two levels, or with tabs where the body has spaces, is
+`FS1801`, reported on that line, and the line is read in the block it is indented under — deeper than the
+head, so inside it, which is the nearer level. **A curve's rows are the exception**: they are a table whose
+columns the user aligns (`  -26   85` over `   18   65`), so a row needs only to be deeper than its header.
+Nothing else about whitespace means anything. The formatter indents a body two spaces and leaves a curve's
+rows as written; the printer keeps what was typed ([`17`](17-formatting-and-round-trip.md)).
 
-**The three sections are scoped to a circuit, not to the file** (`D-52`). A `circuit` header is legal
-in any of the three columns: it ends whatever section the previous circuit was in and opens the new
-circuit's declaration section. So each circuit may carry its own `connections` and its own `schedule`,
-and a file-wide count of either is not a rule the parser has. This is what the header being "a section
-marker in effect" means, and it is what lets the distribution-header reference circuit write three
-circuits as three readable blocks rather than one declaration wall followed by one topology wall.
+**A head without its `:`** is `FS1812`, and the block opens anyway, so the lines under it are read as its
+body rather than each reported for standing where nothing allows them. A declaration written without its
+colon and followed by deeper lines becomes their head the same way, with `FS1812` reported once on the
+declaration. A `:` followed by more text on the head line is `FS1114`.
 
-**A component declaration is legal after the `connections` header, and that is the change that makes
-the reference circuits parse.** Both write their boundary conditions below the topology:
+### What may appear where
 
-```fluidscript lang=1
-connections
-N1 - N2
-# ... the rest of the topology
+| Line | Top level | `project` | `circuit` | `run` | `style:` | a declaration | a curve |
+|---|---|---|---|---|---|---|---|
+| The version line | ✓ | | | | | | |
+| A `project`, `circuit` or `run` head | ✓ | | | | | | |
+| `let` | ✓ | | | | | | |
+| A curve header | ✓ | | | | | | |
+| `style:` | | ✓ | ✓ | | | | |
+| A setting line, `name = value` | | ✓ | ✓ | ✓ | ✓ | ✓ | |
+| A component declaration | | | ✓ | | | | |
+| A connection line | | | ✓ | | | | |
+| An event, `at` or `over` | | | | ✓ | | | |
+| A curve row | | | | | | | ✓ |
 
-N1 node t=6 p=300         # primary-side boundary
-N3 node p=280
+A statement outside the block it belongs in — `fluid = water` at the top level, an event outside a run, a
+declaration in a run — is `FS1802`, whose message names the block it belongs in. It is still parsed as what
+it is, so the binder sees it and the one misplaced line costs one message. Every line of a curve's body is a
+row; a row anywhere else is `FS1115`.
+
+A setting line means what its block makes it: a block's own setting in a project, circuit, run or style,
+a parameter in a declaration's body, and in a run any name that is not a run setting is an override
+([Runs](#runs)).
+
+### Classifying a line
+
+A line is classified by its first tokens, read in this order:
+
+1. **In a curve's body**, the line is a row.
+2. **A quantity followed by a name** is a declaration whose name reads as a quantity (`3K pump`): `FS1003`.
+3. **A number, a quantity, a `-` or a date** starts a curve row, and nothing else. Outside a curve it is
+   `FS1115`, which says what the line is. An identifier may *start* with a digit, but the lexer has
+   already made `3WV` a name, so this costs no lookahead.
+4. **A line in a shape the language does not have** is `FS1806`, and the message says what to write
+   instead ([below](#lines-the-language-does-not-have)).
+5. **A statement word**: `fluidscript` and a number is the version line; `project`, `circuit` or `run`
+   followed by a title or `:` is a block head; `let` and a name is a `let`; `curve` and a name is a curve
+   header, and `curve =` a setting; `style` alone or `style:` is a style head. A statement word followed by
+   anything else is `FS1004`.
+6. **`at` or `over` followed by what can start a time** — a number, a quantity, a date or clock time, `-`
+   or `(` — is an event.
+7. **Otherwise the line starts with a qualified name**, and what follows it decides: `=` makes a setting
+   line, `-` a connection line, anything else a declaration.
+
+The lookahead is bounded by the line and never by the lines around it ([invariant 5](#invariants)); the
+enclosing block then says whether the statement may stand there. A qualified name is several tokens to the
+lexer and one unit to the grammar, so step 7 reads to the end of it: `HX1.secondary.out - TV1` is a
+connection, `in[2].level = 0.8` a setting, and `3WV.b - N3` a connection whose first endpoint names a port
+(`D-56`).
+
+A line nothing above can read is `FS1104`, which lists the three shapes a line inside a block usually has.
+
+### Lines the language does not have
+
+A few words start a line only in shapes the language does not have, and a user may still type them. The
+parser recognises each shape exactly and answers with `FS1806` and the form to write, rather than letting
+the general rule read it as a declaration of an unknown kind:
+
+| Line | What to write |
+|---|---|
+| `connections` or `schedule` alone | Connection lines anywhere in a circuit's block; events in a `run` block |
+| `control`, `scenarios` or `design` and a name | A controller declaration; `cases = [...]` in the project block; nothing — sizing covers every case |
+| `project`, `circuit` or `style` and a name | `project "Title":`, `circuit "Title":` and `style:`, with settings indented below |
+| `curve NAME DRIVER` without the colon | `curve NAME: DRIVER` |
+| `fluid`, `show`, `spacing` or `catalog` and anything but `=`, `-` or `.` | The setting, `fluid = water`, in its block |
+| `inlet NAME` or `outlet NAME` alone | A connection line in either circuit: circuits join through a component both name |
+
+Each shape is exact, so a line that merely starts with the same word is not caught: `control - N1` is a
+connection and `fluid = water` a setting. The price is that a component may not be declared under one of
+these words in these shapes — `design valve` reads as the shape above. This project's reasoning: that
+reading is far more likely to be meant.
+
+## Statements
+
+### The version line
+
+`fluidscript 2`, the first non-trivia line of the file, at the top level. A byte-order mark may precede it.
+A file with no version line is read as the current language (`D-174`); what a file that states another
+major gets — shown as text, never compiled — and the codes for a missing or misplaced line (`FS1701`,
+`FS1705`) are [`18`](18-script-compatibility.md)'s. The parser records the line and judges nothing: it is
+a statement in the file's list rather than a field of its own (`D-54`), so a line that is missing,
+duplicated or not first still prints back as written. `fluidscript` followed by anything but a number is
+`FS1004`.
+
+### The project block
+
+```text
+project "Title":
+  cases   = [winter, mild]
+  catalog = steel_en10255@2026.1
+  show    = temperature
+  scale   = 20..90 C
+  spacing = 1.2
+  style:
+    ...
 ```
 
-`N1 node t=6 p=300` is an ordinary declaration of kind `node` — no new statement form, no new
-production, P6 intact. It was previously impossible for two independent reasons: `node` was reserved,
-so it could not appear in `kind-name` position, and declarations were forbidden below the
-`connections` header. Both are now lifted. Declaring the boundary node explicitly also means
-inference rule I1 does not fire for it, which is the honest outcome — a node the user wrote is a node
-the user wrote.
+The title is optional (`project:`). The settings:
 
-Writing boundaries below the connections is a convention, not a requirement; the same lines are legal
-in the declaration section, and the printer preserves whichever the user chose.
+| Setting | Value |
+|---|---|
+| `cases` | A list of names, `[winter, mild]` |
+| `catalog` | A catalogue name, optionally pinned to a version: `steel_en10255@2026.1` |
+| `show` | A property name, or a list of them |
+| `scale` | A range, `20..90 C` |
+| `spacing` | A bare number (`D-37`) |
+| `style:` | A [style block](#style-blocks) |
 
-### Statement disambiguation
+What each means is [`19`](19-fluidscript-2.md) §The project block and §Presentation; which properties
+`show` knows is [`57`](../50-frontend/57-state-visualization.md)'s. **A catalogue's version reaches the
+parser as one number token**, `2026.1`, because the number rule consumes a `.` followed by a digit and has
+no context to do otherwise — recognising a version only after an `@` would make the lexer position-sensitive.
+The `@` and the number touch the name, and the major and minor are split from the number's *source text*
+rather than its value, which is the only way `@2026.10` stays distinct from `@2026.1`. The pin itself, and
+reading it before the file is parsed, are [`18`](18-script-compatibility.md)'s.
 
-Both `circuit coolingLoop` and `HE1 heat_exchanger` are two identifiers in a row, and inside the
-connection section so are `N1 node t=6` and `N1 - N2`. The rule:
+### `let`
 
-> If the first token of a line is a reserved word, the statement is the directive, section header, or
-> statement that word introduces. Otherwise, if the **second** token is `-` or `.`, the statement is a
-> connection; otherwise it is a component declaration. In the `schedule` section every non-reserved
-> line is a disturbance.
+`let NAME = value`, at the top level. The value is any [value](#values): a quantity, an expression reading
+other `let`s, or a list with one item per case, which makes the `let` a **driver** (`D-167`):
 
-**`D-120` (2026-09-19, shipped by P5.13a 2026-09-20):** port indices are written in brackets
-(`HX1.in[2]`) and a port's state as `in[2].t` on the declaration line. The disambiguation clause is
-unchanged by it: a `.` in second position is still a connection, because a declaration's second token
-is its kind and a kind-name has no dot; `in.t=` puts the dot in third position or later.
-
-`.` is in that clause because a connection's first endpoint may be port-qualified — `3WV.b - N3`
-(`D-56`). It costs no extra lookahead, and nothing else can put a `.` in second position: a component
-declaration is two identifiers, and a name cannot contain a dot.
-
-Every statement added by `D-33`, `D-37` and `D-40` is introduced by a reserved word, so all five fall
-into the rule's first clause and none of them costs a second token of lookahead. That was a
-constraint on their design, not a happy accident: a new statement form that could only be recognised
-by looking further ahead would break invariant 5, and the `in N3` shape rejected above is exactly
-what such a form looks like.
-
-**One token of lookahead, and no more.** The earlier rule used section position alone, which cannot
-separate a declaration from a connection once both are legal in the same section. One token keeps the
-parser single-pass and keeps invariant 5 meaningful; unbounded lookahead is still forbidden.
-
-A connection written above the `connections` header still produces `FS1102` rather than a confusing
-"unknown component kind", because the second token is `-` and the section is wrong.
-
-### Circuit header and numbering
-
-`circuit groundSource 400` names a circuit and designates it 400. The number is optional: an omitted
-one is resolved by the binder, not the parser ([`15-semantic-model`](15-semantic-model.md)), as the
-lowest unused multiple of 100 in declaration order. A single-circuit script never writes a number and
-means exactly what it meant before this production existed (`D-33`).
-
-**A script may hold several circuit headers.** Each one begins a circuit; every declaration and
-connection that follows belongs to it until the next header. That makes the header a section marker
-in effect while remaining a directive in form — no braces, no `end`, consistent with the three
-existing section markers. It follows that a header also *ends* the section the previous circuit was
-in, wherever that header appears (`D-52`), which is why `connections` and `schedule` are counted per
-circuit rather than per file.
-
-The name doubles as the circuit's **role**, resolved through a registry rather than a keyword
-(`D-35`). `circuit AHU 101` is not a reserved word `AHU`; it is an identifier the binder looks up.
-The parser neither knows nor cares which roles exist, which is what lets the role set grow without a
-language version.
-
-### Subcircuit attachment
-
-```fluidscript lang=1
-circuit AHU 101
-HE1 duty in.t=50 out.t=30 power=24 kW
-TV1 three_way_valve
-PU1 pump
-
-inlet N3        # takes flow from the parent circuit at N3
-outlet N5        # returns it to the parent at N5
+```text
+let outdoor = [-20, 5] C
+let rise    = 20 K
+let supply  = outdoor + 2 K
 ```
 
-Two statements, each a keyword and an endpoint, declaring where this circuit meets its parent
-(`D-33`). Both are optional; a circuit with neither stands alone. A circuit with exactly one produces
-a diagnostic, because a subcircuit that takes flow and never returns it is not a topology anyone
-means.
+`let` followed by anything but a name is `FS1004`. What a driver does is [`19`](19-fluidscript-2.md)
+§Drivers and cases.
 
-**`in` and `out` were the obvious spelling and are lexically impossible.** `in N3` is a first token
-that is not reserved followed by a second token that is not `-`, so the disambiguation rule below
-classifies it as a component declaration: a component named `in`, of kind `N3`. It parses, it binds,
-and it is silently not what the user wrote. Reserving `in` and `out` would fix the parse and break
-`HE1 heat_exchanger in=20 out=50`, where the same two words are parameter names for inlet and outlet
-temperature — one word, two meanings, one document. `inlet` and `outlet` collide with nothing and
-say what they mean, so the parser recognises the `in`/`out` shape only to reject it with `FS1109`.
+### Curves
 
-### Project and spacing directives
-
-```fluidscript lang=1
-fluidscript 1
-project dynamic plant_01
-spacing 0.75
+```text
+curve NAME: DRIVER [extrapolated] [format = "…"]
+  x   y
+  x   y
 ```
 
-`project [dynamic|static] <name>` names the project and sets the **default** solve mode for every
-circuit in the file (`D-37`). A circuit's own `fluid dynamic|static` still wins locally; the binder
-warns when the two disagree rather than picking silently, because both readings are defensible and
-the user should know which one they got.
+The header names the curve and, after a colon, its **driver**: a `let` or `time` (`D-57`, `D-167`).
+`extrapolated` and `format = "…"` follow the driver in either order (`D-60`). A header with no driver —
+`curve heating` or `curve heating:` — is `FS1116`.
 
-`start=` on the project line places a run's t = 0 on every time curve's axis (`D-149`):
-`project dynamic plant_01 start="2026-01-15T06:00:00"`. It is quoted because a date unquoted lexes as a
-subtraction, and it is read by a time curve's own row reader, ISO 8601 or Unix seconds. It is the
-project line's only parameter; any other is `FS1503`, an unknown parameter.
+Each **row** is two whitespace-separated parts, an `x` and a `y`. The `x` of a curve of time is a date and a
+clock time (`2026-01-15 06:00`), or a timestamp in the header's `format`; otherwise both are bare numbers,
+and `-26` is one part. The parser keeps a row's tokens whole and the binder splits them, because a
+timestamp in a `format` of its own is not one token; a row with fewer than two parts is `FS1117`. Columns
+may be aligned freely ([Blocks](#blocks)). A curve's rows end at the first line back at the header's
+indentation.
 
-`spacing <number>` is a bare number in world units. It is presentation, not physics and not layout
-structure: the binder puts it in style settings and Core never reads it (`D-37`,
-[`25-layout-hints`](../20-core-domain/25-layout-hints.md)'s invariant 1). It takes a plain `number`
-rather than a `quantity` deliberately — world units are not metres, and admitting `20 mm` here would
-invite the reader to believe the canvas has a physical scale.
+### Circuits
 
-**Both must precede the first `circuit` header**, because both are file-global and a global statement
-appearing after the thing it governs reads as though it applied only from that point. `project` must
-also follow the version directive, which stays first so an unsupported file can be rejected before it
-is parsed ([`18-script-compatibility`](18-script-compatibility.md)).
+`circuit "Title":`, with the title optional — a circuit written without one is named `circuit 1`,
+`circuit 2`, … in file order. Its body holds, in any order:
 
-### Control binding
+| Line | Example |
+|---|---|
+| The settings `fluid`, `number`, `role` | `fluid = water`, `number = 100`, `role = district` |
+| A `style:` block | overriding the project's style |
+| Component declarations | `PU1 pump` |
+| Connection lines | `BLR - MV1  15 m  DN32` |
 
-```fluidscript lang=1
-PID1 pid kp=3
-control actuate=TV1.position measure=N2.t by=PID1 setpoint=20
+`number` is the tag prefix (`D-34`); left out, the binder resolves the lowest unused multiple of 100 in
+declaration order (`D-33`). `role` is resolved against the circuit-role registry (`D-35`), so the parser
+neither knows nor cares which roles exist, and the set can grow without a grammar change.
+
+### Component declarations
+
+```text
+NAME kind [at NODE] [name = value ...] [:]
 ```
 
-The controller *definition* is an ordinary component declaration and needs no production of its own —
-`pid`, `pi` and `p` are registered aliases of the kind `controller` and resolve through the registry
-like any other spelling (`D-15`). The **binding** is a new
-statement: the keyword `control` followed by named parameters, reusing the `parameter` production
-already defined for declarations (`D-40`).
+The name comes first and the kind second, then the parameters as `name = value` pairs. The declaration
+takes either of two forms, which are one grammar:
 
-**Named, never positional.** `control TV1 N2.t PID1` would be shorter and is rejected: there is no
-memorable order for actuator, measurement and controller, and transposing two of them produces a
-model that binds, solves, and drives the wrong way. The four recognised names — `actuate`, `measure`,
-`by`, `setpoint` — are named, and `actuate` takes a qualified `component.parameter` reference
-(`D-43`). Which are required is
-[`15-semantic-model`](15-semantic-model.md)'s to define; this document owns only the shape.
+- **One line**: `RAD radiator power = demand`, with as many pairs as the line holds.
+- **A block**: the line ends in `:`, and its parameters follow on indented lines, one or several pairs to a
+  line: `BLR boiler:` then `out.t = 75 C`. Pairs may also stand on the head line before the `:`.
 
-### Style directive
+The printer keeps whichever form was written, and the formatter never converts between them.
 
-`style blue 2px fillet --` is a **set of positional tokens, order-independent**, each classified by
-what it is rather than where it sits:
+A **parameter name** is a qualified name: `power`, `primary.out.t`, `in[2].level`, `sized_at.outdoor`. Each
+part may carry an index that touches it — `in[2]`, never `in [2]` or `in[ 2 ]`, which are `FS1119` (`D-120`).
+`sized_at.outdoor = -5 C` is an ordinary parameter whose name is qualified by the driver it names (`D-175`,
+`D-176`, amending `D-94`). A name followed by no `=` is `FS1105`.
 
-| Token shape | Interpreted as | Examples |
+**The kind is any name**, resolved against the component registry at bind time ([`15`](15-semantic-model.md)),
+so a new kind never changes this grammar. **`at NODE`** after the kind places an observer — a sensor — on a
+node (`D-61`). A declaration with no kind is `FS1104`; a hyphenated kind is `FS1108` or `FS1114`
+([Names](#names)).
+
+**A controller is a declaration** of kind `controller` (`D-40`, `D-168`), usually in block form:
+
+```text
+TC1 controller:
+  type     = PI
+  moves    = MV1
+  reads    = TE1
+  setpoint = 60 C
+  band     = 10 K
+  ti       = 120 s
+```
+
+Its settings — `type`, `moves`, `reads`, `setpoint`, `band`, `kp`, `ti`, `td`, `output`, `action`,
+`differential`, `curve` — are named, never positional: there is no memorable order for an actuator, a
+measurement and a setpoint, and transposing two of them would give a model that binds, solves, and drives
+the wrong way. `moves` takes a component or a qualified parameter, `BLR.power` (`D-43`). Which settings each
+type takes, and what they mean, is [`19`](19-fluidscript-2.md) §Controllers.
+
+### Connection lines
+
+```text
+A - B - C
+A.port - B            [length] [DN] [name = value ...]
+```
+
+A connection line is two or more **endpoints** joined by `-`, read in the direction of flow. An endpoint is
+a component or node name, optionally followed by a port: `HX1.secondary.out`, `T1.in[2]`, `MV1.a`. A name no
+declaration names is a node ([`15`](15-semantic-model.md)'s rule I1). `N1-N2` written without spaces is a
+connection too.
+
+**A pipe on the link** is written at the end of a line with one link, with no `=` for its two commonest
+properties (`D-110`, `D-166`), each recognised by its form:
+
+| Part | Read as | Example |
 |---|---|---|
-| A known colour name, or a string holding `#rrggbb` | stroke colour | `blue`, `"#2f6f9f"` |
-| A quantity with a length/pixel unit | stroke width | `2px`, `1.5px` |
-| A known corner keyword | corner treatment | `fillet`, `sharp`, `round` |
-| A dash pattern token | line pattern | `-` solid, `--` dashed, `..` dotted, `-.` dash-dot |
+| A quantity | The pipe's length | `15 m` |
+| A bare name | Its DN designation, checked against the catalogue | `DN32` |
+| `name = value` | Any other pipe property | `roughness = 0.05 mm`, `nodes = 4` |
 
-**A hex colour must be quoted** (`D-13`). `#` now begins a comment, so a bare `#2f6f9f` comments out
-the rest of the line — silently, since the result is still a valid `style` directive with one fewer
-token. Quoting it is one pair of characters and the `string` token already existed for exactly this
-class of value. Named colours are unaffected and remain the common case.
+The parts come in any order after the last endpoint. On a line with more than one link they are
+`FS1803`, which asks which link is meant; the line is kept, so the chain still binds. A bare word that is
+not a DN designation is `FS1813`. How ports are inferred, and what the binder makes of the pipe, is
+[`19`](19-fluidscript-2.md) §Connections.
 
-Order-independence is a P1 decision: the user should not have to remember whether width comes before
-colour. The cost is that an unrecognised token cannot be attributed to a position, so `FS1201` says
-what it could not classify and lists the categories.
+A name with a hyphen in a chain — `N1 - HX-1 - N2` — is `FS1108`: the chain fails at `1`, and the parser
+reads back to name `HX-1`.
 
-**Named styles (`D-104`, P5.1d).** `style hot = "#c0392b" 2px -` defines a style; the `=` after the
-first word is what makes it a definition, so the parser needs one token of lookahead and no new
-reserved word. `style hot` applies it to everything declared after it in the current circuit, and a
-circuit starts from the project-level style, which is whatever `style` lines precede the first
-`circuit` header. `style=<name>` on a component declaration overrides for that component; `style` is
-the one reserved word a parameter may be named after. A bare `style <word>` is an application when
-the word is a defined name and an anonymous token list otherwise, decided by the binder, which is why
-a colour name can never be a style name in practice: `style blue` is blue. `fill=<colour>` is the
-one keyed token; the positional colour is the stroke. Definitions may follow their use, as a `let`
-may. `FS1204` and `FS1205` are the binder's; `FS1201` and `FS1202` now are too, with the colour
-names being the CSS named colours and the corner words `fillet`, `round` and `sharp`.
+### Style blocks
 
-### Show directive
-
-`show temperature pressure` selects which fluid property drives the canvas colour scale. The grammar is
-trivial — a keyword and a list of identifiers — but the property names, their aliases, and what happens
-when one is unknown belong to
-[`57-state-visualization`](../50-frontend/57-state-visualization.md), which owns the whole feature.
-`FS121x` codes are allocated there, in this document's `FS12xx` range, because the directive is parsed
-here and interpreted there.
-
-**Pattern tokens are recombined by the style parser, not by the lexer.** `--` lexes as two `-` tokens,
-`..` as two `.` tokens, and `-.` as a `-` followed by a `.`. Inside a `style` directive the parser joins
-any run of adjacent `-` and `.` tokens with no intervening whitespace into one pattern token, then
-matches that against the four patterns above. All three multi-character patterns need this, not only
-`--`. It is the one place the grammar is not context-free, and it is contained to one production
-deliberately.
-
-### Catalog directive
-
-`catalog steel_en10255` selects the one catalogue auto-sizing draws from
-([`27-component-catalog`](../20-core-domain/27-component-catalog.md));
-`catalog steel_en10255@2026.1` pins its exact version.
-
-**`2026.1` reaches the parser as one number token, not as `2026`, `.`, `1`.** The lexer's number rule
-consumes a `.` followed by a digit, and it has no context to do otherwise — recognising a version only
-after an `@` would make the lexer position-sensitive, which invariant 5 exists to prevent. The parser
-therefore splits `CatalogVersionSyntax`'s major and minor out of the number's *source text* rather than
-its value, which is also the only way `@2026.10` stays distinguishable from `@2026.1`. The version is optional so a draft may track
-the shipped version of a named catalogue, but a durable reproducible design should pin it. v1 has no
-catalogue preference list: a second identifier is `FS1114`. With no directive, the shipped default
-applies and `FS2606` reports its exact id and version.
-
-**That code was `FS1101` and could not have been**, which is worth recording rather than quietly
-correcting. `FS1101`'s message is *"Only the first '{section}' section is used"*, about a duplicated
-`connections` or `schedule` header, and nothing in it fits a catalogue. The real condition is the
-general one — a statement that parsed, followed by text the line has no place for — which
-`spacing 20 30`, `circuit a 100 200` and `fluidscript 1 2` all reach as well, and which had no code
-at all. `FS1114` is that code.
-
-It is a directive rather than a per-pipe `series=` parameter because the series is a property of the
-installation, not of one pipe, and repeating it on every pipe is the kind of noise `P1` exists to
-prevent. `27` owns the series names and their provenance; this document owns only the syntax.
-
-### Schedule section
-
-`schedule` introduces the disturbances a transient run applies
-([`33-transient-time-domain`](../30-solver/33-transient-time-domain.md)). It is meaningful only under
-`fluid dynamic`; under `fluid static` the section parses and produces `FS1107` (warning).
-
-```fluidscript lang=1
-schedule
-at 60 s              HE1.power   = 45          # step
-over 60 s .. 120 s   HE1.power   = 30 .. 45    # linear ramp
-at 300 s             3WV.position = 0.3        # any settable parameter
+```text
+style:
+  colour = "#2f6f9f"
+  width  = 2
+  corner = fillet
+  line   = dashed
 ```
 
-Two forms, one production. `at` takes an instant and a value; `over` takes a range of time and either
-a single value (step at the end of the ramp) or a range (linear interpolation between the two). The
-target is always `component.parameter` — a `reference` shape the expression grammar already parses.
+`style:` stands inside the project block or a circuit's. Its settings are `colour` (also `color`: a CSS
+colour name, or a quoted `#rrggbb` or `#rgb`), `width` (pixels, a bare number or `px`), `corner` (`sharp`,
+`fillet`) and `line` (`solid`, `dashed`, `dotted`, `dashdot`). A setting stated twice in one block is
+`FS1202`, and the later wins. A style applies to the block that holds it and is never a name: there are no
+named styles and no component style (`D-171`; `D-104`'s named styles are not part of the language). What a
+circuit's style overrides is [`19`](19-fluidscript-2.md) §Presentation.
 
-**`at` and `over` are not reserved words.** They are the first token of a statement in the `schedule`
-section, and section position classifies them, exactly as it does for connections. Reserving two
-common English words to buy nothing is the trade P6 exists to refuse.
+### Runs
 
-**`..` is a range token here and a dotted line pattern in a `style` directive.** The same characters,
-separated by context, as `-` already is (connection, subtraction, solid pattern). Both contexts are
-closed and neither can occur in the other, so no lookahead is needed to tell them apart.
+```text
+run "Title":
+  from     = CASE
+  start    = DATE
+  duration = TIME
+  frame    = TIME
+  steady   = ["Circuit title", ...]
 
-### Connections
-
-`A - B - C` desugars to `A - B` and `B - C` (rule I6). Port qualification uses `.`: `3WV.b - N3`.
-An unqualified endpoint means "the next free port, in the component's declared port order", which is
-what makes the brief's example work without any port names at all.
-
-**A connection line may end in pipe properties** (`D-110`): `N5 - N1 length=25`,
-`3WV - N3 length=25 dn=25`, `N1 - N2 - N3 dn=25`. The property list is the same `parameter` list a
-declaration carries, after the last endpoint, and it applies to **every connection on the line** --
-the chain above makes two pipes, both DN25. The parser holds the list on the `ConnectionSyntax`; what
-it means -- an implicit `pipe` per connection, rule I7 -- is the binder's
-([`15`](15-semantic-model.md)). A property without a value (`N1 - N2 dn`) makes the line malformed
-(`FS1105`), as on a declaration. A bare designation is not a literal form: `DN25` is spelled `dn=25`,
-so the printer round-trips the line as it does every other ([`17`](17-formatting-and-round-trip.md)).
-A line with no properties means what it always meant, a lossless link; no existing script changes.
-
-## AST shapes
-
-Nodes are records; the tree is immutable. **A node holds the tokens it consumes** — its keywords and
-its punctuation, not only its structural children — and trivia hangs off those tokens (`D-55`), which
-is the model [`17-formatting-and-round-trip`](17-formatting-and-round-trip.md) states and the only one
-that round-trips: no node is a `let`, an `=`, a `-` or a `(`, so a tree that dropped them would drop
-every space around them too.
-
-A node's span and trivia are therefore **derived**, never supplied. The parser never computes a span,
-which is what makes invariant 3 hold by construction rather than by arithmetic being right at forty
-sites.
-
-```csharp
-public abstract record SyntaxNode
-{
-    /// <summary>Every token this node and its descendants consume, in source order.</summary>
-    /// <remarks>Concatenating each token's leading trivia, its text and its trailing trivia, over the
-    /// whole tree, reproduces the source byte for byte.</remarks>
-    public abstract ImmutableArray<Token> Tokens { get; }
-
-    /// <summary>Span in the source text, excluding trivia. From the first token to the last.</summary>
-    public TextSpan Span { get; }
-
-    /// <summary>Trivia before this node: its first token's.</summary>
-    public ImmutableArray<Trivia> LeadingTrivia { get; }
-
-    /// <summary>Trivia after this node up to the next newline: its last token's.</summary>
-    public ImmutableArray<Trivia> TrailingTrivia { get; }
-}
-
-/// <summary>A whole script: one ordered list of statements, and nothing beside it.</summary>
-/// <remarks>
-/// The version directive is a statement in this list rather than a field of its own (`D-54`), even
-/// though the grammar writes it as <c>script = version-directive , { statement }</c>. A script under
-/// editing has it missing, duplicated, or not first, and all three must round-trip; one ordered list
-/// is what makes that true and keeps the printer walking a single sequence.
-/// </remarks>
-public sealed record ScriptSyntax(ImmutableArray<StatementSyntax> Statements) : SyntaxNode;
-
-/// <summary>The <c>fluidscript</c> line and the language major it names.</summary>
-/// <remarks>
-/// The parser records it and judges nothing. Whether an absent directive is an unsaved draft
-/// (<c>FS1701</c>) or a misplaced one (<c>FS1705</c>) depends on whether the text is a durable file,
-/// which the parser cannot know; <see href="18-script-compatibility.md">18</see> owns both.
-/// </remarks>
-public sealed record VersionDirectiveSyntax(NumberLiteralSyntax Major) : StatementSyntax;
-
-/// <summary>Which fluid properties drive the canvas colour scale.</summary>
-/// <remarks>The property names are resolved against the property registry by
-/// <see href="../50-frontend/57-state-visualization.md">57</see>, never here.</remarks>
-public sealed record ShowDirectiveSyntax(
-    ImmutableArray<IdentifierSyntax> Properties,
-    RangeSyntax? Scale) : StatementSyntax;
-
-/// <summary>One positional token of a <c>style</c> directive.</summary>
-/// <remarks>
-/// Classified by lexical shape only. Which category it belongs to — colour, width, corner, pattern —
-/// needs the colour and corner registries and is decided at bind time, which is also where
-/// <c>FS1201</c> and <c>FS1202</c> are raised. A pattern token carries the recombined text
-/// (<c>--</c>, <c>..</c>, <c>-.</c>), which the lexer produced as two tokens.
-/// </remarks>
-public sealed record StyleTokenSyntax(StyleTokenKind Kind, string Text) : SyntaxNode;
-
-/// <summary>The lexical shape of a <c>style</c> token.</summary>
-public enum StyleTokenKind { Word, Number, Quantity, String, Pattern }
-
-/// <summary>A bare identifier: a component name, a kind name, a parameter name, a circuit name.</summary>
-/// <remarks><see cref="Text"/> is the token's spelling exactly as written. Normalisation for kind and
-/// parameter resolution happens at bind time (`D-15`) and never rewrites this.</remarks>
-public sealed record IdentifierSyntax(Token Token) : SyntaxNode;
-
-// Every leaf wraps its token the same way (`D-55`); the shapes below name their structural children
-// and are shown without the keyword and punctuation tokens they also hold, which would triple the
-// length of this listing without adding a production. `LetBindingSyntax` really holds
-// (Token Keyword, IdentifierSyntax Name, Token Equals, ExpressionSyntax Value).
-
-/// <summary>A number with no unit symbol.</summary>
-/// <remarks><see cref="Text"/> retains the source spelling — <c>1.50</c>, <c>1.5</c> and <c>15e-1</c>
-/// are one value and three different strings, and the printer must reproduce the one written
-/// (`R-25`).</remarks>
-public sealed record NumberLiteralSyntax(double Value, string Text) : ExpressionSyntax;
-
-/// <summary>A number immediately or whitespace-separated from a unit symbol.</summary>
-/// <remarks><see cref="Unit"/> is the matched symbol as written, not its canonical spelling; the
-/// dimension it denotes is <see href="13-type-and-unit-system.md">13</see>'s.</remarks>
-public sealed record QuantityLiteralSyntax(double Value, string Text, string Unit) : ExpressionSyntax;
-
-/// <summary>A double-quoted string. Cannot span a newline (invariant 6).</summary>
-public sealed record StringLiteralSyntax(string Value) : ExpressionSyntax;
-
-/// <summary>An expression the user wrapped in parentheses.</summary>
-/// <remarks>
-/// Kept as a node rather than re-derived from precedence when printing (`D-54`). <c>(a + b) * c</c>
-/// and <c>a + b * c</c> differ, and a redundant grouping in an engineering formula is usually
-/// deliberate; reconstructing parentheses from precedence prints a correct expression rather than the
-/// user's, which is not what `R-25` asks for.
-/// </remarks>
-public sealed record ParenthesizedExpressionSyntax(ExpressionSyntax Inner) : ExpressionSyntax;
-
-/// <summary>Base of the expression hierarchy.</summary>
-/// <remarks>
-/// The literal leaves above are declared here because the statement productions in this document
-/// consume them directly. Operator, reference and range nodes belong to
-/// <see href="14-expressions-and-references.md">14</see>, which owns evaluation.
-/// </remarks>
-public abstract record ExpressionSyntax : SyntaxNode;
-
-/// <summary>Whether a fluid or a project is solved as an equilibrium or in time.</summary>
-public enum FluidMode { Static, Dynamic }
-
-/// <summary>Which side of a subcircuit's attachment a statement declares (`D-33`).</summary>
-public enum AttachmentDirection { Supply, Return }
-
-public abstract record StatementSyntax : SyntaxNode;
-
-/// <summary>Begins a circuit. Every statement until the next header belongs to it.</summary>
-/// <remarks>
-/// <paramref name="Number"/> is the circuit designation as written; null when omitted, in which case
-/// the binder resolves one (`D-33`). The parser never invents a number — an absent number must stay
-/// distinguishable from a written one so the printer can reproduce the source byte for byte.
-/// <paramref name="Name"/> also carries the circuit's role, resolved against the role registry at
-/// bind time (`D-35`); the parser does not classify it.
-/// </remarks>
-public sealed record CircuitHeaderSyntax(
-    IdentifierSyntax Name,
-    NumberLiteralSyntax? Number) : StatementSyntax;
-
-/// <summary>Names the project and sets the file-wide default solve mode (`D-37`).</summary>
-/// <remarks><paramref name="Mode"/> is null when neither <c>dynamic</c> nor <c>static</c> was
-/// written, which leaves every circuit's own directive to decide.</remarks>
-public sealed record ProjectDirectiveSyntax(
-    FluidMode? Mode,
-    IdentifierSyntax Name) : StatementSyntax;
-
-/// <summary>Component spacing on the canvas, in world units (`D-37`).</summary>
-/// <remarks>A bare number, never a quantity: world units have no physical dimension, and accepting
-/// <c>20 mm</c> would imply the canvas has a scale it does not have.</remarks>
-public sealed record SpacingDirectiveSyntax(NumberLiteralSyntax Value) : StatementSyntax;
-
-/// <summary>Where a subcircuit meets its parent (`D-33`).</summary>
-/// <remarks>
-/// <c>Supply</c> takes flow from the parent, <c>Return</c> gives it back. The endpoint names a node
-/// in the parent circuit; whether it exists is a binder question, not a parser one.
-/// </remarks>
-public sealed record AttachmentSyntax(
-    AttachmentDirection Direction,        // Supply | Return
-    EndpointSyntax Endpoint) : StatementSyntax;
-
-/// <summary>Binds a declared controller to what it actuates and what it measures (`D-40`).</summary>
-/// <remarks>
-/// Arguments are named and order-independent, reusing <see cref="ParameterSyntax"/>. The parser
-/// accepts any set of names and any count; which names are recognised, which are required, and what
-/// each must resolve to are <see href="15-semantic-model.md">the binder's</see>.
-/// </remarks>
-public sealed record ControlBindingSyntax(
-    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax;
-
-/// <summary>What a circuit carries, and how it is solved.</summary>
-/// <remarks><paramref name="Mode"/> is null when neither <c>dynamic</c> nor <c>static</c> was
-/// written, which leaves the project directive's default to decide (`D-37`, `D-54`). It must not
-/// default to <c>Static</c>: that loses the difference between <c>fluid water</c> and
-/// <c>fluid static water</c>, which breaks the round trip and makes every circuit in a
-/// <c>project dynamic</c> file warn about a word its author never wrote.</remarks>
-public sealed record FluidDirectiveSyntax(
-    FluidMode? Mode,
-    IdentifierSyntax Substance,
-    ImmutableArray<ExpressionSyntax> Arguments) : StatementSyntax;
-
-public sealed record CatalogDirectiveSyntax(
-    IdentifierSyntax CatalogId,
-    CatalogVersionSyntax? Version) : StatementSyntax;
-
-public sealed record CatalogVersionSyntax(int Major, int Minor) : SyntaxNode;
-
-public sealed record StyleDirectiveSyntax(ImmutableArray<StyleTokenSyntax> Tokens) : StatementSyntax;
-
-public sealed record LetBindingSyntax(IdentifierSyntax Name, ExpressionSyntax Value) : StatementSyntax;
-
-public sealed record ScheduleHeaderSyntax : StatementSyntax;
-
-/// <summary>One entry of the schedule section: a change applied at a time or over an interval.</summary>
-/// <remarks>
-/// <paramref name="When"/> is a point for the <c>at</c> form and a range for the <c>over</c> form;
-/// <paramref name="Value"/> is a point for a step and a range for a ramp. The four combinations are
-/// all legal — <c>over</c> with a single value ramps nothing and steps at the end, which is
-/// occasionally what a user means and is cheaper to allow than to diagnose.
-/// </remarks>
-public sealed record DisturbanceSyntax(
-    RangeOrPointSyntax When,
-    EndpointSyntax Target,                // component.parameter
-    RangeOrPointSyntax Value) : StatementSyntax;
-
-/// <summary>Either one value or a span between two.</summary>
-/// <remarks>The two cases are sibling records rather than nested ones, so that <c>RangeSyntax</c>
-/// can be named on its own — <c>show</c> takes a range and never a point.</remarks>
-public abstract record RangeOrPointSyntax : SyntaxNode;
-public sealed record PointSyntax(ExpressionSyntax Value) : RangeOrPointSyntax;
-public sealed record RangeSyntax(ExpressionSyntax From, ExpressionSyntax To) : RangeOrPointSyntax;
-
-public sealed record ComponentDeclarationSyntax(
-    IdentifierSyntax Name,
-    IdentifierSyntax Kind,
-    ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax;
-
-public sealed record ParameterSyntax(QualifiedNameSyntax Name, Token EqualsToken, ExpressionSyntax Value) : SyntaxNode;
-
-/// <summary>A name with an optional index touching it: <c>in</c>, <c>in[2]</c>, <c>layer[3]</c> (D-120).</summary>
-public sealed record IndexedNameSyntax(IdentifierSyntax Name, IndexSyntax? Index) : SyntaxNode;
-public sealed record IndexSyntax(Token OpenBracket, Token Number, Token CloseBracket) : SyntaxNode;
-
-/// <summary>Dotted indexed names: <c>power</c>, <c>in.t</c>, <c>in[2].flow</c>. <c>Text</c> joins them as written.</summary>
-public sealed record QualifiedNameSyntax(IndexedNameSyntax Head, ImmutableArray<QualifiedNamePart> Parts) : SyntaxNode;
-public sealed record QualifiedNamePart(Token Dot, IndexedNameSyntax Name) : SyntaxNode;
-
-public sealed record ConnectionsHeaderSyntax : StatementSyntax;
-
-public sealed record ConnectionSyntax(
-    EndpointSyntax First,
-    ImmutableArray<ConnectionLinkSyntax> Links,          // each `-` and the endpoint after it, so a
-                                                         // chain prints as the one line it was
-    ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax;   // empty for a bare line (D-110)
-
-public sealed record EndpointSyntax(IdentifierSyntax Component, Token? Dot, QualifiedNameSyntax? Port) : SyntaxNode;
-                                                    // the port is a qualified name so `HX1.in[2]`
-                                                    // and a schedule's `HX1.in[2].t` share it
-
-/// <summary>A statement the parser could not classify. Carries its raw text so the printer
-/// can reproduce it and the renderer can skip it without losing the rest of the script.</summary>
-public sealed record MalformedStatementSyntax(string RawText) : StatementSyntax;
+  NAME = value                         # an override
+  at   T        target = value         # a step
+  over T1..T2   target = v1..v2        # a ramp
 ```
 
-`MalformedStatementSyntax` is what makes P4 and `R-05` real. Recovery is line-granular: a line that
-cannot be parsed becomes one of these, the parser resumes at the next newline, and every other line is
-unaffected. Line granularity is chosen over token-level recovery because the language is
-line-oriented — there is no construct spanning lines to resynchronise into.
+The title is optional. The five settings are `from` (a case name), `start` (a date and time), `duration`
+and `frame` (times), and `steady` (a list of circuit titles). **Any other setting line is an override**,
+held from the run's start: a qualified parameter, `RAD.power = 20 kW`, or a `let`, `outdoor = weather`.
+
+**An event** is a step or a ramp. Its time is a duration from the run's start — `20 min`, `1 h` — or a clock
+time, `08:30`; its target is an endpoint with a qualified name, `TC1.setpoint`, `HX1.secondary.out.t`.
+`over` takes a range for its time and one for its value, **both ends of each**: a single value on either
+side is `FS1807`, whose message says which is missing and shows the step form. The line is kept, so the
+target still resolves. `at` and `over` open an event only when a time follows them
+([Statement words](#statement-words-and-event-words)); inside anything but a run the event is `FS1802`.
+
+What a run's settings, overrides and events do is [`19`](19-fluidscript-2.md) §Runs, and what may be a
+target is [`33`](../30-solver/33-transient-time-domain.md)'s.
+
+### Values
+
+A value is what follows an `=`:
+
+| Form | Example | Notes |
+|---|---|---|
+| An expression | `600 kPa`, `outdoor + 2 K`, `max(rise, 15 K) * 3 / 2`, `TE1`, `demand kW` | Numbers, quantities, dates, strings, references, calls, `+ - * /`, unary minus, parentheses ([`14`](14-expressions-and-references.md)) |
+| A list | `[60, 50] C`, `[winter, mild]` | One item per case, in the order `cases` names them (`D-143`) |
+| A range | `30..40 min`, `60..55 C`, `20..90 C` | Two expressions joined by `..` |
+| A catalogue | `steel_en10255@2026.1` | `catalog` only |
+
+**A list** is `[a, b, …]`: items separated by commas, each an expression. A unit written after the
+closing bracket — a symbol of `13`'s table, or a compound written as three touching tokens, `kg/s` —
+belongs to every item that states none: a bare number, a negated one (`[-20, 5] C` is a −20 °C design
+day), and a bare name. An item that states its own unit, or is an expression such as `a + 5`, is read as
+written (`D-179`). `[]`, `[30,]`, `[30 10]` and an unclosed `[30` are `FS1121`; a list with the wrong number
+of items for the cases is the binder's (`FS1540`, `FS1541`). A list does not nest.
+
+**A range** is `a..b`. A unit on its upper end applies to both: `30..40 min` is thirty to forty minutes and
+`60..55 C` is 60 to 55 °C. The `..` may be spaced or not.
+
+**A reference may carry a unit** after it, `power = demand kW`, which gives a curve's bare numbers one
+(`L-35`, `D-57`). Only a spelling the unit table holds is taken, so a name after a name is never read as a
+unit, and the next-parameter rule of [Units and quantities](#units-and-quantities) applies.
+
+**A value is one expression, list or range, and the next pair starts where it ends.** That is what lets
+pairs share a line without commas: in `power = Q * 1.1   rise = 20 K`, the expression `Q * 1.1` ends at
+`rise`, which no operator joins to it, and `rise =` starts the next pair.
+
+An expression may nest 64 levels deep — parentheses, call arguments, unary minus — before the line is read
+as malformed. That is far beyond any expression a script states and far below the parser's stack; without
+it one line of a few thousand `(` would overflow the stack, which no parser can catch.
+
+## The syntactic grammar
+
+A body is written `indented(x)`: one or more lines of `x`, each indented deeper than the head and alike
+([Blocks](#blocks)). Which statements may stand in which body is also [What may appear
+where](#what-may-appear-where); a statement in the wrong one parses as itself and is `FS1802`.
+
+```ebnf
+script          = { top-line } ;
+top-line        = version-line | project-block | let-line | curve-block | circuit-block | run-block ;
+
+version-line    = "fluidscript" , number ;
+
+project-block   = "project" , [ string ] , ":" , indented( setting-line | style-block ) ;
+circuit-block   = "circuit" , [ string ] , ":" ,
+                  indented( setting-line | style-block | declaration | connection-line ) ;
+run-block       = "run" , [ string ] , ":" , indented( setting-line | event ) ;
+style-block     = "style" , ":" , indented( setting-line ) ;
+
+let-line        = "let" , name , "=" , value ;
+
+curve-block     = "curve" , name , ":" , name , { curve-modifier } , indented( curve-row ) ;
+                  (* the driver is a let or "time"; rows need only be deeper than the header *)
+curve-modifier  = name | pair ;                         (* extrapolated ; format = "…" -- D-60 *)
+curve-row       = row-part , row-part , { row-part } ;  (* whitespace-separated; the binder splits them *)
+row-part        = ? a run of tokens with no whitespace between them ? ;
+
+declaration     = name , name , [ "at" , name ] , { pair } , [ ":" , indented( setting-line ) ] ;
+                  (* the name, the kind, an observer's node -- D-61 *)
+
+connection-line = endpoint , "-" , endpoint , { "-" , endpoint } , { pipe-part } ;
+                  (* pipe parts only on a line with one link: FS1803 *)
+endpoint        = name , [ "." , qualified-name ] ;
+pipe-part       = quantity | name | pair ;              (* a length, a DN designation, any other property *)
+
+setting-line    = pair , { pair } ;
+pair            = qualified-name , "=" , value ;
+qualified-name  = indexed-name , { "." , indexed-name } ;    (* the dots touch the names *)
+indexed-name    = name , [ "[" , digits , "]" ] ;            (* the brackets touch the name -- D-120 *)
+
+event           = ( "at" | "over" ) , point-or-range , endpoint , "=" , point-or-range ;
+                  (* "over" needs a range on both sides: FS1807 *)
+point-or-range  = expression , [ ".." , expression ] ;
+
+value           = list , [ unit ] | expression , [ ".." , expression ] ;
+list            = "[" , expression , { "," , expression } , "]" ;
+unit            = name | name , "/" , name ;             (* a spelling of 13's table; the three touch *)
+
+expression      = term , { ( "+" | "-" ) , term } ;      (* evaluation: 14 *)
+term            = factor , { ( "*" | "/" ) , factor } ;
+factor          = "-" , factor | primary ;
+primary         = number | quantity | date-literal | string
+                | "(" , expression , ")"
+                | name , "(" , [ expression , { "," , expression } ] , ")"
+                | reference , [ unit ]
+                | name , "@" , number ;                  (* a catalogue; the three touch *)
+reference       = name , { "." , indexed-name } ;
+```
+
+## Syntax tree
+
+Nodes are immutable records. **A node holds the tokens it consumes** — its keywords and punctuation, not
+only its structural children — and trivia hangs off those tokens (`D-55`), which is the model
+[`17`](17-formatting-and-round-trip.md) states and the only one that round-trips: no node is a `let`, an
+`=`, a `-` or a `(`, so a tree that dropped them would drop every space around them too. A node's span and
+trivia are therefore **derived** from its tokens, never supplied, which is what makes
+[invariant 3](#invariants) hold by construction.
+
+**The trivia model.** A token's **leading trivia** holds everything between the previous line's end and the
+token: line breaks, blank lines, whole-line comments and the line's indentation. Its **trailing trivia**
+holds the spaces and the comment up to its own line's end. Indentation is therefore the first token's
+leading trivia; the parser reads it to place the line in a block, and the printer writes it back as it was.
+
+| Line or value | Node |
+|---|---|
+| The whole file | `ScriptSyntax(Statements, EndOfFile)` — one ordered list, the version line among the statements (`D-54`) |
+| A block | `BlockSyntax(Head, Colon, Body)`: the head statement, its `:` when written, and the body's statements |
+| The version line | `VersionDirectiveSyntax(Keyword, Major)` |
+| A `project`, `circuit` or `run` head | `ProjectHeadSyntax`, `CircuitHeadSyntax`, `RunHeadSyntax` (`Keyword`, `Title`) |
+| `style:` | `StyleHeadSyntax(Keyword)` |
+| `let` | `LetBindingSyntax(Keyword, Name, Equals, Value)` |
+| A curve header | `DriverCurveHeadSyntax(Keyword, Name, Colon, Driver, Modifiers)` |
+| A curve row | `CurveRowSyntax(Parts)`, the row's tokens whole |
+| A setting line | `SettingLineSyntax(Assignments)`, each a `ParameterSyntax(Name, Equals, Value)` |
+| A declaration | `ComponentDeclarationSyntax(Name, Kind, AtKeyword, AttachedTo, Parameters, …)` |
+| A connection line | `ConnectionSyntax(First, Links)`, each link a `-` and an endpoint; with a pipe, `PipedConnectionSyntax(Connection, Properties)` |
+| An event | `DisturbanceSyntax(Keyword, When, Target, Equals, Value)`, `When` and `Value` each a `PointSyntax` or `RangeSyntax` |
+| A line that cannot be read | `MalformedStatementSyntax(Parts)`, its tokens whole |
+| Values | `NumberLiteralSyntax`, `QuantityLiteralSyntax`, `DateLiteralSyntax`, `StringLiteralSyntax`, `ReferenceSyntax`, `QuantityReferenceSyntax`, `CallSyntax`, `UnaryExpressionSyntax`, `BinaryExpressionSyntax`, `ParenthesizedExpressionSyntax`, `ScenarioListSyntax`, `UnitListSyntax`, `RangeExpressionSyntax`, `CatalogReferenceSyntax` |
+
+Three choices in the shapes are deliberate:
+
+- **A literal keeps its source spelling.** `1.50`, `1.5` and `15e-1` are one value and three strings, and
+  the printer must reproduce the one written (`R-25`).
+- **Parentheses are a node** (`D-54`). `(a + b) * c` and `a + b * c` differ, and a redundant grouping in an
+  engineering formula is usually deliberate; reconstructing parentheses from precedence prints a correct
+  expression rather than the user's.
+- **A block is a statement**, so every token appears once in the tree, in source order, and the printer
+  walks one sequence.
+
+`MalformedStatementSyntax` is what makes `P4` and `R-05` real. A line that cannot be read becomes one of
+these, the parser resumes at the next line, and every other line is unaffected; a malformed head still
+opens its block, so its body is read as its body.
 
 ## Parser API
 
@@ -919,196 +803,160 @@ line-oriented — there is no construct spanning lines to resynchronise into.
 public static class FluidScriptParser
 {
     /// <summary>Parses source text into a syntax tree. Never throws on any input.</summary>
-    /// <param name="text">The script source.</param>
+    /// <param name="source">The script source. Any characters at all; may be empty.</param>
     /// <returns>
-    /// The tree, always non-null, together with every diagnostic produced. A tree containing
-    /// <see cref="MalformedStatementSyntax"/> nodes is a normal result, not a failure.
+    /// The tree, always non-null, together with every diagnostic the lexer and the parser produced. A tree
+    /// containing <see cref="MalformedStatementSyntax"/> nodes is a normal result, not a failure.
     /// </returns>
-    public static ParseResult Parse(SourceText text);
+    public static ParseResult Parse(SourceText source);
 }
-
-public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> Diagnostics);
 ```
+
+`ParseResult` carries the source, the `ScriptSyntax` root and the diagnostics. **The parser does not read
+the component registry**: kinds and parameters are names, and the only table it reads is
+`SettingRegistry`'s statement words.
 
 ## Invariants
 
-1. **Lossless.** Concatenating every token and trivium in source order reproduces the input byte for
-   byte. This is asserted by a test over the whole `samples/` corpus.
-2. `Parse` never throws, for any byte sequence, including invalid UTF-8 and a 100 MB single line.
+1. **Lossless.** Concatenating every token and trivium in source order reproduces the input byte for byte,
+   and so does concatenating the tree's tokens with their trivia. Asserted over `samples/` and every
+   `fluidscript` block in `plan/` and `docs/`.
+2. `Parse` never throws, for any byte sequence, including invalid UTF-8, a 100 MB single line and a line of
+   a few thousand `(`.
 3. Every `SyntaxNode.Span` is within the source bounds, and a parent's span contains every child's.
-4. At most one `ConnectionsHeaderSyntax` and at most one `ScheduleHeaderSyntax` **per circuit**
-   (`D-52`); a second of either within the same circuit produces `FS1101` and is treated as trivia.
-   A file with several circuits therefore holds several of each, and a circuit with no topology of
-   its own holds neither.
-5. A statement is classified by its first token, its section, and **at most one token of lookahead**.
-   Unbounded lookahead is never used.
-6. No token spans a newline. (Strings therefore cannot contain newlines; accepted, since the only
-   current use is a label.)
-7. `#` appears in exactly one role: the start of a line comment. It is never an operator, so a `#`
-   makes the remainder of its line trivia — **except inside a string literal**, which is what makes
-   `D-13`'s quoted hex colour, `style "#2f6f9f"`, a colour rather than a comment. A string is scanned
-   as one token from its opening quote, so a `#` between quotes was never at a token boundary.
+4. **Every line belongs to exactly one block**, decided by its indentation and the head lines above it. A
+   misindented line is reported (`FS1801`) and read at the nearer level; no line is dropped.
+5. **Lookahead is bounded by the line.** The lexer decides a unit by what follows it on the same line, and
+   the parser classifies a line from its own tokens, never from the lines around it; indentation only
+   places it in a block. Unbounded lookahead is never used.
+6. No token spans a line break. Strings therefore cannot hold one; accepted, since a string is a title or a
+   colour.
+7. `#` has exactly one role: the start of a comment. It is never an operator, so a `#` makes the rest of its
+   line trivia — **except inside a string**, which is what makes a quoted hex colour a colour rather than a
+   comment. A string is scanned as one token from its opening quote, so a `#` between quotes is never at a
+   token boundary.
 
 ## Error cases
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1001` | Unterminated string literal | Error | `Unterminated string; add a closing quote.` |
-| `FS1002` | Unrecognised character | Error | `'{ch}' is not valid here.` |
-| `FS1003` | Identifier that parses as a quantity | Error | `'{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'.` |
-| `FS1004` | Reserved word used as an identifier | Error | `'{word}' is reserved. Choose another name.` |
-| `FS1101` | *(retired)* | — | A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1102` | *(retired)* | — | A connection above language 1's 'connections' line. Language 2 has no sections (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1103` | *(retired)* | — | A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1104` | Statement cannot be classified | Error | `Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'.` |
-| `FS1105` | Parameter with no `=` | Error | `'{token}' looks like a parameter but has no value. Write '{token} = …'.` |
-| `FS1106` | *(retired)* | — | A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1107` | *(retired)* | — | A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
-| `FS1109` | *(retired)* | — | 'in' or 'out' where language 1's 'inlet'/'outlet' attachment line was meant. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1110` | *(retired)* | — | A malformed language 1 'inlet'/'outlet' attachment line. Language 2 has none (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1111` | *(retired)* | — | A malformed language 1 'control' line. Language 2 writes a loop as one controller declaration (D-168, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1112` | *(retired)* | — | Language 1's 'project' or 'spacing' line after the first circuit. Language 2 writes both in the project block (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1113` | *(retired)* | — | Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1114` | Text after a statement that is already complete | Error | `'{extra}' is more than this line can hold.` |
-| `FS1115` | A curve row outside a `curve` section | Error | `Put this pair under a 'curve' line.` |
-| `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'.` |
+| `FS1002` | A character the language does not use | Error | `'{ch}' is not valid here.` |
+| `FS1003` | A name that reads as a quantity, where a name belongs | Error | `'{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'.` |
+| `FS1004` | A statement word where a name belongs, or not followed by what its statement needs | Error | `'{word}' is reserved. Choose another name.` |
+| `FS1101` | *(retired)* | — | A second 'connections' or 'schedule' section in one circuit. Retired (D-174), not reused: a circuit has no sections. |
+| `FS1102` | *(retired)* | — | A connection above a circuit's 'connections' line. Retired (D-174), not reused: connection lines go anywhere in the circuit block. |
+| `FS1103` | *(retired)* | — | A statement in the wrong section of a circuit. Retired (D-174), not reused: a statement belongs to a block, and one in the wrong block is FS1802. |
+| `FS1104` | A line that cannot be classified | Error | `Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'.` |
+| `FS1105` | A parameter name with no `=` | Error | `'{token}' looks like a parameter but has no value. Write '{token} = …'.` |
+| `FS1106` | *(retired)* | — | A step or ramp outside a 'schedule' section. Retired (D-169, D-174), not reused: an event belongs to a run, and one outside it is FS1802. |
+| `FS1107` | *(retired)* | — | A schedule in a circuit with no time to run in. Retired (D-169, D-174), not reused: events belong to a run, which has its duration. |
+| `FS1108` | A hyphen inside a name or a kind | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
+| `FS1109` | *(retired)* | — | 'in' or 'out' where an 'inlet'/'outlet' attachment line was meant. Retired (D-174), not reused: circuits join through a component both name. |
+| `FS1110` | *(retired)* | — | A malformed 'inlet'/'outlet' attachment line. Retired (D-174), not reused: there are no attachment lines. |
+| `FS1111` | *(retired)* | — | A malformed 'control' line. Retired (D-168, D-174), not reused: a loop is one controller declaration. |
+| `FS1112` | *(retired)* | — | A 'project' or 'spacing' line after the first circuit. Retired (D-174), not reused: both are settings of the project block. |
+| `FS1113` | *(retired)* | — | A 'spacing' line given a quantity. Retired (D-174), not reused: spacing is a project setting, and a unit on it is FS1514. |
+| `FS1114` | Text after a statement that is already complete, or after a head's `:` | Error | `'{extra}' is more than this line can hold.` |
+| `FS1115` | A curve row outside a curve | Error | `Put this pair under a 'curve' line.` |
+| `FS1116` | A curve header with no driver | Error | `'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'.` |
 | `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
-| `FS1118` | *(retired)* | — | Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1118` | *(retired)* | — | A 'design' line with no values. Retired (D-174), not reused: there is no design line; the first case is the operating one. |
 | `FS1119` | An index that is not a whole number touching its name: `in[a]`, `in[ 2 ]`, `in[]` (`D-120`) | Error | `An index is a whole number in brackets right after the name, such as 'in[2]'.` |
-| `FS1120` | *(retired)* | — | Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1121` | A bracketed value list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A list is one value per case, separated by commas, such as '[30, 10]'.` |
-| `FS1201` | *(retired)* | — | A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
-| `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
-| `FS1204` | *(retired)* | — | A named style used that language 1's 'style name = ...' never defined. Language 2 has no named styles and no component style (19, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1205` | *(retired)* | — | A named style defined twice in language 1. Language 2 has no named styles (19, D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1120` | *(retired)* | — | A 'scenarios' line with no names. Retired (D-174), not reused: the project block names its cases, 'cases = [...]'. |
+| `FS1121` | A list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A list is one value per case, separated by commas, such as '[30, 10]'.` |
+| `FS1201` | *(retired)* | — | A token of a one-line style that was no style. Retired (L-77, D-174), not reused: each style setting is checked against its key, which is FS1514. |
+| `FS1202` | A style block that states one setting twice; the later wins | Warning | `'{a}' overrides the earlier '{b}'.` |
+| `FS1203` | A value written as a bare `#rrggbb`, which the comment took | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
+| `FS1204` | *(retired)* | — | A named style used and never defined. Retired (D-174), not reused: there are no named styles and no component style (19). |
+| `FS1205` | *(retired)* | — | A named style defined twice. Retired (D-174), not reused: there are no named styles (19). |
 | `FS1210` | `show` names a property the colour scale does not know (`57`) | Warning | `Nothing to show called '{name}'. Available: {list}.` |
 | `FS1213` | The same property twice in one `show` (`57`) | Info | `'{name}' listed twice.` |
-| `FS1214` | A second `show` directive; only the first is read (`57`) | Warning | `Only the first 'show' is used.` |
+| `FS1214` | A second `show` setting; only the first is read (`57`) | Warning | `Only the first 'show' is used.` |
 
-**`FS1103` was previously "Declare components before the 'connections' line" and is redefined here
-rather than retired**, because its trigger has widened rather than changed meaning: it still fires on
-a statement that is in the wrong section, and it no longer fires on a declaration below `connections`,
-which is now legal. No script that was accepted before is rejected now.
+The retired codes stay listed so that none is reused and an old code can still be looked up (`D-180`).
+The block-structure codes — a misindented line (`FS1801`), a statement outside its block (`FS1802`), a head
+without its `:` (`FS1812`), a pipe on a chain (`FS1803`), a line in a shape the language does not have
+(`FS1806`), a one-valued ramp (`FS1807`) — are [`19`](19-fluidscript-2.md)'s range, raised by this parser.
 
-**`FS1109` exists because the failure it prevents is silent.** `in N3` is a legal component
-declaration — a component named `in` of kind `N3` — so without this code the user gets an unknown-kind
-diagnostic pointing at `N3`, or, if a kind named `N3` ever existed, no diagnostic at all and a
-subcircuit that never attaches. The parser therefore recognises `in`/`out` followed by a single
-identifier at statement position and rejects it by name rather than letting the general rule classify
-it. This is the only place the parser looks at an identifier's spelling, and it is worth the
-exception: a wrong answer that compiles is the outcome `P3` exists to refuse.
+**`FS1203` is a warning about a comment, which sounds odd until you see the failure.** `colour = #2f6f9f`
+comments out everything from `#`, leaving a setting with no value — and a style line with nothing in it
+would otherwise render in the default colour, silently. The lexer cannot know a colour was meant, but the
+parser can: a line that ends in `=` whose comment begins with three or six hex digits is worth one warning,
+in place of the general `FS1104`.
 
-**`FS1203` is a warning about a comment, which sounds odd until you see the failure.** `style #2f6f9f
-2px fillet` under `D-13` comments out everything from `#`, leaving a `style` directive with no tokens
-at all — legal, silent, and the diagram renders in the default colour. The lexer cannot know the user
-meant a colour, but the *style parser* can: a directive whose entire token list was consumed by a
-comment beginning with a hex-shaped run is worth one warning.
-
-Message wording rules — sentence case, no jargon, and a suggested fix wherever one exists — are owned
-by [`16-diagnostics`](16-diagnostics.md).
+Message wording rules — sentence case, no jargon, and a suggested fix wherever one exists — are owned by
+[`16-diagnostics`](16-diagnostics.md).
 
 ## Worked example
 
-Lexing `HE1 heat_exchanger power=30 in=20 out=50    # heat exchanger with power of 30 kW`:
+Lexing and classifying two lines of the complete script, each inside the circuit's block:
 
-| # | Token | Kind | Span | Why |
-|---|---|---|---|---|
-| 1 | `HE1` | Identifier | 0–3 | word, not reserved, not a quantity (`E1` is not a unit) |
-| 2 | `heat_exchanger` | Identifier | 4–18 | word; kind resolution happens at bind time |
-| 3 | `power` | Identifier | 19–24 | |
-| 4 | `=` | Equals | 24–25 | |
-| 5 | `30` | Number | 25–27 | matches `number` exactly (rule 2) |
-| 6 | `in` | Identifier | 28–30 | **rule 5's `=` clause**: `in` is a unit symbol, but it is followed by `=`, so it is a parameter name and token 5 stays a bare number |
-| 7 | `=` | Equals | 30–31 | |
-| 8 | `20` | Number | 31–33 | |
-| 9 | `out` | Identifier | 34–37 | |
-| 10 | `=` | Equals | 37–38 | |
-| 11 | `50` | Number | 38–40 | |
-| — | `    # heat exchanger…` | Trivia | 40–end | whitespace + line comment, trailing trivia of token 11 |
-
-**Token 6 is the whole safety of rule 5 in one row.** Drop the `=` clause and tokens 5–6 merge into a
-quantity of thirty inches, `power` loses its value, and the line still parses.
-
-The bare `30` is a *number*, not a quantity — it acquires kW when bound to the `power` parameter, whose
-dimension declares that canonical unit (`D-07`, `D-14`). The lexer does not know about parameters, and
-must not.
-
-Parsing yields one `ComponentDeclarationSyntax` with `Name = HE1`, `Kind = heat_exchanger`, and three
-`ParameterSyntax` children. Its `TrailingTrivia` holds the whitespace and comment, so the printer can
-put the comment back in the same column.
-
-**A second line, in the connection section**, exercising the lookahead rule and the boundary form:
-
-```fluidscript lang=1
-connections
-N1 - N2                   # second token is '-'  → connection
-N1 node t=6 p=300         # second token is not  → component declaration, kind 'node'
+```text
+  RAD  radiator    power = demand
+  BLR - MV1                  15 m  DN32
 ```
 
-Both start with `N1`, both sit below `connections`, and one token of lookahead separates them. Under
-the previous rules the second line was `FS1104` and the first reference circuit did not parse.
+| # | Token | Kind | Why |
+|---|---|---|---|
+| — | `  ` | Trivia | the line's indentation: leading trivia of `RAD`, and what places the line in the circuit's body |
+| 1 | `RAD` | Name | letters and digits; not a statement word |
+| 2 | `radiator` | Name | a kind is a name; the registry resolves it at bind time |
+| 3 | `power` | Name | |
+| 4 | `=` | Equals | |
+| 5 | `demand` | Name | a reference; no unit follows it |
+| — | `  ` … | Trivia | the next line's break and indentation, leading trivia of token 6 |
+| 6 | `BLR` | Name | |
+| 7 | `-` | Minus | |
+| 8 | `MV1` | Name | |
+| 9 | `15 m` | Quantity | a number, spaces, and `m`, which is followed by spaces and `DN32` — not `=`, `[` or `.` — so the unit stays with its number |
+| 10 | `DN32` | Name | a word; it is the parser, not the lexer, that reads it as a designation |
 
-**A third line, where the kind is a reserved word:**
+**The first line** starts with a name followed by a name, so it is a declaration (step 7 of
+[Classifying a line](#classifying-a-line)): `ComponentDeclarationSyntax` with `Name = RAD`, `Kind = radiator`
+and one `ParameterSyntax`. **The second** starts with a name followed by `-`, so it is a connection line
+with one link; tokens 9 and 10 follow its last endpoint, so it is a `PipedConnectionSyntax` whose pipe is
+15 m of DN32.
 
-```fluidscript lang=1
-S1 inlet t=5 flow=2.3 l/s   # first token is not reserved  → declaration, kind 'inlet'
-inlet N3                    # first token is reserved      → attachment statement
-```
-
-Neither costs a second token of lookahead, because the rule's first clause already reads the first
-token. The declaration's `inlet` is never a statement, and the attachment's is never a kind
-(`D-64`).
+**The spaced unit's clause in one line.** In `flow = 5 h = 2000`, `5` and `h` would join as five hours —
+but `h` is followed, past a space, by `=`, so `5` stays a bare number and `h = 2000` is the next pair. Drop
+the clause and `flow` takes five hours, `2000` is stranded, and the line still parses.
 
 ## Acceptance criteria
 
-- [ ] **Every script in `samples/`, and every `fluidscript` block in `plan/` and `/docs`, parses with
-      zero unexpected diagnostics** — a block that is meant to be wrong declares its codes on its
-      fence, as [`61`](../60-docs-and-devex/61-documentation-plan.md) specifies — extracted and run in CI. Both reference circuits previously
-      failed to parse under this document while every acceptance criterion here passed, which is what
-      a corpus test over the specification's own examples exists to catch.
-- [ ] Round-trip test: for every file in `samples/`, `Print(Parse(text)) == text` byte for byte.
-- [ ] `3WV` lexes as an identifier; `2px` as a quantity; `30` as a number; `3K` as a quantity that
-      produces `FS1003` when used as a component name.
-- [ ] `P1 pipe length=45` and `N1 node t=6 p=300` both parse as component declarations — `node` and
-      `pipe` reach `kind-name` position, which reserving them made impossible.
-- [ ] `S1 inlet t=5 flow=2.3 l/s` parses as a declaration of kind `inlet` and `inlet N3` as an
-      attachment, in the same file, with one token of lookahead and no backtracking (`D-64`).
-- [ ] `Print(Parse(x)) == x` for a declaration whose kind is a reserved word — the printer writes the
-      kind from the token, not from a keyword table.
-- [ ] `N1 - N2` and `N1 node t=6` in the same connection section classify differently, by one token of
-      lookahead.
-- [ ] `3WV.b - N3` classifies as a connection, not as a component named `3WV` of kind `.` (`D-56`).
-- [ ] A `schedule` section below a `connections` section in the same circuit parses (`D-56`).
-- [ ] `4.18 kJ/(kg*K)` lexes as one quantity token, and `Q / (cp * dT)` lexes with no unit-symbol among
-      its tokens — the same characters, classified by whether a number precedes them.
-- [ ] `power=30 in=20` lexes as two parameters and never as thirty inches (rule 5's `=` clause).
+- [x] **Every sample in `samples/`, and every `fluidscript` block in `plan/` and `docs/`, parses with
+      exactly the codes its fence declares** — a block meant to be wrong declares them, as
+      [`61`](../60-docs-and-devex/61-documentation-plan.md) specifies (`FluidScriptParserTests`). A corpus
+      test over the specification's own examples is what catches a grammar that passes its own criteria
+      while its examples do not parse.
+- [ ] Round trip: for every file in `samples/`, `Print(Parse(text)) == text` byte for byte, and
+      concatenating the tree's tokens with their trivia reproduces the source (`D-55`).
+- [ ] `3WV` lexes as a name; `2px` as a quantity; `30` as a number; `3K pump` is `FS1003`.
+- [ ] `4.18 kJ/(kg*K)` lexes as one quantity, and `Q / (cp * rise)` with no unit symbol among its tokens —
+      the same characters, classified by whether a number precedes them.
+- [ ] `flow = 5 h = 2000` lexes as two pairs and never as five hours; `in.t = 20` and `t = 85 C` hold no
+      unit symbol before their `=`.
 - [ ] Maximal munch: with both `kJ/kg` and `kJ/(kg*K)` in the table, the longer wins where it fits.
-- [ ] `50 %` is one quantity and `10 % 3` is a quantity followed by a number — `%` never lexes as an
-      operator, because there is no modulo operator to lex it as (`D-51`).
-- [ ] `30.5` is one number, `30.` is a number and a `.`, and `30..60` is `30`, `..`, `60` (`D-51`).
-- [ ] `--`, `..` and `-.` each recombine to exactly one style pattern token, and `..` in a `schedule`
-      line lexes as a range token instead.
-- [ ] `#` anywhere on a line makes the remainder trivia, including inside a `style` directive, and
-      `style #2f6f9f 2px` produces `FS1203`.
-- [ ] `3-way-valve` in kind position produces `FS1108` suggesting `3_way_valve`, and never a node
-      named `3-way-valve`.
-- [ ] A `schedule` section under `fluid static` parses and produces exactly one `FS1107`.
-- [ ] The distribution-header reference circuit parses: three `circuit` headers, the second and
-      third below a `connections` section, each opening its own declaration section (`D-52`).
-- [ ] `fluid water` and `fluid static water` produce different trees and print back differently;
-      a circuit that states no mode never warns about disagreeing with the project (`D-54`).
+- [ ] `50 %` is one quantity and `10 % 3` a quantity followed by a number (`D-51`).
+- [ ] `30.5` is one number, `30.` a number and a `.`, and `30..60` is `30`, `..`, `60` (`D-51`).
+- [ ] `2026-01-15 06:00` and `08:30` are one token each; `2026-01-15x` is not a date.
+- [ ] `#` anywhere outside a string makes the rest of the line trivia, and `colour = #2f6f9f` is `FS1203`.
+- [ ] `HX-1` as a name, in a declaration or a chain, is `FS1108` suggesting `HX_1`, and never a node.
+- [ ] A body line indented unlike its block is `FS1801` and stays in the block; a curve's rows may be
+      aligned freely.
+- [ ] A declaration written without its `:` and followed by deeper lines is `FS1812` once, and the lines
+      bind as its parameters.
+- [ ] Each statement in the wrong block is `FS1802` and still parses as itself.
+- [ ] `run pump` is `FS1004`; a controller's `curve = heating` is a setting.
+- [ ] `HX1.secondary.out - TV1` classifies as a connection and `in[2].level = 0.8` as a setting.
 - [ ] `(a + b) * c` prints back with its parentheses, and so does `(a) + b` (`D-54`).
-- [ ] Concatenating the whole tree's tokens, each with its trivia, reproduces the source byte for
-      byte — the same assertion the lexer passes, now over the parsed tree (`D-55`).
-- [ ] `let   x = 1` and `HE1  heat_exchanger` keep every run of whitespace, including the interior
-      runs that no structural child owns (`D-55`).
-- [ ] Deleting each character of each sample in turn never throws and always yields a tree.
-- [ ] A fuzz corpus of 10 000 random mutations produces no exception and no span outside bounds.
-- [ ] Every code `FS1xxx` above has a test that triggers exactly it.
+- [ ] `let   x = 1` and `HE1  heat_exchanger` keep every run of whitespace, including the interior runs
+      that no structural child owns (`D-55`).
+- [ ] Deleting each character of each sample in turn never throws and always yields a lossless tree, and
+      a fuzz corpus of random mutations produces no exception and no span outside bounds.
+- [ ] Every live code of `FS10xx`, `FS11xx` and `FS12xx` above has a test that triggers exactly it.
 
 ## Open questions
 
-None. Quantity-shaped identifiers such as `3K` remain unavailable and get `FS1003`; v1 `fluid` has no
-arguments because mixtures are deferred; schedule values may use only statically evaluable expressions.
+None. Quantity-shaped names such as `3K` remain unavailable and get `FS1003`; a curve row's parts are
+split by the binder, not the grammar.

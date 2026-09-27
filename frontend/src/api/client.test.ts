@@ -27,7 +27,7 @@ describe('the contract major check (26, 51 error cases)', () => {
   });
 
   it('checks the metadata too, which is versioned like a compile', async () => {
-    const client = createClient(answering({ contractVersion: '4.0' }));
+    const client = createClient(answering({ contractVersion: `${contractMajor + 1}.0` }));
 
     await expect(client.metadata(signal)).rejects.toBeInstanceOf(ContractMismatchError);
   });

@@ -76,7 +76,7 @@ relation per component — and you never influence it directly. The terms worth 
 | Term | What it is |
 |---|---|
 | **promotions** | Values you did not state that the solver is finding anyway, because a constraint you *did* state has to be paid for. A pump with no `head` on a circuit whose flow is fixed by a duty is the usual one |
-| **constraints** | The equations your stated values add — `in.t=50` on a heat exchanger is one |
+| **constraints** | The equations your stated values add — `in.t = 50` on a heat exchanger is one |
 | **datums** | The equation that pins the arbitrary pressure zero. Exactly one per hydraulically connected part, and zero when an `inlet` or `outlet` already states a pressure |
 | **less enthalpy levels** | Balances *removed*. A closed loop's energy balances are one equation short of independent — the temperatures are only fixed relative to each other until something states an absolute level — so one is dropped |
 
@@ -126,12 +126,12 @@ Every constraint your script created, named by the parameter that created it as 
 the unknown that pays for it. `FixedFlow on HE1.out.t` — the duty and both temperatures fix the flow
 through `HE1`, and `out.t` is the statement that closed the triangle — is paid for by promoting
 `PU1.head`: the pump's head becomes a number the solver finds, because *something* has to be free
-for the flow to come out where the duty demands. A second side reads `HX1.out[2].t` or
-`HX1.in[2].flow`, the spelling of [the syntax page](../functions/syntax.md#a-ports-state); the
+for the flow to come out where the duty demands. A secondary side reads `HX1.secondary.out.t` or
+`HX1.secondary.in.flow`, the spelling of [the syntax page](../functions/syntax.md#a-ports-state); the
 `solved` and `sizes` maps of the [model contract](../functions/model-contract.md) keep the model's
 keys (`out2`, `flow2`), and only the report and the diagnostics spell.
 
-**When the pump's head is stated, the same line names a valve instead.** `PU1 pump head=15` takes
+**When the pump's head is stated, the same line names a valve instead.** `PU1 pump head = 15` takes
 the head off the table, and the constraint falls to the first valve on the branch whose `kv` you
 did not state:
 
@@ -145,7 +145,7 @@ basis — no rule chose it and none reports an authority for it. A loop with no 
 over-specified, and the report says so.
 
 **A constraint with no promotion is not automatically a defect.** It can be paid for by a dropped
-enthalpy level instead, which is exactly what happens above: `MixedInlet on HE1` is `in.t=50`, and the
+enthalpy level instead, which is exactly what happens above: `MixedInlet on HE1` is `in.t = 50`, and the
 loop's redundant energy balance is what it consumes. The footer states the arithmetic so you can
 check it. Unanswered constraints *beyond* the levels dropped are the ones with nothing behind them,
 and that is over-specification.
@@ -200,7 +200,7 @@ start from, and the line search walks it up.
 
 **Where the seed's flows come from.** Each branch is first given a magnitude: from a duty and two
 temperatures where a component states them, from a stated flow where one is stated, and from a nominal
-0.1 kg/s where nothing does. A load that states only its duty -- `LD1 heat_exchanger power=-20` -- is
+0.1 kg/s where nothing does. A load that states only its duty -- `LD1 heat_exchanger power = -20` -- is
 rated at the temperatures its heat sources state, the way an emitter is designed to its system's flow
 and return: 20 kW on a closed 70/40 plant starts at 0.159 kg/s. A circuit with an inlet or an outlet takes
 heat in with its water, so there the load starts from its neighbours. When the sources disagree (a 70/40 boiler and
@@ -288,7 +288,7 @@ open, and the count will be one short in a way no line of your script explains.
 ```
 
 Everything the tool chose because you did not state it, with the basis it chose on, each line naming
-the parameter as your script would state it (`HX1.in[2].flow`, not the wire's `flow2`). These are not
+the parameter as your script would state it (`HX1.secondary.in.flow`, not the wire's `flow2`). These are not
 solver unknowns — they are constants as far as the solve is concerned, recomputed between passes.
 
 What a rule had to say on the way is in the notes below this table, in order, and the findings
@@ -298,11 +298,11 @@ duty by more than 2 % (`FS2310`), a pump sized against no flow (`FS2304`) or no 
 (`FS2312`), and the sizes not settling within the pass cap (`FS2301`, which names what was still
 moving between the last two passes — state one of those directly to break the cycle).
 
-A parameter you stated through a curve at a component's own point ([`sized_at`](../functions/design.md#sizing-one-component-somewhere-else-on-the-curve))
+A parameter you stated through a curve at a component's own point ([`sized_at`](../functions/project.md#a-components-own-sizing-point))
 is listed here too, because it was arrived at rather than typed:
 
 ```
-    HP1.power            27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks
+    HP1.power            27.174 kW at outdoor=-5, 0.54 of the 50 kW the design day asks
 ```
 
 The fraction is the number to check a bivalent choice by, and it is an outcome of the point you
@@ -313,7 +313,7 @@ So is a parameter written from an expression that reads a solved value
 pass whose solution it read:
 
 ```
-    HE2.in[2].t          67.146 °C from `HE1.out[2].t` at pass 1
+    HE2.secondary.in.t   67.146 °C from `HE1.secondary.out.t` at pass 1
 ```
 
 The value stood from the pass after that one. A line the run could never evaluate is in the notes

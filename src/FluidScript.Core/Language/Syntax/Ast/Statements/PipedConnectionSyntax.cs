@@ -5,7 +5,7 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 
-/// <summary>A language 2 connection line whose link is a pipe: <c>PCV - HX1  12 m  DN25</c>.</summary>
+/// <summary>A connection line whose link is a pipe: <c>PCV - HX1  12 m  DN25</c>.</summary>
 /// <param name="Connection">The chain, with no parameters of its own.</param>
 /// <param name="Properties">
 /// The pipe's description after the chain, in source order and never empty: a length as a

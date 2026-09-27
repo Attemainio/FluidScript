@@ -41,8 +41,8 @@ The `<title>` names the circuit. The `<desc>` records what produced the drawing,
 FluidScript diagram
 document: plant_01
 application: 0.4.0
-model contract: 2.0
-language major: 1
+model contract: 4.0
+language major: 2
 source hash: sha256:5574…
 catalogue: steel_en10255 2026.1
 property backend: sharp-prop 1.0.0.0

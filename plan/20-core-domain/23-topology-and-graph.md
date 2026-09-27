@@ -326,10 +326,8 @@ symbol-table lookup with no qualification: `N3 - TV1` written in circuit 101 fin
 Had names been scoped per circuit, every line joining a subcircuit to its parent would have needed a
 qualified form the language does not have — which is the argument that decided `D-41`.
 
-**A subcircuit is joined to its parent by connections the script writes.** Language 1 had attachment
-lines (`inlet N3`, `outlet N5` under a circuit header, `D-33`) that lowered to connections to the
-subcircuit's first unconnected inlet and last unconnected outlet; language 2 removed them (`D-174`), and
-the connections are written as any other, their ports settled by the direction of flow (`19`). There is
+**A subcircuit is joined to its parent by connections the script writes**, as any other, their ports
+settled by the direction of flow (`19`); there is no attachment statement (`D-166`). There is
 nothing structurally special about a subcircuit: it is a set of components connected to the rest, and
 every well-posedness rule below applies to it without modification.
 
@@ -360,8 +358,8 @@ Resolution order, first match winning:
 
 *`FS2217` (an attachment to the attaching circuit's own component) and `FS1518` (an attachment to nothing)
 partitioned one mistake between this document and the binder so that a typo produced one error, not two
-([`16-diagnostics`](../10-language/16-diagnostics.md) rule 4). Both were retired with language 1's
-attachments (`D-174`); an unknown name in a connection is a node inferred by rule I1, which `FS1510` reports.*
+([`16-diagnostics`](../10-language/16-diagnostics.md) rule 4). Both are retired (`D-174`), not reused: there
+are no attachment lines, and an unknown name in a connection is a node inferred by rule I1, which `FS1510` reports.*
 
 The intuitive form of this rule is "the leftmost circuit owns it", and under `D-31` the losing side
 *is* the left one — but leftmost is a layout outcome, and `D-03` forbids Core from computing anything
@@ -754,7 +752,7 @@ all but one free size on the path, or decoupling the blocks.
 | `FS2214` | Loop with no flow driver | Warning | `Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?` |
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
-| `FS2217` | *(retired)* | — | A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS2217` | *(retired)* | — | An attachment to a component of the attaching circuit itself. Retired (D-174), not reused: there are no attachment lines. |
 | `FS2218` | A flow constraint answered by a pump on another branch of its loop | Info | `'{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the pressure the two branches share. If a pump on its own branch was meant to hold it, free that one.` |
 
 | `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |
@@ -838,18 +836,20 @@ tool and a frustrating one.
 
 The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)):
 
-```
-connections
-N1 - N2
-N2 - PU1
-PU1 - HE1
-HE1 - 3WV
-3WV - N2
-3WV - P1
-P1 - N3
+```text
+circuit "coolingLoop":
+  # … the declarations of HE1, 3WV, PU1 and the pipe P1
 
-N1 inlet t=6 p=300
-N3 outlet p=280
+  N1 - N2
+  N2 - PU1
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2
+  3WV - P1
+  P1 - N3
+
+  N1  inlet   t = 6  p = 300
+  N3  outlet  p = 280
 ```
 
 **Nodes**: `N1` and `N3` are declared (they carry boundary conditions), `N2` comes from I1, and
@@ -934,7 +934,7 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
       and `outlet` pair carrying them produce `FS2204`.
 - [ ] A closed circuit whose stated duties do not sum to zero produces `FS2203` **and a square count**
       — the check is worthless if the circuit it fires on is one `FS2210` would have caught anyway.
-- [ ] The same circuit in a `dynamic` model produces no `FS2203`.
+- [ ] The same circuit held dynamic in a run produces no `FS2203`.
 - [ ] The substation's closed secondary produces no `FS2203`, although it holds a coupled exchanger
       whose duty sign the graph cannot read.
 - [ ] A circuit with a `inlet` and no `outlet` produces `FS2204`; one with both produces none, and so

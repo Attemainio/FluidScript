@@ -9,7 +9,7 @@ namespace FluidScript.Api.Contracts;
 /// <summary>What the editor's tokenizer needs to classify a word without a round trip (<c>52</c> invariant 2).</summary>
 /// <remarks>
 /// The lexical grammar is table-driven on a table Core owns: the unit symbols that turn <c>20C</c> into a quantity
-/// and leave <c>3WV</c> a name. Language 2's lexer reserves no word; its statement words are known by where they
+/// and leave <c>3WV</c> a name. The lexer reserves no word; the statement words are known by where they
 /// stand (<c>19</c>), and the highlighter needs the list to colour them there. Both must agree with Core and must
 /// not wait for the network, so they are committed beside the schemas as <c>language.json</c>, generated into the
 /// frontend and gated like the schemas. The resolution thresholds ride along for completion's ranking.

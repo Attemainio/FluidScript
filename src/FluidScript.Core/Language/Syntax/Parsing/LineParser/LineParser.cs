@@ -15,8 +15,8 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 /// other line is unaffected.
 /// </summary>
 /// <remarks>
-/// Language 2's statements are read by <see cref="ParseLanguage2"/> (<c>LineParser.Language2*.cs</c>); the other
-/// partials read what every statement shares -- names, endpoints, expressions and values.
+/// The statements are read by <see cref="ParseLine"/> (<c>LineParser.Lines.cs</c>, <c>LineParser.Blocks.cs</c>); the
+/// other partials read what every statement shares -- names, endpoints, expressions and values.
 /// </remarks>
 internal sealed partial class LineParser(
     SourceText source,

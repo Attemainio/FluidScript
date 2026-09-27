@@ -32,7 +32,7 @@ public sealed record TransientSettings
     /// <value>Dimensionless. <c>transient.local_error_tol</c>.</value>
     public double LocalErrorTolerance { get; init; } = Tolerances.TransientLocalError;
 
-    /// <summary>The settings a language 2 run states (<c>D-169</c>): its duration and its frame.</summary>
+    /// <summary>The settings a run states (<c>D-169</c>): its duration and its frame.</summary>
     /// <param name="run">The run.</param>
     /// <returns>The settings, the integrator's bounds at their defaults.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="run"/> is <see langword="null"/>.</exception>

@@ -1427,14 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 23 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 15 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **52** | |
+| | **65** | |
 
+Recounted 2026-09-27 after the language sweep (`D-180`) filed `L-87`–`L-93`, `C-141`–`C-145` and `S-90`: 65.
 Recounted 2026-09-27 from the files after package 8 step 3 closed nine `L-` rows and `A-7`: 52 (the core-domain
 row had read 20 against the register's 23). Recounted 2026-09-26 after the package 6 audit filed `L-72`–`L-75` (found during the package, not logged at the
 time): 56. After 6d closed `L-69` and `L-70` and opened `L-71`: 52. After `L-69` (package 6b) and `L-70`
@@ -2121,6 +2122,27 @@ that governed each size. What P6.8 still owes, and what comes after:
     of 8c's seed is consistent with the wrong flow; it was reverted and now waits on `S-69`'s sizing half. Core
     2636/0/2, Api 79/0, frontend 253/0. Next: package 9, `docs/` for language 2; `L-66`'s remainder and the rows
     needing the user are listed in their registers.
+  - **Package 8, step 4, and package 9: the language sweep (2026-09-27; `D-180`; `L-87`–`L-93`, `C-141`–`C-145`,
+    `S-90` filed).** The user asked for a final sweep: no defect register, plan document, doc page, class or test
+    still describing language 1. Asked first, they chose: clean current text and keep history (closed rows, `09`'s
+    entries and the log stay as written); `12` rewritten as the grammar, with `19` keeping the design; every name
+    carrying a "2" renamed with a contract bump; retired codes kept with one neutral line; `docs/` rewritten in the
+    same sweep, which is package 9. `D-180` records it. Code: `ScriptReader`, `FluidScriptParser`,
+    `BlockDiagnostics`, `LineBlock` and their tests renamed; the diagnostic areas are `Blocks` and `Style`, so the
+    contract is **4.0** (a removed value is a major by `26`'s rule, not the `3.2` first quoted to the user);
+    `FS1806` and the 26 retired descriptions reworded; dead language 1 code removed (the bare-`sized_at` stop,
+    `SizedAtKeyword`, the schedule binding, the attachment inference helpers, `LegacyName`, `ParseResult.Language`);
+    the corpus reads every fenced block in `plan/` and `docs/` as the language, the decision log's aside, and the
+    `lang=2` marker is gone. Plan: `12` is the lexical and syntactic grammar with its EBNF; `19` is "Language
+    design"; every tier's current text, open rows and traps are reworded. Docs: every page rewritten, `design`,
+    `scenarios`, `connections`, `schedule` and `control` merged into `project`, `let`, `circuit`, `run` and
+    `controller` and deleted. Found on the way and fixed: `FS1534` was listed as unreachable and so never watched
+    fire (now tested), the sizing report's header said "scenarios … design", four doc errors (an exchanger's
+    hold-up, a dead-end pair called an open circuit, a 120/150 kW slip, `FS4006` shown as a diagnostic). Found and
+    filed: thirteen rows, among them a copper series keeping steel's roughness (`C-142`), unchecked catalogue pins
+    (`C-141`), and three that are the user's call (`L-87` a circuit with no `fluid`, `L-92` the canvas's case,
+    `S-90` `34`'s `FS3208`/`FS3209`). Core 2594/0/2, Api 79/0, frontend 253/0; plan check at 62. Next: the rows
+    needing the user; then P6.12.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -2132,9 +2154,10 @@ beside the closed form and says where the two part.
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens
    those files. `C-111`'s second half stays the user's language decision.
-1. **`01`'s header listing has drifted from the sample that meets its figures**, in three recorded
-   ways: attachment replaced by hand wiring (`F-16`/`F-17`), `PU_MAIN` removed because the consumer
-   pumps drive the whole loop (`S-55`'s subject), and `load` in place of `heat_exchanger` (`D-91`).
+1. **`01`'s header listing has drifted from the sample that meets its figures**, in two recorded
+   ways: `PU_MAIN` removed because the consumer pumps drive the whole loop (`S-55`'s subject), and
+   `load` in place of `heat_exchanger` (`D-91`). Both join the circuits by connections now (`D-166`),
+   which was the third drift `F-16`/`F-17` recorded.
    The figures and the tag table are unchanged. Updating the listing to the sample verbatim is a
    spec edit and the user's call; until then the sample is the reference and `01` the intent.
 2. **Whether the fourth plant becomes a fourth reference circuit.** It converges on hand figures as
@@ -2190,7 +2213,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2974 total, 0 failed, 4 skipped** (130 of them the frozen language 2 corpus, `D-178`; the live-comparison harness deleted at 6d's switch) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2974 total, 0 failed, 4 skipped** (130 of them the frozen corpus, `D-178`; the live-comparison harness deleted at 6d's switch) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

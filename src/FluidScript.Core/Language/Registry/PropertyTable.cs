@@ -8,7 +8,7 @@ namespace FluidScript.Core.Language.Registry;
 /// <remarks>
 /// <para>
 /// One table for three readers: a port's state on a declaration (<c>in[2].t=85</c>), a reference to
-/// it (<c>HX1.in[2].t</c>), and the <c>show</c> directive (<c>show t</c>, <c>show temperature</c>).
+/// it (<c>HX1.in[2].t</c>), and the <c>show</c> setting (<c>show = t</c>, <c>show = temperature</c>).
 /// Before <c>D-120</c> the contract builder kept its own copy for <c>show</c> and the registry rows
 /// spelled the quantities by hand, which is the drift <c>L-50</c> recorded. The symbol is the
 /// canonical spelling in a port's state, since the language trades on density; the name is what the

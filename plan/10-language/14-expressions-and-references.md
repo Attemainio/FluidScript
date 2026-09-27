@@ -79,9 +79,9 @@ branching (`D-01`), and the closed function set below does not offer one either.
 ### The `-` ambiguity
 
 `-` is both subtraction and the connection operator. There is no conflict, because they never occur in
-the same position: connections live only in the connection section and contain no expressions, and
-expressions occur only after `=` in a parameter or `let`. A `-` at the start of a connection-section
-line that is not between two endpoints produces `FS1104`.
+the same position: a connection's endpoints contain no expressions, and expressions occur only after
+`=` in a parameter, a setting or a `let`. A `-` at the start of a connection line that is not between
+two endpoints produces `FS1104`.
 
 ### Functions
 
@@ -118,8 +118,8 @@ the domain reads the speed of light, and every constant is a short name a script
 
 ## `let` bindings
 
-```fluidscript lang=2
-let dT   = 30 K                    # a difference: `K` is one in language 2 (D-172), `dK` in language 1 (D-26)
+```fluidscript
+let dT   = 30 K                    # a difference: a whole `K` is one (D-26, D-172)
 let Q    = 30 kW
 let mdot = Q / (4.18 kJ/(kg*K) * dT)
 ```
@@ -154,8 +154,8 @@ port, its index and the quantity, `in[2].t`; the quantity may also be spelled by
 (`in[2].temperature`), which the binder folds to the symbol through the one property table
 ([`13`](13-type-and-unit-system.md)). The whole dotted path after the component is the property: the
 binder resolves it as one name against the kind's fixed properties, their aliases and its indexed
-families. The pre-`D-120` spelling `t_in2` is the property's key and no longer a spelling: language 2 does
-not read it (`L-79`).
+families. The pre-`D-120` spelling `t_in2` is the property's key and no longer a spelling: the language
+does not read it (`L-79`).
 
 ### The circularity that matters
 
@@ -319,7 +319,7 @@ that reads a sized/solved property becomes a `DeferredExpression` instead. For e
 
 ## Worked example
 
-```fluidscript lang=2
+```fluidscript
 let dT   = 30 K
 let Q    = 30 kW
 let cp   = 4.18 kJ/(kg*K)
@@ -343,7 +343,7 @@ dT ──┐
 Q ───┤
 cp ──┘
 Q ────────► HE1.power
-dT ───────► HE1.out
+dT ───────► HE1.out.t
 HE1.dp ───► PU1.head        (deferred — dp is a property; here the kind's decided 20 kPa, which the seed supplies)
 ```
 
@@ -351,13 +351,13 @@ HE1.dp ───► PU1.head        (deferred — dp is a property; here the kin
 
 | Value | Expression | Result |
 |---|---|---|
-| `dT` | `30 dK` | 30 K (TemperatureDelta) |
+| `dT` | `30 K` | 30 K (TemperatureDelta) |
 | `Q` | `30 kW` | 30 000 W |
 | `cp` | `4.18 kJ/(kg*K)` | 4180 J/(kg·K) |
 | `mdot` | `Q / (cp * dT)` | 30000 / (4180 × 30) = **0.2392 kg/s** — the *user's* cp, not the property backend's |
 | `HE1.power` | `Q` | 30 000 W |
-| `HE1.in` | `20` | 293.15 K |
-| `HE1.out` | `20C + dT` | 323.15 K |
+| `HE1.in.t` | `20 C` | 293.15 K |
+| `HE1.out.t` | `20 C + dT` | 323.15 K |
 | `PU1.head` | `1.2*HE1.dp/(998 kg/m3*g)` | **deferred** |
 
 **Phase B.** The circuit is the **simple loop**
