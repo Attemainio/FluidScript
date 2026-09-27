@@ -345,7 +345,10 @@ public interface ISubstanceRegistry
 ```
 
 v1 registry names are `water` for solved hydronic circuits and `air` for metadata/property validation.
-`air` cannot lower to a v1 circuit (`D-28`). Glycol mixtures are post-v1: accepting a concentration
+`air` cannot lower to a v1 circuit (`D-28`). A circuit that states no `fluid` carries the fluid the file is solved with — the first
+one stated, water when none is — and a circuit no stated fluid reaches through its hydraulic partition is told so
+with `FS2008`; circuits that state different fluids are solved with the first and warned with `FS2009` until `D-77`
+gives each partition its own (`D-181`, `C-146`). `CircuitFluids` makes both choices; the pipeline calls it. Glycol mixtures are post-v1: accepting a concentration
 before the real backend and freezing-basis behavior are validated would overstate supported physics.
 
 **Refrigerants are pure fluids and arrive with `D-78`'s cycle**, not with the glycols. A mixture needs
@@ -387,6 +390,8 @@ an assignment.
 | `FS2005` | Glycol concentration outside 0–60 % | Error | `Glycol concentration must be between 0 and 60 %.` |
 | `FS2006` | Relative humidity outside 0–100 % | Error | `Relative humidity must be between 0 and 100 %.` |
 | `FS2007` | A fluid written with arguments, `water(30 %)`: a mixture, which v1 does not have (`L-73`) | Error | `'{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid.` |
+| `FS2008` | A circuit states no `fluid` and shares no hydraulic partition with one that does (`D-181`) | Info | `'{circuit}' states no fluid, so it carries {fluid}. Write 'fluid = {fluid}' to say so.` |
+| `FS2009` | Circuits state different fluids, and the file is solved with one (`D-181`, until `D-77`) | Warning | `'{circuit}' carries {fluid}, and this version solves a file with one fluid: every circuit is solved as {chosen}.` |
 
 ## Worked example
 

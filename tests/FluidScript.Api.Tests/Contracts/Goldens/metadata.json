@@ -5687,6 +5687,27 @@
       ]
     },
     {
+      "code": "FS2008",
+      "severity": "info",
+      "area": "Substances",
+      "message": "'{circuit}' states no fluid, so it carries {fluid}. Write 'fluid = {fluid}' to say so.",
+      "arguments": [
+        "circuit",
+        "fluid"
+      ]
+    },
+    {
+      "code": "FS2009",
+      "severity": "warning",
+      "area": "Substances",
+      "message": "'{circuit}' carries {fluid}, and this version solves a file with one fluid: every circuit is solved as {chosen}.",
+      "arguments": [
+        "circuit",
+        "fluid",
+        "chosen"
+      ]
+    },
+    {
       "code": "FS2101",
       "severity": "error",
       "area": "Components",

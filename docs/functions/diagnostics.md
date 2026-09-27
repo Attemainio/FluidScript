@@ -144,6 +144,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2004` | Error | Substances | Could not evaluate {property} for {name} at {state}. |
 | `FS2006` | Error | Substances | Relative humidity must be between 0 and 100 %. |
 | `FS2007` | Error | Substances | '{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid. |
+| `FS2008` | Info | Substances | '{circuit}' states no fluid, so it carries {fluid}. Write 'fluid = {fluid}' to say so. |
+| `FS2009` | Warning | Substances | '{circuit}' carries {fluid}, and this version solves a file with one fluid: every circuit is solved as {chosen}. |
 | `FS2101` | Error | Components | '{name}': {parameters} cannot all be set. Any {count} of them fix the rest. |
 | `FS2103` | Warning | Components | '{name}': using kv={kv}; dp is implied by it. |
 | `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |

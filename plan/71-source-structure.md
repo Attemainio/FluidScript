@@ -148,7 +148,7 @@ FluidScript.Core/
 │   ├── Graph/        CircuitGraph, Branch, GraphNode, PortAdjacency
 │   ├── Construction/ Lowering/ (class folder, S3), ComponentFactory, ScheduledChange, Setpoint
 │   ├── Counting/     WellPosedness/ (class folder, S3), CountingTable, Assignment, Reach
-│   └── Hydraulics/   HydraulicBlocks, HydraulicComponent, FillPressure
+│   └── Hydraulics/   HydraulicBlocks, HydraulicComponent, FillPressure, CircuitFluids
 ├── Solvers/          ISolver, Tolerances
 │   ├── Equations/    EquationSystem, EquationLayout, SystemLayout, PortMap, ResidualScales,
 │   │                 UnknownScales, StateVector

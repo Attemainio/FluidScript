@@ -32,7 +32,7 @@ component T1 tank in production at  tag 100S01 style
   out1_level = 0.9 Dimensionless  
   out2_level = 0.1 Dimensionless  
   volume = 2 Volume  
-component T1__PU_S1 node in production at  tag  style 
+component T1__PU_S1 node in secondary at  tag  style 
 connection B1.out -> B1__CV_B1.
 connection B1__CV_B1. -> CV_B1.in
 connection B2.out -> B2__CV_B2.

@@ -298,8 +298,8 @@ chosen in the interface; which case a run starts from is the run's `from`.
 ### Circuits
 
 The title is quoted and is not a reference; it is the circuit's name in the model, and a circuit written
-without one is named `circuit 1`, `circuit 2`, … in file order. Settings: `fluid` (the substance, required
-once per circuit unless every circuit shares one), `number` (the tag prefix, `D-34`; resolved when absent),
+without one is named `circuit 1`, `circuit 2`, … in file order. Settings: `fluid` (the substance; optional,
+and a circuit that states none carries the file's fluid, water by default, told by `FS2008`, `D-181`), `number` (the tag prefix, `D-34`; resolved when absent),
 and `role` (the circuit's role for the drawing, `D-35`, stated because a quoted title is a name for people
 and carries no role). Declarations and connection lines follow in any order. Components are named globally
 (`D-41`), so a line in one circuit may name a component declared in another; that is how circuits are

@@ -1427,14 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 15 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 10 · Language | 10 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **65** | |
+| | **64** | |
 
+Recounted 2026-09-27 after `C-142`, `S-90` and `L-87` closed and `C-146`, `C-147` opened: 64.
 Recounted 2026-09-27 after the language sweep (`D-180`) filed `L-87`–`L-93`, `C-141`–`C-145` and `S-90`: 65.
 Recounted 2026-09-27 from the files after package 8 step 3 closed nine `L-` rows and `A-7`: 52 (the core-domain
 row had read 20 against the register's 23). Recounted 2026-09-26 after the package 6 audit filed `L-72`–`L-75` (found during the package, not logged at the
@@ -2143,6 +2144,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     (`C-141`), and three that are the user's call (`L-87` a circuit with no `fluid`, `L-92` the canvas's case,
     `S-90` `34`'s `FS3208`/`FS3209`). Core 2594/0/2, Api 79/0, frontend 253/0; plan check at 62. Next: the rows
     needing the user; then P6.12.
+  - **The user's calls on the sweep's rows (2026-09-27; `C-142`, `S-90`, `L-87` closed; `C-146`, `C-147` filed;
+    `D-181`).** A pipe is solved with its own series' roughness, so drawn copper is 0.0015 mm where it was steel's
+    0.045 (`C-142`). `S-90`'s two codes dropped from `34`. A circuit that states no fluid carries water and is told so
+    with `FS2008`, only where no stated fluid reaches it (`L-87`, `D-181`); a file stating two fluids is warned with
+    `FS2009` until `D-77` is built (`C-146`, filed while planning `L-87`: the whole file is solved with one fluid).
+    `C-147`: word-valued parameters (`material`) are not on the contract. Core 2602/0/2, Api 81/0, frontend 253/0.
+    Next: `L-92`, the canvas's case picker, which the user chose as an interface control, with `C-147` in the same
+    contract bump.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

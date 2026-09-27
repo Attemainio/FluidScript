@@ -81,8 +81,31 @@ public static class FluidDiagnostics
         DiagnosticSeverity.Error,
         "'{written}' describes a mixture, and this version has none: a fluid takes no arguments yet. Write '{substance}' for the plain fluid.");
 
+    /// <summary>A circuit that states no <c>fluid</c>, on its own, and so carries the default (<c>D-181</c>, <c>L-87</c>).</summary>
+    /// <value><c>FS2008</c>, an info.</value>
+    /// <remarks>
+    /// Water is the decided default of a hydronic tool, and a decided default is visible (<c>D-32</c>). Only a circuit
+    /// no stated fluid reaches is told: a branch joined to a circuit that states water carries that water already.
+    /// </remarks>
+    public static DiagnosticDescriptor FluidNotStated { get; } = new(
+        "FS2008",
+        DiagnosticSeverity.Info,
+        "'{circuit}' states no fluid, so it carries {fluid}. Write 'fluid = {fluid}' to say so.");
+
+    /// <summary>Circuits that state different fluids, solved as one (<c>D-181</c>, <c>C-146</c>).</summary>
+    /// <value><c>FS2009</c>, a warning.</value>
+    /// <remarks>
+    /// <c>D-77</c> gives each hydraulic partition its own substance, and it is not built: the pipeline solves the file
+    /// with the first fluid it states. Until it is, a circuit that says otherwise is solved with properties that are not
+    /// its fluid's, and this is what says so instead of the numbers.
+    /// </remarks>
+    public static DiagnosticDescriptor OneFluidPerFile { get; } = new(
+        "FS2009",
+        DiagnosticSeverity.Warning,
+        "'{circuit}' carries {fluid}, and this version solves a file with one fluid: every circuit is solved as {chosen}.");
+
     /// <summary>Gets every code the substance layer emits, for the registry to collect.</summary>
-    /// <value>Six descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Eight descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         UnknownSubstance,
@@ -91,5 +114,7 @@ public static class FluidDiagnostics
         PropertyNotEvaluable,
         RelativeHumidityOutOfRange,
         MixtureNotSupported,
+        FluidNotStated,
+        OneFluidPerFile,
     ];
 }

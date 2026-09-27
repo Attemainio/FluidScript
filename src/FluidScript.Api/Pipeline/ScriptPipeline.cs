@@ -11,9 +11,9 @@ using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
 using FluidScript.Core.Physics.Fluids;
-using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Solvers.Passes;
 using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Hydraulics;
 
 using Microsoft.Extensions.Options;
 
@@ -99,7 +99,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         }
 
         var catalog = Catalog(compatibility.Catalog, diagnostics);
-        var substance = Substance(bind.Model, diagnostics);
+        var substance = CircuitFluids.Choose(bind.Model, SubstanceRegistry.Default, diagnostics);
         var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog, PipeCatalogs.All), OuterLoop.Rules(catalog.Catalog, available: PipeCatalogs.All));
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -108,6 +108,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         var prepared = loop.Prepare(bind.Model, substance);
         var sizeMs = Elapsed(sizeStarted);
         var graph = prepared.Lowered.Graph;
+        CircuitFluids.ReportUnstated(bind.Model, graph, substance, diagnostics);
 
         if (prepared.Lowered.Unresolved.IsEmpty
             && limits.CheckUnknowns(WellPosedness.Check(graph).Counting.Unknowns) is { } overLimit)
@@ -181,26 +182,6 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         // (C-39).
         diagnostics.Add(resolved.Error!.At(null));
         return PipeCatalogs.Resolve(pin: null).Value;
-    }
-
-    private static ISubstance Substance(SemanticModel model, ImmutableArray<Diagnostic>.Builder diagnostics)
-    {
-        var written = model.Circuits.Select(static circuit => circuit.Substance).FirstOrDefault(static name => name is not null);
-
-        if (written is null)
-        {
-            return Water.Instance;
-        }
-
-        var resolved = SubstanceRegistry.Default.Resolve(written);
-
-        if (resolved.TryGetValue(out var substance))
-        {
-            return substance;
-        }
-
-        diagnostics.Add(resolved.Error!.At(null));
-        return Water.Instance;
     }
 
     private static int Elapsed(long since) => (int)Math.Round(Stopwatch.GetElapsedTime(since).TotalMilliseconds);

@@ -47,11 +47,11 @@ internal sealed partial class BindingRun
                 name = $"{stem}_{ordinal.ToString(CultureInfo.InvariantCulture)}";
             }
 
-            var slot = Infer(name, "I2", CircuitOf(connection.From.Component), connection.SourceSpan);
+            var slot = Infer(name, "I2", connection.Circuit ?? CircuitOf(connection.From.Component), connection.SourceSpan);
             var middle = new EndpointSymbol(_components[slot.Index].Name, string.Empty);
 
             rewritten.Add(connection with { To = middle });
-            rewritten.Add(new ConnectionSymbol(middle, connection.To, connection.SourceSpan));
+            rewritten.Add(new ConnectionSymbol(middle, connection.To, connection.SourceSpan) { Circuit = connection.Circuit });
 
             Count(middle.Component);
             Count(middle.Component);

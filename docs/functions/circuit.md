@@ -27,7 +27,7 @@ lines go in any order, so write them in whatever order reads best.
 
 | Setting | What it says | When it is left out |
 |---|---|---|
-| `fluid` | What the circuit carries — see [`fluid`](fluid.md) | Water |
+| `fluid` | What the circuit carries — see [`fluid`](fluid.md) | Water, said with an info ([`FS2008`](diagnostics.md)) |
 | `number` | The circuit's number, the prefix of its equipment tags | The next free hundred: 100, 200, 300 |
 | `role` | Where the drawing places the circuit — see [below](#the-role) | Placed by what it connects to |
 | `style:` | How this circuit is drawn, over the project's style — see [`style`](style.md) | The project's style |

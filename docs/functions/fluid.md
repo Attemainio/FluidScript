@@ -14,7 +14,13 @@ circuit "Cooling loop":
 - `fluid = <substance>` names the working fluid of the circuit whose block it is in. It is a circuit
   setting only: at the top level of the file, or in the project block, it is
   [`FS1802`](diagnostics.md) or [`FS1503`](diagnostics.md).
-- A circuit that states no fluid carries water.
+- A circuit that states no fluid carries water — or, when another circuit in the file states a fluid,
+  that one. The editor says so with an info, [`FS2008`](diagnostics.md), on the circuit's head:
+  *'heating' states no fluid, so it carries water.* A circuit joined to one that states its fluid (the
+  consumer circuits on a distribution header, say) is not told, since it carries that circuit's fluid
+  already; the far side of a heat exchanger is, since no fluid crosses it.
+- A file is solved with one fluid. Circuits that state different fluids are solved with the first, and
+  each of the others is warned with [`FS2009`](diagnostics.md).
 - It says nothing about how the circuit is solved. The design solve is steady; a [`run`](run.md)
   solves in time, and names in its `steady` setting the circuits it holds quasi-steady.
 - A fluid takes no arguments yet. `water(30 %)` would describe a glycol mixture, and mixtures are

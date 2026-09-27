@@ -78,6 +78,21 @@ public sealed class ScriptDiagnosticsTests(ApiFactory factory) : IClassFixture<A
         Assert.DoesNotContain(diagnostics, static d => d.Code == "FS1104");
     }
 
+    // ---- the fluid (`D-181`) -------------------------------------------------------------------
+
+    [Fact]
+    public async Task ACircuitThatStatesNoFluidIsToldItCarriesWater()
+    {
+        var diagnostic = await OnlyAsync("fluidscript 2\n" + Loop.Replace("  fluid = water\n", "", StringComparison.Ordinal), "FS2008");
+
+        Assert.Equal("info", diagnostic.Severity);
+        Assert.Equal("'loop' states no fluid, so it carries water. Write 'fluid = water' to say so.", diagnostic.Message);
+    }
+
+    [Fact]
+    public async Task ACircuitThatStatesItsFluidIsNotTold() =>
+        Assert.DoesNotContain(await CompiledAsync("fluidscript 2\n" + Loop), static d => d.Code == "FS2008");
+
     // ---- a reader of a curve -----------------------------------------------------------------
 
     /// <summary>

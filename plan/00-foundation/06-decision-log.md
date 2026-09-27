@@ -223,6 +223,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-178` | Accepted | 2026-09-26 | Language 2 is bound directly against a frozen corpus, in one step, and language 1 is deleted behind it |
 | `D-179` | Accepted | 2026-09-26 | Values are read as language 2 writes them; an exchanger's ports keep their registry id and gain their language spelling |
 | `D-180` | Accepted | 2026-09-27 | One language, so nothing is numbered after it: the spec, the code and `docs/` describe language 2 alone |
+| `D-181` | Accepted | 2026-09-27 | A circuit that states no fluid carries the file's fluid, water by default, and is told so |
 <!-- index:end -->
 
 ---
@@ -8159,3 +8160,40 @@ would lose its grammar number. *Keep the names*: no risk, but the code would kee
 **Constrains.** `12`, `16`'s range table, `19`, `26` §Versioning, the open rows and traps of every `defects.md`,
 `docs/` (package 9 is done in this sweep), and the names of `ScriptReader`, `FluidScriptParser`, `BlockDiagnostics`
 and their tests.
+
+## D-181 · A circuit that states no fluid carries the file's fluid, water by default, and is told so
+
+**Accepted · 2026-09-27** (the user's call on `L-87`: "default fluid always should be water if not explicitly stated,
+but it should give indication that it defaults to water") · extends `D-32` · constrains
+[`19`](../10-language/19-fluidscript-2.md) §Circuits, [`21`](../20-core-domain/21-fluid-and-state.md) §Substance
+registry, `docs/functions/fluid.md`, `docs/functions/circuit.md`
+
+**What was wrong.** `19` said a circuit's `fluid` is required unless every circuit shares one; the pipeline gave a
+circuit that states none water, silently (`L-87`). The rule on paper and the rule in the code disagreed, and the one
+in the code was invisible: a brine loop written without its line would be solved as water with nothing said.
+
+**The rule.**
+
+1. **`fluid` is optional.** A circuit that states none carries the fluid the file is solved with: the first stated
+   one in declaration order, water when none is stated. While `D-77` is unbuilt (`C-146`) that is one fluid for the
+   whole file.
+2. **The default is visible** (`D-32`): `FS2008`, an info on the circuit's header — *"'heating' states no fluid, so it
+   carries water. Write 'fluid = water' to say so."* It is written only for a circuit that no stated fluid reaches:
+   a circuit that shares a hydraulic partition with one that states its fluid carries that fluid already, and a
+   note on every branch hung off a header would say the same thing about the same water. A coupled exchanger joins
+   no partitions for this purpose, since no fluid crosses it.
+3. **Two stated fluids are a warning until `D-77` is built**: `FS2009` on each circuit whose fluid is not the one the
+   file is solved with, naming both.
+
+**Why.** A hydronic tool whose every example is water should not make every script say so; a default that decides
+the heat capacity of the whole plant should still be one the file can see. The partition test is what keeps the
+note from becoming noise on the plants that most need to be read: the distribution header's two consumer circuits
+state nothing and are joined to a header that states water.
+
+**Rejected.** *Required* (an error naming the circuit): every one-circuit example gains a line that says the obvious,
+and the user asked for the default. *A note on every circuit that states none*: measured on the header sample, two
+notes about water the header already states. *A warning*: the script is correct, and a warning is for something
+that probably does not say what was meant (`16`).
+
+**Constrains.** `19` §Circuits (the setting is optional), `21` (the registry section and `FS2008`/`FS2009`), the
+docs pages for `fluid` and `circuit`, and `CircuitFluids`, which the pipeline calls in place of its own choice.
