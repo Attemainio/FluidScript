@@ -4,9 +4,6 @@
 # a comment saying what it does. It is also a plant: a district-heating substation feeding a
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
 # to that.
-#
-# does not settle: S-95 -- the ring's pump is sized at the flow each pass runs at, not its design flow, so the
-# ring drifts and its sizes do not settle in ten passes (plan/30-solver/defects.md).
 
 fluidscript 2
 

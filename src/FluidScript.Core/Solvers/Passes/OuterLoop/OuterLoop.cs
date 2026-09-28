@@ -485,7 +485,7 @@ public sealed partial class OuterLoop(
                 return Result.Success(
                     Report(
                         lowered.Graph,
-                        Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, failedPass: null, unsettled: [], closing: []),
+                        Annotated(solve, raised.AddRange(OffDesign(lowered.Graph, layout, solve.Solution)), loopSaid, evaluationSaid, current, histories, failedPass: null, unsettled: [], closing: []),
                         next,
                         WithStated(current, bases),
                         notes,

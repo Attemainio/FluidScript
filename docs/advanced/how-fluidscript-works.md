@@ -190,6 +190,15 @@ In the cooling loop:
 Every chosen value carries a sentence saying why, which is what the hover card shows as "sized".
 The graph is lowered again from the chosen sizes, and that graph is the one solved.
 
+**Every rule sizes at the design flow.** Where the script fixes a flow -- a stated flow, a duty over
+its two temperatures, a valve's split by the mix it makes, a junction's balance of those -- that is
+the flow the pipe, the valve, the exchanger's drop and the pump's head are chosen for, and every drop
+a rule reads is taken at it. Where the script fixes nothing, the flow the solve finds is the design.
+A pump sized at whatever its loop happens to run at would make that flow the answer, whatever it
+was: the syntax tour's ring ran at 2.12 kg/s against the 1.794 its radiator's 150 kW over 60/40 needs,
+and its sizes never settled. Sized at the design, it settles in two passes, and its pump is 6.8 m at
+1.83 l/s.
+
 ### 6. Well-posedness: is there exactly one answer?
 
 **In:** the sized graph. **Out:** a `CountingTable` of unknowns against equations, and the list of
@@ -264,11 +273,14 @@ and usually takes one or two.
 
 The outer loop is why "solve" is not one Newton run. Sizing needs flows, flows need sizes, and a
 deferred expression like `secondary.in.t = HE1.secondary.out.t` needs a solved value. So the loop goes: size, solve,
-evaluate the deferred expressions (`DeferredEvaluation`), size again from the solved flows, and stop
-when no sized or deferred value moves by more than half a percent. One loop rather than three nested
-ones, so that no inner loop converges against a stale outer one. After the last pass it reads the
-solution once more for things worth telling the user: a valve throttling a bypass that wants a
-balancing valve (`FS4011`), a valve written as mixing that runs diverting (`FS4012`).
+evaluate the deferred expressions (`DeferredEvaluation`), size again at the design flows -- the
+solved ones only where the script fixes none -- and stop when no sized or deferred value moves by
+more than half a percent. One loop rather than three nested ones, so that no inner loop converges
+against a stale outer one. After the last pass it reads the solution once more for things worth
+telling the user: a valve throttling a bypass that wants a balancing valve (`FS4011`), a valve written
+as mixing that runs diverting (`FS4012`), and water running more than 10 % off the flow it was sized
+for (`FS4014`) -- the commissioning check, since a plant the sizes assume at one flow and the physics
+runs at another has something setting its flow that the sizes do not know about.
 
 Everything the loop and the solver know about one circuit can be rendered as text by
 `Diagnostics/SolveExplanation`; [Reading the solve report](reading-the-solve-report.md) explains it.

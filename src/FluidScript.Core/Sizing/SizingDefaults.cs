@@ -9,6 +9,17 @@ namespace FluidScript.Core.Sizing;
 /// </remarks>
 public static class SizingDefaults
 {
+    /// <summary>How far the settled design solve may run a design flow from the value it was sized for before <c>FS4014</c> says so.</summary>
+    /// <value>A fraction of the design flow, either way: 0.10.</value>
+    /// <remarks>
+    /// The hydronic balancing tolerance. NEBB's guide specification 23 05 93: "Hydronic Systems: Balance equipment in
+    /// accordance with capacities and flow quantities indicated with a permissible tolerance of Minus 10 percent to
+    /// Plus 10 percent"; CIBSE Commissioning Code W's ±10 % of design flow is what a commissioning engineer applies in
+    /// practice (Flo Control, on commissioning ultra-low flows). A plant the model runs outside it would fail its own
+    /// commissioning (<c>D-189</c>).
+    /// </remarks>
+    public const double DesignFlowTolerance = 0.10;
+
     /// <summary>The pressure gradient a pipe is sized to.</summary>
     /// <value>Pa/m. Common distribution practice.</value>
     /// <remarks>

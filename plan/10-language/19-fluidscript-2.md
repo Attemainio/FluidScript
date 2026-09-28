@@ -627,7 +627,8 @@ that the statements here raise. No stage throws on any input.
 ## Acceptance criteria
 
 - [x] The reference script parses, prints back byte for byte, and binds with no error, its run included.
-      Its design solve does not settle, which is `S-86`, not a fault of the language.
+      Its design solve settles in two passes since sizing reads the design flow (`D-189`, 2026-09-28); it reports
+      `FS4014` on `HX1`, whose stated 45 C primary return nothing holds (`C-152`).
 - [x] The printer fuzz test runs on the language's input (`FluidScriptParserTests`: every one-character
       deletion of the reference script and 3 000 random edits).
 - [ ] A malformed line inside a block leaves the rest of the block and the file bound (invariant 2).

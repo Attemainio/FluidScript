@@ -1428,14 +1428,16 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **58** | |
+| | **59** | |
 
+Recounted 2026-09-28 after `S-95` closed and `S-97`, `C-152` opened (`D-189`, the design flow field): 59.
 Recounted 2026-09-28 after `S-85` closed (group A, A4, the seed at a diverting valve and a junction's balance): 58.
+Recounted 2026-09-28 after `S-96` closed (the tour's numbers, the user's choice): 59.
 Recounted 2026-09-28 after `S-94` closed and `S-95`, `S-96` opened (the syntax tour): 60.
 Recounted 2026-09-28 after `S-93` closed (`D-188`, a control reserve): 59.
 Recounted 2026-09-28 after `S-91`, `S-86` and `S-88` closed and `S-93`, `S-94` opened (group A, A2): 60.
@@ -2263,6 +2265,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     script's outcome or size moved; one Newton test's head, which a bootstrap sized from the old seed, is re-baselined.
     What `C-44` keeps: the copy at a split with two open branches (no script reaches it), `24`'s text, `FS2302`. Core
     2602/0/2, Api 87/0. Next: `S-95`, the design flow, as a measured experiment put to the user before any commit.
+  - **Every size is chosen at the design flow (2026-09-28; `D-189`; `S-95` closed; `S-97`, `C-152` opened).** Two
+    measured experiments were put to the user: opting the pump and the exchanger in, and one design flow field for every
+    rule. The user chose the field, with the running-vs-design check it needs. Each pass sizes at the flow estimate
+    without the copy at a split, the solved flow standing in only where intent fixes none. `FS4014` reports a settled
+    design solve outside the ±10 % hydronic balancing tolerance (NEBB 23 05 93). The syntax tour settles in 2 passes
+    where it stopped at 10 with `FS2301`, pump 6.77 m at 1.825 l/s, primary DN40; its marker is removed. Five more
+    scripts settle in fewer passes, and every other size moves in its fourth digit. The field covers 199 of 263 branches
+    (`S-97`). The tour now carries `FS4014` on `HX1`: its stated 45 C primary return is not held, and nothing said so
+    before (`C-152`). Core 2605/0/2, Api 87/0. Next: `C-152`, then `S-97`'s held outlets, then `C-149`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

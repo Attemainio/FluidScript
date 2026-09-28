@@ -1571,6 +1571,47 @@ public sealed class OuterLoopTests
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS3008");
     }
 
+    // ---- every size is chosen at the design flow (D-189, S-95, FS4014) ------------------------------
+
+    [Fact]
+    public async Task EverySizeIsChosenAtTheDesignFlowNotTheFlowThePlantRunsAt()
+    {
+        // `S-95`. The tour's radiator states 150 kW and its ring runs 60/40, so its design flow is 1.794 kg/s; the
+        // substation's primary carries the same 150 kW over 85/45, 0.896. Sized at the running flow, the ring's pump
+        // made whatever flow it ran at a fixed point: 2.12 kg/s, the pump at 8.2 m, the primary pipe DN50, and the sizes
+        // still moving after ten passes. Sized at the design field it settles in two.
+        var run = await RunAsync("v2-syntax-tour.fluid");
+
+        Assert.True(run.Settled);
+        Assert.InRange(run.Passes, 1, 3);
+        Assert.Equal(1.794, run.Sizes.For("RAD", "flow")!.Value, 0.001);
+        Assert.Equal(0.896, run.Sizes.For("HX1", "flow")!.Value, 0.001);
+        Assert.Equal(6.77, run.Sizes.For("SP", "head")!.Value, 0.05);
+    }
+
+    [Fact]
+    public async Task APlantThatSettlesOffItsDesignFlowSaysSoAndOneThatRunsAtItDoesNot()
+    {
+        // `FS4014`, the check `D-189` ships with. The tour's mild case as it first stood, made the design case: the
+        // radiator's supply is held at 38.9 C and its return stated at 40, so 60 kW has a design flow of 4.7 kg/s nothing
+        // can deliver. Sized at the running flow this ended at the pass cap; sized at the design it settles, and the solve
+        // balances the sizes by running the ring at 33 kg/s with its mixing valve almost shut. Without the check that
+        // is a converged answer and a wrong one.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "v2-syntax-tour.fluid"))
+            .Edited("  cases   = [winter, mild]", "  cases   = [mild, winter]")
+            .Edited("let outdoor = [-26, 5] C", "let outdoor = [5, -26] C")
+            .Edited("    secondary.in.t  = [40, 33] C", "    secondary.in.t  = 40 C")
+            .Edited("    secondary.out.t = [65, 50] C", "    secondary.out.t = [50, 60] C");
+        var offDesign = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, "mild", TestContext.Current.CancellationToken);
+
+        Assert.True(offDesign.IsSuccess, offDesign.Error?.Message);
+        Assert.Contains(offDesign.Value.Solve.Diagnostics, static d => d.Code == "FS4014" && d.ComponentName == "RAD");
+
+        var atDesign = await RunAsync("m2-cooling-loop.fluid");
+
+        Assert.DoesNotContain(atDesign.Solve.Diagnostics, static d => d.Code == "FS4014");
+    }
+
     // ---- a warm start that fails is discarded, and the loop says so (S-20, FS3012) -----------------
 
     [Fact]

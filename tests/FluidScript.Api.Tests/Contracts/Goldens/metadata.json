@@ -6531,6 +6531,20 @@
       ]
     },
     {
+      "code": "FS4014",
+      "severity": "warning",
+      "area": "DesignWarning",
+      "message": "The water through '{name}' runs at {solved} kg/s, {deviation} % {direction} the {design} kg/s it was sized for; balancing accepts ±{tolerance} %. Something the sizes do not know sets this flow: a valve left open on a fixed pressure difference, or temperatures the plant cannot all hold at once.",
+      "arguments": [
+        "name",
+        "solved",
+        "deviation",
+        "direction",
+        "design",
+        "tolerance"
+      ]
+    },
+    {
       "code": "FS4601",
       "severity": "error",
       "area": "Request",

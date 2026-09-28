@@ -82,6 +82,19 @@ public static class DesignDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' must pass {light} kg/s in {lightCase} and {heavy} kg/s in {heavyCase}, {ratio} % of its heaviest flow. {trim} valve at authority {authority} controls down to about {limit} % ({range}:1 × √{authority}), so in {lightCase} it will open and shut rather than modulate. Give the light case a smaller valve in parallel, or split the duty.");
 
+    /// <summary>A design solve that settles with a component's water running outside the balancing tolerance of the flow it was sized for.</summary>
+    /// <value><c>FS4014</c>, a warning.</value>
+    /// <remarks>
+    /// Raised after the settled design solve (<c>D-189</c>). Every size is chosen at the design flow, so a plant that
+    /// runs elsewhere has something setting its flow the sizes do not know about -- a valve left open on a fixed
+    /// pressure difference, or temperatures the plant cannot all hold. The tolerance is the ±10 % hydronic balancing
+    /// tolerance (<see cref="Sizing.SizingDefaults.DesignFlowTolerance"/>).
+    /// </remarks>
+    public static DiagnosticDescriptor OffDesignFlow { get; } = new(
+        "FS4014",
+        DiagnosticSeverity.Warning,
+        "The water through '{name}' runs at {solved} kg/s, {deviation} % {direction} the {design} kg/s it was sized for; balancing accepts ±{tolerance} %. Something the sizes do not know sets this flow: a valve left open on a fixed pressure difference, or temperatures the plant cannot all hold at once.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -89,5 +102,6 @@ public static class DesignDiagnostics
         LegsUnbalanced,
         ArrangementContradictsKind,
         TurnDownBeyondRange,
+        OffDesignFlow,
     ];
 }

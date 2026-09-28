@@ -130,6 +130,69 @@ public sealed partial class OuterLoop
         ];
     }
 
+    /// <summary><c>FS4014</c> on each component whose design flow the settled design solve does not run at within the balancing tolerance.</summary>
+    /// <param name="graph">The graph the settling pass was lowered with.</param>
+    /// <param name="layout">The state vector's layout.</param>
+    /// <param name="solution">The converged iterate.</param>
+    /// <returns>At most one diagnostic per rating component, on its worst branch.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The check <c>D-189</c> cannot ship without.</strong> While sizing chased the running flow, a plant that
+    /// could not run at its design drifted pass after pass and ended in <c>FS2301</c>. Sized at the design flow it
+    /// settles at once, and Newton finds whatever state balances the sizes: the syntax tour with its mild case's
+    /// return above its supply ran its ring at 34 kg/s against a 9.3 kg/s design with the mixing valve 1 % open, and
+    /// reported it converged. Commissioning is the same comparison, and its tolerance is this one
+    /// (<see cref="Sizing.SizingDefaults.DesignFlowTolerance"/>).
+    /// </para>
+    /// <para>
+    /// Only the settled design solve is checked. A case solved on the frozen merged plant runs off its own design by
+    /// construction (<c>D-143</c>), and a branch no intent fixes has no design to be off.
+    /// </para>
+    /// </remarks>
+    private static ImmutableArray<Diagnostics.Diagnostic> OffDesign(CircuitGraph graph, SystemLayout layout, StateVector solution)
+    {
+        var design = BranchFlows.Design(graph);
+        var worst = new Dictionary<string, (double Deviation, double Design, double Solved)>(StringComparer.Ordinal);
+
+        foreach (var branch in graph.Branches)
+        {
+            var intended = design[branch.Index];
+
+            if (intended.Basis == FlowBasis.Nominal || intended.Magnitude <= Tolerances.FlowZero || intended.Source.Length == 0)
+            {
+                continue;
+            }
+
+            var solved = Math.Abs(solution.Values[layout.BranchFlow(branch.Index)]);
+            var deviation = (solved - intended.Magnitude) / intended.Magnitude;
+
+            if (Math.Abs(deviation) <= Sizing.SizingDefaults.DesignFlowTolerance
+                || (worst.TryGetValue(intended.Source, out var known) && Math.Abs(known.Deviation) >= Math.Abs(deviation)))
+            {
+                continue;
+            }
+
+            worst[intended.Source] = (deviation, intended.Magnitude, solved);
+        }
+
+        return
+        [
+            .. worst
+                .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                .Select(static pair => Diagnostics.Diagnostic.Create(
+                    FluidScript.Core.Diagnostics.Descriptors.DesignDiagnostics.OffDesignFlow,
+                    span: null,
+                    new Diagnostics.DiagnosticArgument("name", pair.Key),
+                    new Diagnostics.DiagnosticArgument("solved", pair.Value.Solved.ToString("0.###", CultureInfo.InvariantCulture)),
+                    new Diagnostics.DiagnosticArgument("deviation", Math.Abs(pair.Value.Deviation * 100).ToString("0.#", CultureInfo.InvariantCulture)),
+                    new Diagnostics.DiagnosticArgument("direction", pair.Value.Deviation > 0 ? "over" : "under"),
+                    new Diagnostics.DiagnosticArgument("design", pair.Value.Design.ToString("0.###", CultureInfo.InvariantCulture)),
+                    new Diagnostics.DiagnosticArgument("tolerance", (Sizing.SizingDefaults.DesignFlowTolerance * 100).ToString("0", CultureInfo.InvariantCulture)))
+                    with
+                { ComponentName = pair.Key }),
+        ];
+    }
+
     /// <summary><c>FS4012</c> on every three-way valve whose spelling claims one service and whose solved flows run the other (<c>C-65</c>, <c>D-136</c>).</summary>
     /// <param name="graph">The solved graph.</param>
     /// <param name="layout">The state vector's layout.</param>

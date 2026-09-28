@@ -364,6 +364,9 @@ A boundary node on one branch is offered that branch's estimate as its flux; the
 offered only to a boundary on several branches. Offered the coil's 0.239, the cooling loop's primary
 stacked on the recirculation and the field closed the coil at 0.316.
 
+The same estimate without the copy is the design flow field every sizing rule reads (`D-189`,
+`BranchFlows.Design`): the seed may start a branch on a guess, and sizing may not size one to it.
+
 With all three the cooling loop starts at its solution. It had started at 1.5× its duty, which the
 bootstrap sizes from, and the compile-only payload had sized its valve at Kv 4 where the solve
 settles at 2.5.

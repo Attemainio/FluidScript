@@ -7,6 +7,7 @@ using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing;
+using FluidScript.Core.Sizing.Flows;
 using FluidScript.Core.Sizing.Sizers;
 using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Topology.Counting;
@@ -55,6 +56,44 @@ public sealed partial class OuterLoop
         return overlay;
     }
 
+    /// <summary>The iterate a pass sizes against: every branch flow the script's intent fixes replaced by that design flow, in the direction it runs.</summary>
+    /// <param name="graph">The graph the pass was lowered with.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The solve's converged state, or the seed before the first solve.</param>
+    /// <returns>The iterate with its design-fixed branch flows replaced; pressures and enthalpies are the solve's.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>Sizing is a design calculation, and the flow it was handed was the running one</strong> (<c>S-95</c>,
+    /// <c>D-189</c>). Where a constraint pins the flow the two agree. Where nothing does, a component sized at the flow it
+    /// runs at makes that flow a fixed point: the syntax tour's pump, sized to its ring's drop at the ring's running
+    /// flow, drove the ring at 2.12 kg/s against the 1.794 its radiator's 150 kW over 60/40 needs, the mixing valve's
+    /// re-sizing moved it on, and the sizes were still moving after ten passes. Handed the design field the pump is
+    /// 6.77 m at 1.825 l/s instead of 8.2 m at 2.157, and the tour settles in two passes.
+    /// </para>
+    /// <para>
+    /// The whole field and not the pump's flow alone, because every rule is a design calculation: the tour's primary
+    /// pipe was DN50 at the running 0.9998 kg/s and is DN40 at the design 0.8957, and a balancing valve, whose whole job
+    /// is to set a flow, would be the same fixed point as the pump. The direction is the solve's, which is the one fact
+    /// about a flow the design field does not state.
+    /// </para>
+    /// </remarks>
+    private static StateVector DesignField(CircuitGraph graph, SystemLayout layout, StateVector iterate)
+    {
+        var design = BranchFlows.Design(graph);
+        var values = iterate.Values.ToBuilder();
+
+        foreach (var branch in graph.Branches)
+        {
+            if (design[branch.Index].Basis > FlowBasis.Nominal)
+            {
+                var at = layout.BranchFlow(branch.Index);
+                values[at] = values[at] < 0 ? -design[branch.Index].Magnitude : design[branch.Index].Magnitude;
+            }
+        }
+
+        return iterate with { Values = values.ToImmutable() };
+    }
+
     /// <summary>Runs every rule over every component it applies to.</summary>
     /// <param name="graph">The graph as lowered for this pass.</param>
     /// <param name="iterate">The flows and states to size against.</param>
@@ -96,6 +135,11 @@ public sealed partial class OuterLoop
     {
         var posed = posedness ?? WellPosedness.Check(graph);
         var places = layout ?? SystemLayout.Build(graph, posed.Counting);
+
+        // Every rule sizes at the design flow, and reads every drop at it (D-189). Where the script's intent fixes no
+        // flow, the one the solve found is the design.
+        iterate = DesignField(graph, places, iterate);
+
         var promoted = posed.Counting.Promotions.Select(static promotion => promotion.Label).ToHashSet(StringComparer.Ordinal);
 
         var overlay = previous;

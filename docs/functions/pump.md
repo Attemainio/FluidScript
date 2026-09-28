@@ -31,6 +31,12 @@ a heat exchanger with a power and two temperatures fixes it through an energy ba
 then sized to it. Everything on the loop states its own drop, so the number includes your pipes,
 valves and exchangers and nothing you did not write down.
 
+It is sized at that design flow, not at whatever the loop happens to run at. A pump sized to the flow
+it runs at would make any flow its answer. The syntax tour's ring would run at 2.12 kg/s against the
+1.794 its radiator needs, and the sizes would never settle. If the finished plant runs more than 10 %
+off the flow a pump or anything else was sized for, [`FS4014`](diagnostics.md) says so: something the
+sizes do not know about is setting that flow.
+
 That includes a mixing valve the pump draws through. In a mixing circuit — a three-way valve feeding a
 consumer's pump — the valve stands in the consumer's circuit, so its drop through the common port,
 fully open at the consumer's flow, is part of that pump's head: a coil dropping 20 kPa behind a Kv 6.3
@@ -67,7 +73,7 @@ loop with that valve fully open leaves it nothing to open into, and the smallest
 out pins it on its stop: the setpoint is then out of reach. The head takes a 10 % reserve instead, and says so:
 
 ```text
-PU1  head  12.98 m  sized  12.98 m at 0.242 l/s — loop drop 115.5 kPa, margin 1.1, the control reserve for CV1
+PU1  head  12.85 m  sized  12.85 m at 0.24 l/s — loop drop 114.3 kPa, margin 1.1, the control reserve for CV1
 ```
 
 The valve then holds its setpoint part-open (0.98 of its travel there). State `margin = 1.0` to size without it,

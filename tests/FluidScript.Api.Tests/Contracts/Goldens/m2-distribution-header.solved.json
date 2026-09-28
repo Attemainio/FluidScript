@@ -103,10 +103,10 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.4308,
+          "value": 0.43066,
           "unit": "kg/s",
           "source": "sized",
-          "basis": "0.4308 kg/s — the flow HS1's 20 kPa is measured at, 0.433 l/s"
+          "basis": "0.4307 kg/s — the flow HS1's 20 kPa is measured at, 0.432 l/s"
         },
         "fouling": {
           "value": 1E-05,
@@ -143,11 +143,11 @@
           "unit": "kPa"
         },
         "pOut": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         },
         "dp": {
-          "value": 20,
+          "value": 20.013,
           "unit": "kPa"
         },
         "power": {
@@ -345,7 +345,7 @@
       "tag": "101TV01",
       "parameters": {
         "authority": {
-          "value": 0.806919,
+          "value": 0.80691,
           "unit": null,
           "source": "sized",
           "basis": "0.81 against the variable circuit, fully open — Kv 4 drops 3 kPa of its 3.7 kPa; reported, not targeted: a mixing valve is sized to its drop band"
@@ -369,7 +369,7 @@
           "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         },
         "position": {
-          "value": 0.846186,
+          "value": 0.846229,
           "unit": null,
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -389,20 +389,20 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 229.298,
+          "value": 229.284,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 225.121,
+          "value": 225.108,
           "unit": "kPa"
         },
         "dp": {
-          "value": 4.17665,
+          "value": 4.17624,
           "unit": "kPa"
         },
         "solved": {
           "position": {
-            "value": 0.846186,
+            "value": 0.846229,
             "unit": ""
           }
         }
@@ -450,7 +450,7 @@
           "basis": "no elevation stated"
         },
         "head": {
-          "value": 4.71052,
+          "value": 4.71182,
           "unit": "m",
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -476,7 +476,7 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 225.121,
+          "value": 225.108,
           "unit": "kPa"
         },
         "pOut": {
@@ -484,16 +484,16 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": -45.6471,
+          "value": -45.6597,
           "unit": "kPa"
         },
         "head": {
-          "value": 4.71052,
+          "value": 4.71182,
           "unit": "m"
         },
         "solved": {
           "head": {
-            "value": 4.71052,
+            "value": 4.71182,
             "unit": "m"
           }
         }
@@ -567,15 +567,15 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 229.298,
+          "value": 229.284,
           "unit": "kPa"
         },
         "dp": {
-          "value": 0.702492,
+          "value": 0.702493,
           "unit": "kPa"
         },
         "velocity": {
@@ -815,7 +815,7 @@
       "tag": "102TV01",
       "parameters": {
         "authority": {
-          "value": 0.743401,
+          "value": 0.743391,
           "unit": null,
           "source": "sized",
           "basis": "0.74 against the variable circuit, fully open — Kv 4 drops 4.7 kPa of its 6.3 kPa; reported, not targeted: a mixing valve is sized to its drop band"
@@ -839,7 +839,7 @@
           "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         },
         "position": {
-          "value": 0.819884,
+          "value": 0.819925,
           "unit": null,
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -859,20 +859,20 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 228.413,
+          "value": 228.4,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 221.472,
+          "value": 221.459,
           "unit": "kPa"
         },
         "dp": {
-          "value": 6.94106,
+          "value": 6.94038,
           "unit": "kPa"
         },
         "solved": {
           "position": {
-            "value": 0.819884,
+            "value": 0.819925,
             "unit": ""
           }
         }
@@ -920,7 +920,7 @@
           "basis": "no elevation stated"
         },
         "head": {
-          "value": 5.18548,
+          "value": 5.18676,
           "unit": "m",
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -946,7 +946,7 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 221.472,
+          "value": 221.459,
           "unit": "kPa"
         },
         "pOut": {
@@ -954,16 +954,16 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": -50.2497,
+          "value": -50.2621,
           "unit": "kPa"
         },
         "head": {
-          "value": 5.18548,
+          "value": 5.18676,
           "unit": "m"
         },
         "solved": {
           "head": {
-            "value": 5.18548,
+            "value": 5.18676,
             "unit": "m"
           }
         }
@@ -1037,15 +1037,15 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 228.413,
+          "value": 228.4,
           "unit": "kPa"
         },
         "dp": {
-          "value": 1.58714,
+          "value": 1.58715,
           "unit": "kPa"
         },
         "velocity": {
@@ -1053,7 +1053,7 @@
           "unit": "m/s"
         },
         "re": {
-          "value": 23948.3,
+          "value": 23948.4,
           "unit": ""
         }
       },
@@ -1134,11 +1134,11 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": 1.72152,
+          "value": 1.72153,
           "unit": "kPa"
         },
         "velocity": {
-          "value": 0.410613,
+          "value": 0.410614,
           "unit": "m/s"
         },
         "re": {
@@ -1174,7 +1174,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         }
       },
@@ -1211,7 +1211,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         }
       },
@@ -1386,7 +1386,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 229.298,
+          "value": 229.284,
           "unit": "kPa"
         }
       },
@@ -1418,7 +1418,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 225.121,
+          "value": 225.108,
           "unit": "kPa"
         }
       },
@@ -1482,7 +1482,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 228.413,
+          "value": 228.4,
           "unit": "kPa"
         }
       },
@@ -1514,7 +1514,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 221.472,
+          "value": 221.459,
           "unit": "kPa"
         }
       },
@@ -1578,7 +1578,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 230,
+          "value": 229.987,
           "unit": "kPa"
         }
       },
@@ -3383,9 +3383,9 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1667,
+            "at": 0.1664,
             "from": 0.5,
-            "to": 0.1667
+            "to": 0.1664
           },
           "temperature": {
             "at": 0.75,
@@ -3454,7 +3454,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1667,
+            "at": 0.1664,
             "from": null,
             "to": null
           },
@@ -3536,7 +3536,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1667,
+            "at": 0.1664,
             "from": null,
             "to": null
           },
@@ -3608,7 +3608,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1667,
+            "at": 0.1664,
             "from": null,
             "to": null
           },
@@ -3679,9 +3679,9 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1402,
-            "from": 0.1667,
-            "to": 0.1402
+            "at": 0.14,
+            "from": 0.1664,
+            "to": 0.14
           },
           "temperature": {
             "at": 0.75,
@@ -3750,7 +3750,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.1402,
+            "at": 0.14,
             "from": null,
             "to": null
           },
@@ -3832,9 +3832,9 @@
             "to": null
           },
           "pressure": {
-            "at": 0.0245,
-            "from": 0.1402,
-            "to": 0.0245
+            "at": 0.0243,
+            "from": 0.14,
+            "to": 0.0243
           },
           "temperature": {
             "at": 0.5003,
@@ -3903,7 +3903,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.0245,
+            "at": 0.0243,
             "from": null,
             "to": null
           },
@@ -3976,7 +3976,7 @@
           },
           "pressure": {
             "at": 0.862,
-            "from": 0.0245,
+            "from": 0.0243,
             "to": 0.862
           },
           "temperature": {
@@ -4893,9 +4893,9 @@
             "to": null
           },
           "pressure": {
-            "at": 0.0853,
-            "from": 0.155,
-            "to": 0.0853
+            "at": 0.0851,
+            "from": 0.1547,
+            "to": 0.0851
           },
           "temperature": {
             "at": 0.5002,
@@ -4964,7 +4964,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.0853,
+            "at": 0.0851,
             "from": null,
             "to": null
           },
@@ -5037,7 +5037,7 @@
           },
           "pressure": {
             "at": 0.8461,
-            "from": 0.0853,
+            "from": 0.0851,
             "to": 0.8461
           },
           "temperature": {
@@ -5341,7 +5341,7 @@
             "to": null
           },
           "pressure": {
-            "at": 0.155,
+            "at": 0.1547,
             "from": null,
             "to": null
           },
@@ -5412,9 +5412,9 @@
             "to": null
           },
           "pressure": {
-            "at": 0.155,
-            "from": 0.1667,
-            "to": 0.155
+            "at": 0.1547,
+            "from": 0.1664,
+            "to": 0.1547
           },
           "temperature": {
             "at": 0.75,
@@ -5479,8 +5479,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1667,
-            "to": 0.1667
+            "from": 0.1664,
+            "to": 0.1664
           },
           "temperature": {
             "at": null,
@@ -5510,8 +5510,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1667,
-            "to": 0.1667
+            "from": 0.1664,
+            "to": 0.1664
           },
           "temperature": {
             "at": null,
@@ -5541,8 +5541,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1667,
-            "to": 0.1667
+            "from": 0.1664,
+            "to": 0.1664
           },
           "temperature": {
             "at": null,
@@ -5636,8 +5636,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1667,
-            "to": 0.1667
+            "from": 0.1664,
+            "to": 0.1664
           },
           "temperature": {
             "at": null,
@@ -5667,8 +5667,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.155,
-            "to": 0.155
+            "from": 0.1547,
+            "to": 0.1547
           },
           "temperature": {
             "at": null,
@@ -5700,8 +5700,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.155,
-            "to": 0.155
+            "from": 0.1547,
+            "to": 0.1547
           },
           "temperature": {
             "at": null,
@@ -5763,7 +5763,7 @@
           "pressure": {
             "at": null,
             "from": 0.5128,
-            "to": 0.155
+            "to": 0.1547
           },
           "temperature": {
             "at": null,
@@ -5793,8 +5793,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.0853,
-            "to": 0.0853
+            "from": 0.0851,
+            "to": 0.0851
           },
           "temperature": {
             "at": null,
@@ -5824,8 +5824,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.0853,
-            "to": 0.0853
+            "from": 0.0851,
+            "to": 0.0851
           },
           "temperature": {
             "at": null,
@@ -6047,8 +6047,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1667,
-            "to": 0.1667
+            "from": 0.1664,
+            "to": 0.1664
           },
           "temperature": {
             "at": null,
@@ -6078,8 +6078,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1402,
-            "to": 0.1402
+            "from": 0.14,
+            "to": 0.14
           },
           "temperature": {
             "at": null,
@@ -6109,8 +6109,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.1402,
-            "to": 0.1402
+            "from": 0.14,
+            "to": 0.14
           },
           "temperature": {
             "at": null,
@@ -6172,7 +6172,7 @@
           "pressure": {
             "at": null,
             "from": 0.5287,
-            "to": 0.1402
+            "to": 0.14
           },
           "temperature": {
             "at": null,
@@ -6202,8 +6202,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.0245,
-            "to": 0.0245
+            "from": 0.0243,
+            "to": 0.0243
           },
           "temperature": {
             "at": null,
@@ -6233,8 +6233,8 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.0245,
-            "to": 0.0245
+            "from": 0.0243,
+            "to": 0.0243
           },
           "temperature": {
             "at": null,
@@ -6502,7 +6502,7 @@
     {
       "code": "FS4011",
       "severity": "warning",
-      "message": "'TV_AHU' throttles its b leg by 25.6 kPa at position 0.85: that path is 21.5 kPa easier than the a path, more than the 6.8 kPa the valve drops fully open. A balancing valve between NM_AHU and TV_AHU.b dropping 21.5 kPa at 0.096 kg/s (Kv 0.75) would level the legs and leave the valve its travel.",
+      "message": "'TV_AHU' throttles its b leg by 25.7 kPa at position 0.85: that path is 21.5 kPa easier than the a path, more than the 6.8 kPa the valve drops fully open. A balancing valve between NM_AHU and TV_AHU.b dropping 21.5 kPa at 0.096 kg/s (Kv 0.75) would level the legs and leave the valve its travel.",
       "range": null,
       "component": "TV_AHU",
       "suggestion": null,
@@ -6511,7 +6511,7 @@
     {
       "code": "FS4011",
       "severity": "warning",
-      "message": "'TV_RAD' throttles its b leg by 30.2 kPa at position 0.82: that path is 23.3 kPa easier than the a path, more than the 10.6 kPa the valve drops fully open. A balancing valve between NM_RAD and TV_RAD.b dropping 23.3 kPa at 0.12 kg/s (Kv 0.9) would level the legs and leave the valve its travel.",
+      "message": "'TV_RAD' throttles its b leg by 30.3 kPa at position 0.82: that path is 23.3 kPa easier than the a path, more than the 10.6 kPa the valve drops fully open. A balancing valve between NM_RAD and TV_RAD.b dropping 23.3 kPa at 0.12 kg/s (Kv 0.9) would level the legs and leave the valve its travel.",
       "range": null,
       "component": "TV_RAD",
       "suggestion": null,
@@ -6989,8 +6989,8 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 7,
-    "residualNorm": 1.14E-14,
+    "iterations": 5,
+    "residualNorm": 2.27E-14,
     "elapsedMs": null,
     "sizingPasses": 2
   }

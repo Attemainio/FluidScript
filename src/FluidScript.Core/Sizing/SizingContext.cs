@@ -10,9 +10,11 @@ namespace FluidScript.Core.Sizing;
 /// invariant 3) and what makes a rule testable without building a graph.
 /// </para>
 /// <para>
-/// <strong>The flow is an estimate on the first pass and a solution afterwards</strong>, and no rule
-/// may care which. That is the single outer loop's contract: sizing runs against whatever the last
-/// solve produced, and the loop is what reconciles them (<c>31</c>).
+/// <strong>The flow is the design flow</strong> (<c>D-189</c>): what the script's intent fixes -- a stated flow, a duty
+/// over its temperatures, a valve's partition, a junction's balance of those -- and, where intent fixes nothing, the flow
+/// the last solve found, which is then the design. Every drop a rule reads is taken at that same field. It replaces
+/// the contract that a rule sizes at whatever the last solve produced and may not care which (<c>S-95</c>): a pump
+/// sized at the flow it runs at makes that flow a fixed point, and the syntax tour's never settled.
 /// </para>
 /// </remarks>
 public readonly record struct SizingContext
@@ -20,8 +22,8 @@ public readonly record struct SizingContext
     /// <summary>Gets the fluid state at the component being sized.</summary>
     public required FluidState State { get; init; }
 
-    /// <summary>Gets the mass flow through the component.</summary>
-    /// <value>kg/s. Signed as the branch is; every rule here uses its magnitude.</value>
+    /// <summary>Gets the design mass flow through the component.</summary>
+    /// <value>kg/s. The design flow where the script's intent fixes one, else the solved flow; signed as the solved branch runs, and every rule here uses its magnitude.</value>
     public required double MassFlow { get; init; }
 
     /// <summary>Gets the resistance the rest of this component's branch puts in its way.</summary>

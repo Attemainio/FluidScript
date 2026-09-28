@@ -53,9 +53,10 @@ sizing rules need flows and most flows need sizes.
                implies its flow directly — no circuit solution needed.
 2. Propagate   Push stated constraints along branches. Every component in a branch
                shares its flow, so one stated flow sizes the whole branch.
-3. Size        Apply each component's rule using the current flow estimate.
+3. Size        Apply each component's rule at the design flow field (D-189).
 4. Solve       Steady-state solve with the sized values (tier 30).
-5. Re-size     Re-apply rules with solved flows. Components whose size changed by more
+5. Re-size     Re-apply rules at the design flow field, with the solved flow standing in
+               only where intent fixes none. Components whose size changed by more
                than the tolerance mark the loop dirty.
 6. Repeat      From 4, until clean or the iteration cap is hit (FS2301).
 ```
@@ -97,6 +98,27 @@ deferred expression. Two loops would interleave unpredictably and could oscillat
 **Step 1 is what makes convergence fast.** Seeding from stated duties rather than from zero puts the
 first iterate close to the answer, and where the duty fully determines the flow it *is* the answer —
 the worked example needs two passes for that reason, one to size and one to confirm.
+
+**Every rule sizes at the design flow field, never at the running flow** (`D-189`, 2026-09-28; `S-95`). The field is
+step 1's estimate without the copy at a split (`BranchFlows.Design`): a stated flow, a duty over its temperatures, a
+three-way valve's partition by its mix, and a junction's exact balance of those. Where it fixes nothing the solved flow
+is the design, because nothing else says what the flow should be. Every drop a rule reads -- a valve's branch drop for
+its authority, a pump's loop drop -- is taken on the same field (`OuterLoop.DesignField`). Sized at the running flow, a
+component that sets its own flow makes that flow a fixed point: the syntax tour's pump drove its ring at 2.12 kg/s
+against a 1.794 design and the sizes had not settled after ten passes; at the design field it settles in two, the pump
+6.77 m at 1.825 l/s instead of 8.2 m at 2.157, and the primary pipe DN40 at the design 0.896 kg/s instead of DN50 at the
+running 0.9998. It is one field for every rule and not an opt-in per kind, because every rule is a design calculation
+and a balancing valve, whose job is to set a flow, would be the pump's fixed point again. Measured across the 77 scripts
+of the samples, the scratch set and the ladder, intent fixes 199 of 263 branches; the rest keep the running flow
+(`S-97`).
+
+**What the design field gives up is the loud failure**, and `FS4014` takes its place. While sizing chased the running
+flow, a plant that could not run at its design drifted and ended in `FS2301`. At the design field it settles, and the
+solve balances the sizes wherever it can: the tour's mild case with its return stated above its supply ran its ring at
+33 kg/s against 4.7 with the valve 1 % open, reported converged. So the settled design solve is compared with the design
+field, and a flow outside `design.flow_tolerance` either way is `FS4014` on the component that rates it -- the
+commissioning comparison, at the hydronic balancing tolerance. Only the design solve: a case solved on the frozen merged
+plant runs off its own design by construction.
 
 **Every pass of this pipeline runs at one operating case** — and, since `D-143` (P6.8), once per
 declared case in turn, each a full run of the pipeline and each component's size the envelope of
@@ -452,9 +474,8 @@ meets a three-way valve only by its two switched legs is not sized to: no water 
 valve body, and the two-pumped-sources plant held its DHW pump at 0 while one was counted (`SwitchedOnly`).
 **A coupled exchanger is billed the side a branch crosses** (`S-94`, 2026-09-28): its side-2 branch reads side 2's
 pressure law, not side 1's at side 2's flow. The syntax tour's ring was billed its substation's primary 20 kPa at the
-ring's flow, some 90 kPa, and the pump sized to it drove the ring faster each pass. **Open (`S-95`):** step 1's "design
-flow" is today the flow the last pass ran at, for the pump and for an exchanger's drop alike; where nothing pins the
-flow, that makes any flow a fixed point.
+ring's flow, some 90 kPa, and the pump sized to it drove the ring faster each pass. **Step 1's "design flow" is the
+design flow field** (`D-189`, closing `S-95`): the loop's drop is summed at it, not at the flow the last pass ran at.
 
 **A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
 `p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved
@@ -1119,11 +1140,12 @@ and a table with a source column is that answer.
 | `valve.authority_min` | 0.25 | Below this, `FS4006` |
 | `three_way.dp_min` | 3 kPa | ESBE's band for a mixing valve at its common-port flow (`D-122`) |
 | `three_way.dp_max` | 15 kPa | The top of the same band; the smallest Kvs under it is chosen |
-| `pump.margin` | 1.0 | Deliberately none |
+| `pump.margin` | 1.0; 1.1 where the design solve moves a two-way valve on the pump's loop | Otherwise deliberately none; the control reserve is `D-188` |
 | `pump.efficiency_hydraulic` | 0.7 | Typical small centrifugal. **The energy-balance number** — `(1 − η)` of the shaft work heats the fluid (`D-82`) |
 | `pump.efficiency_motor` | 0.6 | Small wet-rotor circulator. Wire-to-water is the product, 0.42 here — **the energy-cost number**, and not the row above |
 | `pump.loss_destination` | `fluid` | A wet-rotor circulator dumps its motor into the water; a dry-rotor one dumps it into the room. Per component, never global (`D-82`) |
 | `hx.dp_default` | 20 kPa | Typical plate exchanger — duty mode only |
+| `design.flow_tolerance` | ±10 % | The hydronic balancing tolerance: NEBB guide specification 23 05 93, "Hydronic Systems: … a permissible tolerance of Minus 10 percent to Plus 10 percent"; CIBSE Commissioning Code W's ±10 % of design flow as commissioning engineers apply it (Flo Control). Code W's own application tables were not read. Outside it, `FS4014` (`D-189`) |
 | `hx.u_default` | **withdrawn** (`D-99`) | Was 3000 W/(m²·K), uncited. No `U` is invented: without a stated `u` the rule sizes `ua` and says that no area follows. Returns with `27`'s plate catalogue and a source |
 | `hx.fouling_default` | 1e-5 m²·K/W | Combined, clean closed-circuit water |
 | `hx.arrangement_default` | `counter` | A plate exchanger is counterflow unless built otherwise |

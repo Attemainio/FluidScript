@@ -218,10 +218,10 @@ CompileAndSolve(script):
 
     for pass in 1..MaxOuterPasses:            # default 10
         evaluateDeferredExpressions(graph, x)  # 14
-        applySizing(graph, x)                  # 24
+        applySizing(graph, design(graph, x))   # 24: the design flow field, x's flows only where intent fixes none (D-189)
         result ← solver.SolveAsync(assemble(graph), x)
         if not result.Converged: return failure(result)
-        if nothing changed by more than tolerance: return success(result)
+        if nothing changed by more than tolerance: return success(result + offDesign(graph, result))   # FS4014
         x ← result.Solution                    # warm start the next pass
 
     return warning(FS2301 / FS1405, last result)

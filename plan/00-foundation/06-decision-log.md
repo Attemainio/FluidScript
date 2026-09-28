@@ -231,6 +231,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-186` | Accepted | 2026-09-28 | A ring's source stands at the top of its side, level with the supply it feeds |
 | `D-187` | Accepted | 2026-09-28 | Blocks in series stand in a row, not a staircase |
 | `D-188` | Accepted | 2026-09-28 | A pump whose loop a held valve sets takes a control reserve of 1.1 |
+| `D-189` | Accepted | 2026-09-28 | Every sizing rule reads the design flow field; the settled design solve is checked against it |
 <!-- index:end -->
 
 ---
@@ -8452,3 +8453,43 @@ fully open at design, and on an equal-percentage valve it more than doubles the 
 **Measured.** Steps 5, 11a and 12b with their controls: `IterationCap`/`IterationCap`/`Diverging` -> converged in 4,
 3 and 3 passes, the held valves at 0.98, 0.85 and 0.86 of travel. No other script in the corpus takes the reserve;
 the committed contract goldens change only the default's stated basis.
+
+## D-189 · Every sizing rule reads the design flow field; the settled design solve is checked against it
+
+**Accepted · 2026-09-28** (the user chose one design flow field for every rule over opting the pump and the exchanger in,
+and over a separate design solve, after measuring both; `S-95`) · replaces the `SizingContext` contract that a rule sizes
+at whatever the last solve produced and may not care which · constrains [`24`](../20-core-domain/24-auto-sizing.md)
+*The pipeline*, [`31`](../30-solver/31-solver-architecture.md)'s outer loop, [`32`](../30-solver/32-steady-state-newton.md),
+`SizingContext`, `OuterLoop`, `BranchFlows`, `FS4014`
+
+**What changes.** Each sizing pass hands every rule the design flow field rather than the flows the last solve found.
+The field is the flow estimate without the copy at a split (`BranchFlows.Design`): a stated flow, a duty over its
+temperatures, a three-way valve's partition by its mix, and a junction's exact balance of those. Where it fixes no flow,
+the solved flow stands in, as the design nothing else states. Every drop a rule reads is taken at the same field. After
+the settled design solve, a design flow the solve runs more than ±10 % off (`design.flow_tolerance`) is `FS4014` on the
+component that rates it.
+
+**Why.** Sizing is a design calculation: a pipe's DN, a valve's Kv, an exchanger's drop and a pump's head are all chosen
+for the design flow. Handed the running flow instead, a component that sets its own flow makes that flow a fixed point.
+The syntax tour's pump, sized to its ring's drop at the ring's running flow, drove it at 2.12 kg/s against the 1.794 its
+radiator's 150 kW over 60/40 needs, and its sizes were still moving after ten passes. The fault was the contract and not
+the two rules that showed it: the tour's primary pipe was also chosen at the running 0.9998 kg/s (DN50) where the design
+is 0.896 (DN40), and a balancing valve, whose job is to set a flow, would be the pump's fixed point again. **The check
+is part of the decision.** Chasing the running flow, a plant that could not run at its design failed loudly with
+`FS2301`; sized at its design it settles, and the solve balances the sizes wherever it can -- the tour's mild case with
+its return above its supply ran at 33 kg/s against 4.7, the valve 1 % open, reported converged. The tolerance is the
+hydronic balancing one, NEBB guide specification 23 05 93's minus to plus 10 percent and CIBSE Code W's ±10 % as
+applied.
+
+**Rejected.** *Opting the pump and the exchanger's drop in* (measured as "V2"): it settled the tour in seven passes, left
+every other rule at the running flow, and made each new flow-setting component a flag to remember. *A separate design
+solve with the flows pinned*: the same answer with a second solve path to keep consistent, which the user had declined
+earlier (2026-09-28). *Treating a copied flow as design*: the seed's copy is a guess that starts a branch somewhere, and
+sized to, it becomes a statement the script never made.
+
+**Measured.** The syntax tour: 10 passes and `FS2301` -> 2 passes, radiator 1.794 kg/s, pump 6.77 m at 1.825 l/s, the
+primary 0.896 kg/s. The mild case: 10 passes -> 2. Substation 2 -> 1, step 5 with controls 4 -> 2, the two radiators and
+step 11a 3 -> 2. Every other size moves in its fourth digit, toward the duty's flow. Across 77 scripts the design field
+covers 199 of 263 branches; every settled script except two runs within 1 % of it. The two are the mild case as it
+first stood (612 %, `FS4014`) and the tour's primary, 10.4 % over because its stated 45 C return is not held and its
+valve sits open on a fixed 250 kPa (`C-152`).

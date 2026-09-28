@@ -174,6 +174,43 @@ public sealed class SolutionSeedTests
         """;
 
     [Fact]
+    public void TheDesignFieldKeepsWhatTheScriptFixesAndNothingTheCopyGuessed()
+    {
+        // `D-189`. The seed copies a split's known 0.5 kg/s onto each branch nothing rates, because a branch has to start
+        // somewhere. Sizing must not read that as the design: two loads stating only their duty on an open circuit have no
+        // design flow of their own, and each would be sized for the whole 0.5. The design field leaves them to the solve.
+        var graph = GraphFixture.Lower("""
+            fluidscript 2
+
+            circuit "split":
+              fluid = water
+              role = heating
+
+              L1  load  power = 20
+              L2  load  power = 20
+
+              N1 - N2
+              N2 - L1 - N3
+              N2 - L2 - N3
+              N3 - N4
+
+              N1  inlet  t = 70  flow = 0.5
+              N4  outlet  p = 200
+            """).Graph;
+
+        var estimates = BranchFlows.Estimate(graph);
+        var design = BranchFlows.Design(graph);
+        var feed = graph.Branches.Single(branch => branch.From.Label == "N1" || branch.To.Label == "N1").Index;
+        var load = graph.Branches.Single(branch => branch.Path.Any(part => part.Name == "L1")).Index;
+
+        Assert.Equal(FlowBasis.Stated, design[feed].Basis);
+        Assert.Equal(0.5, design[feed].Magnitude, 1e-12);
+        Assert.Equal(FlowBasis.Propagated, estimates[load].Basis);
+        Assert.Equal(0.5, estimates[load].Magnitude, 1e-12);
+        Assert.Equal(FlowBasis.Nominal, design[load].Basis);
+    }
+
+    [Fact]
     public void ALoadFedByAMachineHoldingItsLeavingTemperatureIsRatedFromIt()
     {
         // `S-83`. The machine states its 45 C and not its duty, which is how leaving-water control is

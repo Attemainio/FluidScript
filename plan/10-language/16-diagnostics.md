@@ -132,6 +132,7 @@ but they are *about the design*, not about the script, and they are the ones the
 | `FS4011` | A three-way valve's two legs sit at pressures further apart than its own full-open drop, so it throttles the easier leg instead of mixing | Warning | **Live since 2026-09-21** (`C-111`); raised after the solve, names the balancing valve for the easy leg. `24`. |
 | `FS4012` | A three-way valve written as `mixing_valve` or `diverting_valve` that the solve runs the other way | Warning | **Live since 2026-09-21** (`C-65`, `D-136`); raised after the solve; a bare `three_way_valve` claims nothing. |
 | `FS4013` | A control valve's lightest scenario asks for less flow than its installed turn-down, `R·√a`, reaches | Warning | **Live since 2026-09-23** (`C-121`); raised by scenario sizing once every case is solved on the merged plant. `24`. |
+| `FS4014` | The settled design solve runs a component's water more than `design.flow_tolerance` (±10 %) off the design flow it was sized for | Warning | **Live since 2026-09-28** (`D-189`); raised after the settled design solve, one per rating component on its worst branch, never on a frozen scenario case. `24`. |
 
 Thresholds (5 K, 0.25 authority, the velocity limits) are engineering conventions, not physics. They
 belong in one configurable table, not scattered through the components that check them, and the table

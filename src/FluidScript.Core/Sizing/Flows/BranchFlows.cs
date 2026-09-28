@@ -48,7 +48,32 @@ public static partial class BranchFlows
     /// <param name="graph">The lowered circuit.</param>
     /// <returns>One estimate per branch, indexed by <see cref="Branch.Index"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="graph"/> is <see langword="null"/>.</exception>
-    public static ImmutableArray<BranchFlow> Estimate(CircuitGraph graph)
+    public static ImmutableArray<BranchFlow> Estimate(CircuitGraph graph) => Estimate(graph, copy: true);
+
+    /// <summary>The design flow field: every branch flow the script's intent fixes, and nothing a heuristic supplied.</summary>
+    /// <param name="graph">The lowered circuit, with this pass's sized duties and terminals.</param>
+    /// <returns>One estimate per branch; <see cref="FlowBasis.Nominal"/> where intent fixes nothing, and the solve's flow is the design.</returns>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Estimate(CircuitGraph)"/> without the copy at a split. The seed needs every branch to start somewhere, and a copied
+    /// magnitude is a start; sizing needs the flow the plant is designed for, and a copied magnitude is a guess that
+    /// would be sized as though the script had said it (<c>D-189</c>). What stays is exact: a stated flow, a duty over
+    /// its temperatures, a valve's partition by its mix, and a junction's balance of those. Copied values are never
+    /// used as inputs either, so nothing exact is derived from a guess.
+    /// </para>
+    /// <para>
+    /// Measured across the 77 scripts of the samples, the scratch set and the ladder (2026-09-28), intent fixes 199 of
+    /// 263 branches. The rest are rings that state nothing, whose solved flow is their design; series blocks whose coils
+    /// state no duty; returns held by a setpoint; and splits only the copy reaches (<c>S-97</c>).
+    /// </para>
+    /// </remarks>
+    public static ImmutableArray<BranchFlow> Design(CircuitGraph graph) => Estimate(graph, copy: false);
+
+    /// <summary>The estimates, with or without the copy at a split.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="copy">Whether a split's unrated branches take its largest known flow.</param>
+    /// <returns>One estimate per branch.</returns>
+    private static ImmutableArray<BranchFlow> Estimate(CircuitGraph graph, bool copy)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -99,11 +124,11 @@ public static partial class BranchFlows
             }
         }
 
-        Propagate(graph, estimates);
+        Propagate(graph, estimates, copy);
 
         if (Transfer(graph, estimates))
         {
-            Propagate(graph, estimates);
+            Propagate(graph, estimates, copy);
         }
 
         return [.. estimates];
@@ -232,6 +257,7 @@ public static partial class BranchFlows
     /// <summary>Spreads each junction element's determined estimates onto its undetermined branches.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="estimates">The estimates so far, written in place.</param>
+    /// <param name="copy">Whether the copy runs once the exact rules stop; not for the design field (<see cref="Design"/>).</param>
     /// <remarks>
     /// <para>
     /// Bounded by the branch count because each pass raises at least one branch's basis above
@@ -245,7 +271,7 @@ public static partial class BranchFlows
     /// whole 0.239 kg/s before the diverting valve had split it, and the field closed the node with the coil at 0.359.
     /// </para>
     /// </remarks>
-    private static void Propagate(CircuitGraph graph, BranchFlow[] estimates)
+    private static void Propagate(CircuitGraph graph, BranchFlow[] estimates, bool copy)
     {
         for (var pass = 0; pass < 2 * graph.Branches.Length; pass++)
         {
@@ -261,6 +287,11 @@ public static partial class BranchFlows
             if (moved)
             {
                 continue;
+            }
+
+            if (!copy)
+            {
+                return;
             }
 
             foreach (var junction in graph.JunctionElements)

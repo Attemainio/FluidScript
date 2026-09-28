@@ -215,7 +215,7 @@
           "basis": "no elevation stated"
         },
         "head": {
-          "value": 10.2369,
+          "value": 10.2346,
           "unit": "m",
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -245,20 +245,20 @@
           "unit": "kPa"
         },
         "pOut": {
-          "value": 99.6053,
+          "value": 99.583,
           "unit": "kPa"
         },
         "dp": {
-          "value": -99.6053,
+          "value": -99.583,
           "unit": "kPa"
         },
         "head": {
-          "value": 10.2369,
+          "value": 10.2346,
           "unit": "m"
         },
         "solved": {
           "head": {
-            "value": 10.2369,
+            "value": 10.2346,
             "unit": "m"
           }
         }
@@ -313,10 +313,10 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 1.79395,
+          "value": 1.79445,
           "unit": "kg/s",
           "source": "sized",
-          "basis": "1.7939 kg/s — the flow LOAD's 20 kPa is measured at, 1.825 l/s"
+          "basis": "1.7944 kg/s — the flow LOAD's 20 kPa is measured at, 1.825 l/s"
         },
         "fouling": {
           "value": 1E-05,
@@ -344,7 +344,7 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 50.0452,
+          "value": 50.034,
           "unit": "kPa"
         },
         "pOut": {
@@ -352,7 +352,7 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": 20,
+          "value": 19.9888,
           "unit": "kPa"
         },
         "power": {
@@ -421,10 +421,10 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 1.79395,
+          "value": 1.79445,
           "unit": "kg/s",
           "source": "sized",
-          "basis": "1.7939 kg/s — the flow HX1's 20 kPa is measured at, 1.808 l/s"
+          "basis": "1.7944 kg/s — the flow HX1's 20 kPa is measured at, 1.809 l/s"
         },
         "fouling": {
           "value": 1E-05,
@@ -495,15 +495,15 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 99.6053,
+          "value": 99.583,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 79.6053,
+          "value": 79.5942,
           "unit": "kPa"
         },
         "dp": {
-          "value": 20,
+          "value": 19.9888,
           "unit": "kPa"
         },
         "power": {
@@ -691,11 +691,11 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 79.6053,
+          "value": 79.5942,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 50.0452,
+          "value": 50.034,
           "unit": "kPa"
         },
         "dp": {
@@ -796,7 +796,7 @@
           "unit": "m/s"
         },
         "re": {
-          "value": 97481.5,
+          "value": 97481.6,
           "unit": ""
         }
       },
@@ -828,7 +828,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 50.0452,
+          "value": 50.034,
           "unit": "kPa"
         }
       },
@@ -956,7 +956,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 79.6053,
+          "value": 79.5942,
           "unit": "kPa"
         }
       },
@@ -1020,7 +1020,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 99.6053,
+          "value": 99.583,
           "unit": "kPa"
         }
       },
@@ -4136,9 +4136,9 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 5,
-    "residualNorm": 1.77E-12,
+    "iterations": 4,
+    "residualNorm": 1.14E-14,
     "elapsedMs": null,
-    "sizingPasses": 2
+    "sizingPasses": 1
   }
 }

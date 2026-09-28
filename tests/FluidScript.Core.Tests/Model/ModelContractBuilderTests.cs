@@ -242,10 +242,7 @@ public sealed class ModelContractBuilderTests
     {
         foreach (var sample in new[] { "m2-cooling-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "v2-syntax-tour" })
         {
-            // The syntax tour does not settle (`S-96`); compile-only is what it has.
-            var contract = ModelContractBuilder.Build(sample == "v2-syntax-tour"
-                ? ContractFixture.Compile(ContractFixture.Sample(sample + ".fluid"))
-                : await ContractFixture.SolveAsync(ContractFixture.Sample(sample + ".fluid"), sample));
+            var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(ContractFixture.Sample(sample + ".fluid"), sample));
             var symbols = contract.Symbols.ToDictionary(static s => s.Id, StringComparer.Ordinal);
 
             foreach (var component in contract.Components)

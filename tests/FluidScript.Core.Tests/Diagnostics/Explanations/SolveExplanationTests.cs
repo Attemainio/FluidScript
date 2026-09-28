@@ -160,7 +160,9 @@ public sealed class SolveExplanationTests
         var report = await Explain("m2-substation.fluid");
 
         Assert.Contains("--- iterations", report, StringComparison.Ordinal);
-        Assert.Matches(@"\n      1 +[0-9.E+-]+ +1  (HX1: HX1|LOAD: LOAD) side-1 drop +SP\.head", report);
+        // The first step's worst row and what moved most, which changed when sizing took the design flow (D-189): the
+        // first pass is now the only one, and it starts from the bootstrap's valve.
+        Assert.Matches(@"\n      1 +[0-9.E+-]+ +1  (HX1: HX1|LOAD: LOAD) side-[12] drop +(SP\.head|PCV\.kv)", report);
         Assert.Contains("Converged", report, StringComparison.Ordinal);
         // 0.8953 on IAPWS-95 and 0.8957 on IF97, whose cp differs by 5e-4 (D-137): the digit the
         // formulation owns is left free.
