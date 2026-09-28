@@ -872,10 +872,15 @@ internal sealed partial class Composer
 
                 var at = pieces[t][^1].Offset(dx, dy);
                 var level = Math.Abs(pieces[t][^2].Y - pieces[t][^1].Y) < Eps;
-                var size = on.Max(static h => h.Size);
                 var side = on.Select(h => _sheet.SensorSide(h.Element, level)).FirstOrDefault(static d => d is not null) ?? (level ? Direction.Up : Direction.Left);
-                var centre = at.Towards(side, _margin + (size / 2));
-                yield return Box.Around(centre, size, size);
+
+                // Every bubble on the point, not only the first: a point's run takes two of its sides, so C15 puts a second
+                // instrument on the side across the run from the first (a flow and a temperature sensor on one node).
+                for (var k = 0; k < on.Count && k < 2; k++)
+                {
+                    var facing = k == 0 ? side : side.Opposite;
+                    yield return Box.Around(at.Towards(facing, _margin + (on[k].Size / 2)), on[k].Size, on[k].Size);
+                }
             }
         }
     }

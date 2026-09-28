@@ -228,6 +228,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-183` | Accepted | 2026-09-28 | A component port on a junction has a point of its own; the junction only mixes |
 | `D-184` | Accepted | 2026-09-28 | Only what is drawn takes room on a run |
 | `D-185` | Accepted | 2026-09-28 | A diagram never draws a name its author did not write |
+| `D-186` | Accepted | 2026-09-28 | A ring's source stands at the top of its side, level with the supply it feeds |
 <!-- index:end -->
 
 ---
@@ -8364,3 +8365,29 @@ to place), no extent or placement moves elsewhere; the canvas goldens lose exact
 **Left as it is.** An I8 sensor's bubble is empty: its function letters (`TE`) are not a name, but drawing them is a
 separate choice about bubble content (ISA-5.1's identification) for the user to make. A pipe's size beside its line,
 which published P&ID practice shows, is likewise a separate addition, not part of this rule.
+
+## D-186 · A ring's source stands at the top of its side, level with the supply it feeds
+
+**Accepted · 2026-09-28** (the user accepted R2 with R3 and R4, "I accept all R2, R3, and R4", after asking why the
+source and its sensor stood so far from the circuit; and of the stress plant's first attempt, "this is actually also
+acceptable") · amends `28` C12 for the source only, whose rule for a consumer stands · constrains
+[`28`](../20-core-domain/28-layout-solver.md) C12, `docs/advanced/how-the-diagram-is-arranged.md`
+
+**What was wrong.** C12 put a member on a side with slack at the side's middle -- the user's rule of step 7, "if the
+component can move in its direction of flow, it should be aligned middle". On a header, the left side is as tall as
+the whole plant, so the source sat far below the supply rail it feeds, joined to it by a long rise with its supply
+sensors on it: the picture's first pipe was its longest, and the eye had to climb from the source to the plant.
+
+**The rule.** The ring's source stands at the top of its side, its outlet one stub under the supply rail, and the
+return rises the slack to its inlet. It is lowered by whole tenths only as far as the bubbles on its own supply run
+need to clear it, never below the middle C12 gave it. A consumer on a short side is still centred.
+
+**Found making it.** The room test for bubbles predicted one bubble per inline point, so a node carrying a flow and a
+temperature sensor was tested for the first only: the stress plant's supply node `NS` hung `FE_S` onto `HS1`, a hard
+breach, while the test said there was room. It now predicts every bubble on a point, the second across the run from the
+first, as C15 places them. Fixed in the same change; it had been masked while the source stood low.
+
+**Measured.** Seventeen pictures change, all hard 0, soft counts unchanged; no extent grows. 8c with its controls
+narrows 21.65 -> 21.0; the stress plant's source drops 1.1 of its slack so its two supply sensors stand on the rise.
+The user's accepted sketch of that plant had `FE_S` inside `HS1`'s clearance; the layout's gate refuses that, so the
+source goes down that far and no further.

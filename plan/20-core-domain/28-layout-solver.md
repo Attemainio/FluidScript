@@ -430,10 +430,13 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   inlet and outlet temperatures is a consumer of nominal duty, so a series branch's second load is
   found. Not built yet: a block none of whose members can take the corner (a pump and a load
   alone), and an inner member that is neither on the outer loop nor inline.
-- **C12** *(step 7, provisional)* -- **A member on a side with slack sits at the side's middle.** The
-  rails' span is set by the taller side; the member on the shorter side -- the source when the
-  block is tall, a consumer entered from above when the source is -- moves to the middle of its
-  side and its two stubs lengthen equally. The user's words: "if the component can move in its
+- **C12** *(step 7, provisional; the source amended by `D-186`)* -- **A member on a side with slack sits at the side's
+  middle.** The rails' span is set by the taller side; the member on the shorter side -- a consumer entered from
+  above when the source is taller -- moves to the middle of its side and its two stubs lengthen equally. **The
+  ring's source does not** (`D-186`): it stands at the top of its side, its outlet one stub under the supply rail,
+  and the return rises the slack to its inlet; it is lowered by whole tenths only as far as the bubbles on its own
+  supply run need to clear it (`SensorRoom`, which predicts every bubble on a point, a second across the run from
+  the first), and never below the middle. The user's words: "if the component can move in its
   direction of flow, it should be aligned middle". In the open form (C19) the block stands on
   both rails, entered level from the top rail and leaving level into the bottom one, so it has no
   stub to lengthen: where the chain is taller than the block, the block is laid again with its own

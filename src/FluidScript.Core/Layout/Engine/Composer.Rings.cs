@@ -361,12 +361,22 @@ internal sealed partial class Composer
 
         if (!fixedHead && !column)
         {
-            // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
+            // D-186, amending C12: the source is not centred on its side. It stands as high as it can -- its outlet one stub under
+            // the supply rail, where the plant's supply starts and the eye starts -- and the return rises the side's slack to its
+            // inlet. It goes lower only as far as the bubbles on its own supply run need to clear it, by whole tenths, and never
+            // lower than the middle C12 gave it.
             var slack = sIn.Along(_margin).Y - yBottom;
-            _sheet.Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
-            sOut = _sheet.AnchorOf(s.Component, s.OutPort);
-            sIn = _sheet.AnchorOf(s.Component, s.InPort);
-            topStart[0] = sOut.At;
+            var supply = runs.FirstOrDefault(r => r.From.Equals(top0) && ReferenceEquals(r.Points, topStart));
+            var lowered = 0.0;
+
+            while (supply is not null && lowered < (slack / 2) - Eps && !SensorRoom(supply, -1))
+            {
+                lowered = Math.Min(slack / 2, Math.Round(lowered + 0.1, 6));
+                _sheet.Place(s.Component, ts[0], new Point(0, -lowered), "C12", $"the source lowered {lowered:0.##} so the bubbles on its supply run clear it (D-186)");
+                sOut = _sheet.AnchorOf(s.Component, s.OutPort);
+                sIn = _sheet.AnchorOf(s.Component, s.InPort);
+                topStart[0] = sOut.At;
+            }
         }
 
         List<Point> bottomStart = fixedHead ? [sIn.At, sIn.Along(_margin), new Point(sIn.Along(_margin).X, yBottom)] : [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)];

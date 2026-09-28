@@ -46,7 +46,9 @@ top-to-bottom, never by laying it on its side. A tank is upright too, and it is 
 left-to-right, because its layers are a vertical order -- the hot water stays at the top. A valve
 turns freely. A pump pumps left or right: it is turned to vertical only where nothing level fits,
 and a vertical pipe turns level into it first. A component that can slide along its own direction
-of flow -- an exchanger on the short side of a loop -- sits at the middle of that side. This is a fact about the kind, not a preference: where a level pipe reaches
+of flow -- a consumer on the short side of a loop -- sits at the middle of that side. The loop's
+source is the exception: it stands at the top of its side, its outlet straight into the supply line,
+and goes lower only as far as the instruments on its supply need room. This is a fact about the kind, not a preference: where a level pipe reaches
 a standing exchanger, the pipe turns into it; the exchanger does not lie down and the pipe upstream
 does not tip over to meet it.
 

@@ -2187,6 +2187,11 @@ that governed each size. What P6.8 still owes, and what comes after:
     canvas goldens lose exactly the inferred names. An I8 sensor's bubble is now empty -- its function letters are a
     separate choice, as is a pipe's size beside its line. Core 2602/0/2, Api 87/0, frontend 257/0. The user accepted
     R2, R3 and R4 (2026-09-28); they are next, in that order.
+  - **A ring's source stands at the top of its side (2026-09-28; `D-186`, R2).** C12 no longer centres the source:
+    its outlet goes straight into the supply rail and the return rises the slack, lowered only as far as its own
+    supply bubbles need. Making it found that the bubble room test predicted one bubble per point; it now predicts
+    every one. Seventeen pictures change, all hard 0, no extent grows. Core 2602/0/2, Api 87/0, frontend 257/0.
+    Next: R3, a header branch entering its valve from above; then R4, a series chain as a row.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
