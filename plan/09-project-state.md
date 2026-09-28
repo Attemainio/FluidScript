@@ -2344,8 +2344,9 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2974 total, 0 failed, 4 skipped** (130 of them the frozen corpus, `D-178`; the live-comparison harness deleted at 6d's switch) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
-| API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
+| Core test suite | **2605 total, 0 failed, 2 skipped** (2026-09-28, every class including the `Diagnostic` ones and the transient runs; it read 2974 on 2026-09-26, and the drop was not traced when this row was refreshed), ~165 s run with `-parallel none` | `FluidScript.Core.Tests` |
+| API test suite | **87 passed, 0 failed** (2026-09-28), ~5 s | `FluidScript.Api.Tests` |
+| Design solve time | **80 ms** for the nine samples together on real water, the median of five runs per sample, Debug build (2026-09-28, after `D-189`; 131 ms at `42190fc`, before A4 and `D-189`, and the tour alone 56.5 -> 17.7 ms). Per sample it is 1.3-23 ms | `PipelineTimingDiagnostics.WhereDoesTheTimeGo` -> `diagnostics/pipeline-timings.md` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
