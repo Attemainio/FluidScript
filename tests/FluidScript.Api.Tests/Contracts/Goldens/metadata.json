@@ -2051,7 +2051,7 @@
           "acceptedSymbols": [],
           "omission": "default",
           "default": "1.0",
-          "defaultBasis": "size to the computed duty, with no spare",
+          "defaultBasis": "size to the computed duty, with no spare; 1.1 where the design solve moves a valve on the loop (D-188)",
           "usualRange": {
             "min": 1,
             "max": 2

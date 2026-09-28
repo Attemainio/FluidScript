@@ -131,6 +131,11 @@ public sealed partial class OuterLoop
                         continue;
                     }
 
+                    if (component is PumpComponent)
+                    {
+                        context = context with { HeldValve = HeldValve(on, component, promoted) };
+                    }
+
                     var sized = sizer.Size(component, context);
 
                     if (!sized.IsSuccess)

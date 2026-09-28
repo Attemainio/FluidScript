@@ -61,6 +61,18 @@ hand check will only agree if the hand check uses the inlet too.
 `margin 1.1` beside it. It is a design allowance, not a stand-in for fittings nobody modelled — those
 belong in a pipe's `minor_loss`.
 
+**A pump whose loop holds a controlled valve gets 1.1 unless you say otherwise.** When a controller moves a
+two-way valve on the pump's loop — or the solve moves one to hold a temperature you wrote — a head sized to the
+loop with that valve fully open leaves it nothing to open into, and the smallest effect the design point leaves
+out pins it on its stop: the setpoint is then out of reach. The head takes a 10 % reserve instead, and says so:
+
+```text
+PU1  head  12.98 m  sized  12.98 m at 0.242 l/s — loop drop 115.5 kPa, margin 1.1, the control reserve for CV1
+```
+
+The valve then holds its setpoint part-open (0.98 of its travel there). State `margin = 1.0` to size without it,
+or another value to choose your own.
+
 ### When you state the head
 
 A stated `head` is a constraint, not a starting guess. The circuit still has to carry the flow its
@@ -99,7 +111,7 @@ pump and the log links to it.
 | `vflow` | l/s — `vflow = 0.3` is 0.3 l/s; `vflow = 1.1 m3/h` converts | `flow` as a volume flow. Without `head` it holds the circuit at that volume flow at the pump inlet's solved density; with `head` it is the duty point, taken at 20 °C water as pump curves are published | Sized |
 | `speed` | — | Relative speed, for variable-speed control | Sized, or driven by a controller |
 | `efficiency` | — | Hydraulic efficiency | 0.7, a typical wet-rotor circulator |
-| `margin` | — | Head multiplier applied only when auto-sizing | 1.0 — size to the computed duty, with no spare |
+| `margin` | — | Head multiplier applied only when auto-sizing | 1.0 — size to the computed duty, with no spare; 1.1 where a controlled valve is on the loop |
 | `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 Head is in metres **of the fluid being pumped**, which is what a pump curve is drawn in. It has no

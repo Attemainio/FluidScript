@@ -208,7 +208,7 @@ public sealed partial class ComponentRegistry
             Sized("speed", Dimension.Dimensionless, 0, 1.2, precision: 2),
             Defaulted("efficiency", Dimension.Dimensionless, 0.1, 0.95, "0.7", "a typical wet-rotor circulator", precision: 2)
                 with { Validity = Bounded(BinderDiagnostics.EfficiencyOutsideRange, 0, 1) },
-            Defaulted("margin", Dimension.Dimensionless, 1, 2, "1.0", "size to the computed duty, with no spare", precision: 2),
+            Defaulted("margin", Dimension.Dimensionless, 1, 2, "1.0", "size to the computed duty, with no spare; 1.1 where the design solve moves a valve on the loop (D-188)", precision: 2),
             Elevation()),
         Properties = Properties(
             Sized("head", Dimension.Head),

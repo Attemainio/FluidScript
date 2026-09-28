@@ -30,6 +30,14 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// allowance, not a stand-in for fittings nobody modelled — those are a pipe's <c>minor_loss</c>
 /// (<c>D-25</c>).
 /// </para>
+/// <para>
+/// <strong>One default is not 1.0: a control reserve of 1.1</strong> (<c>D-188</c>), where a two-way valve on the
+/// pump's circuit is moved by the design solve to hold a stated value (<see cref="SizingContext.HeldValve"/>). Sized to
+/// the loop with that valve fully open, the pump leaves it nothing to open into, and any effect the design point does
+/// not carry -- the heat a throttled primary picks up, a property's drift across an exchanger -- pins the valve on
+/// its stop: controlled step 5 needed 1.7 % more head than it was given (<c>S-93</c>). It is named in the basis like a
+/// stated margin, and a stated <c>margin</c>, 1.0 included, replaces it.
+/// </para>
 /// </remarks>
 public sealed class PumpSizer : SizerBase<PumpComponent>
 {
@@ -69,7 +77,7 @@ public sealed class PumpSizer : SizerBase<PumpComponent>
                 ("state", "the circuit's resistance is not yet known")));
         }
 
-        var margin = Margin(pump);
+        var margin = Margin(pump, context.HeldValve);
         var head = Hydrostatic.Head(Math.Max(0, drop ?? 0), density) * margin;
         var litresPerSecond = context.LitresPerSecond(density);
         var notes = ImmutableArray.CreateBuilder<string>();
@@ -110,7 +118,9 @@ public sealed class PumpSizer : SizerBase<PumpComponent>
         // so in every basis string would train a reader to stop reading the clause that matters.
         var allowance = margin == 1
             ? string.Empty
-            : string.Create(CultureInfo.InvariantCulture, $", margin {margin:0.##}");
+            : Ownership.Of(pump, "margin") is ParameterState.Stated || context.HeldValve is null
+                ? string.Create(CultureInfo.InvariantCulture, $", margin {margin:0.##}")
+                : string.Create(CultureInfo.InvariantCulture, $", margin {margin:0.##}, the control reserve for {context.HeldValve}");
 
         var resistance = drop is { } total
             ? string.Create(CultureInfo.InvariantCulture, $"loop drop {total / 1000:0.#} kPa")
@@ -133,10 +143,22 @@ public sealed class PumpSizer : SizerBase<PumpComponent>
 
     /// <summary>The design allowance on an auto-sized head.</summary>
     /// <param name="component">The pump.</param>
-    /// <returns>A multiplier, 1.0 when the script stated none.</returns>
+    /// <param name="held">A valve on its circuit the design solve moves, or <see langword="null"/>.</param>
+    /// <returns>A multiplier: the stated one, else <see cref="ControlReserve"/> with a held valve, else the registry's 1.0.</returns>
     /// <remarks>
     /// Read from the component rather than from the default catalogue, so a stated <c>margin=1.1</c>
     /// reaches the head and a reader can see in the basis string that it did.
     /// </remarks>
-    private static double Margin(IFlowComponent component) => Ownership.Decided(component, "margin") ?? 1.0;
+    private static double Margin(IFlowComponent component, string? held) =>
+        Ownership.Of(component, "margin") is ParameterState.Stated || held is null
+            ? Ownership.Decided(component, "margin") ?? 1.0
+            : ControlReserve;
+
+    /// <summary>The head allowance for a pump whose circuit holds a valve the design solve moves (<c>D-188</c>).</summary>
+    /// <remarks>
+    /// Ten percent, and <strong>this project's reasoning</strong>, not a published control reserve: none was found.
+    /// It sits under the 15-20 % Cameron Hydraulic Data gives as a safety factor on commercial piping friction, and
+    /// under the 15-20 % total overhead Deppmann warns stacked factors reach; controlled step 5 needs 1.7 %.
+    /// </remarks>
+    public const double ControlReserve = 1.1;
 }

@@ -242,6 +242,37 @@ public sealed partial class OuterLoop
         return worst;
     }
 
+    /// <summary>A two-way valve on a pump's circuit whose position the design solve moves, for the head's control reserve.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="pump">The pump.</param>
+    /// <param name="promoted">The promoted parameters' labels, <c>CV1.position</c>.</param>
+    /// <returns>The first such valve's name, or <see langword="null"/>.</returns>
+    /// <remarks>
+    /// The circuits are <see cref="Circuit"/>'s: every loop through the pump that carries no other pump and is not a
+    /// valve's two switched legs, else the pump's own branch. A position is promoted where a stated value needs an
+    /// answer -- a controller's setpoint (<c>D-141</c>), or a temperature the script wrote -- and a two-way valve
+    /// answering one sets the loop's flow. Sized to that loop with the valve fully open, the pump leaves it nothing to
+    /// open into, and the controlled steps 5, 11a and 12b pinned it on its stop (<c>S-93</c>, <c>D-188</c>). A
+    /// three-way valve is not counted: its position splits a flow the pump sets, it does not throttle it.
+    /// </remarks>
+    private static string? HeldValve(CircuitGraph graph, IFlowComponent pump, HashSet<string> promoted)
+    {
+        string? Held(IEnumerable<Branch> branches) => branches
+            .SelectMany(static branch => branch.Path)
+            .OfType<ValveComponent>()
+            .FirstOrDefault(valve => promoted.Contains(Ownership.Key(valve.Name, "position")))?.Name;
+
+        var driven = graph.Loops
+            .Where(loop => loop.Branches.Any(branch => branch.Path.Contains(pump))
+                && !loop.Branches.Any(branch => branch.Path.Any(element => element is PumpComponent && !ReferenceEquals(element, pump)))
+                && !SwitchedOnly(graph, loop))
+            .ToList();
+
+        return driven.Count > 0
+            ? driven.Select(loop => Held(loop.Branches)).FirstOrDefault(static name => name is not null)
+            : Held(graph.Branches.Where(branch => branch.Path.Contains(pump)));
+    }
+
     /// <summary>Whether a loop crosses a mixing valve from one switched leg to the other, which no water circulates round.</summary>
     /// <param name="graph">The graph.</param>
     /// <param name="loop">The loop.</param>

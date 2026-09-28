@@ -95,6 +95,14 @@ public readonly record struct SizingContext
     /// </value>
     public double? HeldOutlet { get; init; }
 
+    /// <summary>Gets a two-way valve on this pump's circuit whose position the design solve moves to hold a stated value.</summary>
+    /// <value>
+    /// The valve's name, or <see langword="null"/> for anything that is not a pump and for a pump whose circuit holds no
+    /// such valve. A controller's valve most often (<c>D-141</c>): the pump sized to the loop with that valve fully open
+    /// leaves it nothing to open into, so the head takes a control reserve (<c>D-188</c>).
+    /// </value>
+    public string? HeldValve { get; init; }
+
     /// <summary>The volume flow through the component, at a density.</summary>
     /// <param name="density">kg/m³, the fluid's at <see cref="State"/> or wherever the rule reads it.</param>
     /// <returns>m³/s, unsigned.</returns>

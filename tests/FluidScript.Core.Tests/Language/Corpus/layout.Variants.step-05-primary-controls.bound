@@ -44,10 +44,10 @@ connection PCV__HE1__out. -> HE1.in2
 connection PU1.out -> PU1__HE1.
 connection PU1__HE1. -> HE1.in
 control TC1 moves PropertyReference { Component = CV1, Property = position } reads PropertyReference { Component = TE_S, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
-FS1510 [755..790] Added node 'PCV__HE1__in' (I2).
-FS1510 [755..790] Added node 'PCV__HE1__out' (I2).
-FS1510 [755..790] Added pipe 'PCV__HE1' (I7).
-FS1510 [820..840] Added node 'PU1__HE1' (I2).
-FS1510 [861..863] Added node 'NS' (I1).
-FS1510 [873..883] Added node 'LOAD__CV1' (I2).
-FS1510 [886..895] Added node 'CV1__PU1' (I2).
+FS1510 [645..680] Added node 'PCV__HE1__in' (I2).
+FS1510 [645..680] Added node 'PCV__HE1__out' (I2).
+FS1510 [645..680] Added pipe 'PCV__HE1' (I7).
+FS1510 [710..730] Added node 'PU1__HE1' (I2).
+FS1510 [751..753] Added node 'NS' (I1).
+FS1510 [763..773] Added node 'LOAD__CV1' (I2).
+FS1510 [776..785] Added node 'CV1__PU1' (I2).

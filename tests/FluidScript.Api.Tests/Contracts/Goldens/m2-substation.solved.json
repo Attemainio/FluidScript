@@ -224,7 +224,7 @@
           "value": 1,
           "unit": null,
           "source": "default",
-          "basis": "size to the computed duty, with no spare"
+          "basis": "size to the computed duty, with no spare; 1.1 where the design solve moves a valve on the loop (D-188)"
         }
       },
       "state": {

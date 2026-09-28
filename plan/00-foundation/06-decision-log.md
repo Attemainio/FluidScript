@@ -230,6 +230,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-185` | Accepted | 2026-09-28 | A diagram never draws a name its author did not write |
 | `D-186` | Accepted | 2026-09-28 | A ring's source stands at the top of its side, level with the supply it feeds |
 | `D-187` | Accepted | 2026-09-28 | Blocks in series stand in a row, not a staircase |
+| `D-188` | Accepted | 2026-09-28 | A pump whose loop a held valve sets takes a control reserve of 1.1 |
 <!-- index:end -->
 
 ---
@@ -8418,3 +8419,36 @@ in 8a, 8d, 8e), a change nobody asked for. **R3** -- a header branch entering it
 and then dropped the same day: the valve's `a` and `b` are always at right angles with `ab` on the straight run
 (`D-112`), so with `a` facing up a vertical pipe still stands left of the valve (the bypass) unless the whole block
 becomes a column, and 8d's gap stays two margins either way.
+
+## D-188 · A pump whose loop a held valve sets takes a control reserve of 1.1
+
+**Accepted · 2026-09-28** (the user chose a default control reserve over re-size-and-retry and over refusing, then
+×1.10 over ×1.15 and over a 90 %-travel rule; `S-93`) · amends `24`'s "No hidden safety margin" · constrains
+[`24`](../20-core-domain/24-auto-sizing.md) Pump, `PumpSizer`, the pump's `margin` default,
+`docs/functions/pump.md`
+
+**What changes.** A pump's auto-sized head was the loop's drop at the design flow, times a `margin` defaulting to
+1.0. Where a two-way valve on the pump's loop has its `position` promoted -- a controller's valve, or one the design
+solve moves to hold a temperature the script wrote -- the default is now 1.1, named in the basis with the valve it is
+for. A stated `margin`, 1.0 included, replaces it. A three-way valve's position does not count.
+
+**Why.** With a margin of 1.0 the held valve is fully open at exactly the design flow, and nothing the design point
+leaves out can be absorbed: controlled step 5 needed 1.7 % more head than it was sized to (a primary heated 0.05 K by
+its throttling valve, a few hundredths across the ring's valve and pump, property drift across the exchanger) and
+pinned its valve on its stop; 11a and 12b did the same. A sizing tool that sizes a plant unable to hold its own
+design setpoint is the wrong default.
+
+**The figure is this project's reasoning.** No published control reserve was found. Cameron Hydraulic Data gives
+15-20 % as a friction safety factor for commercial piping, and Deppmann warns that stacked factors overhead a pump by
+more than 15-20 %; 10 % sits under both, and is about six times what step 5 needed. Rounding the valve's Kvs down
+stays: it is the manufacturers' practice for authority (HYSOPT; Flo Control).
+
+**Rejected.** *Re-size and retry a pass that fails on a saturated sized actuator*: it keeps 1.0, but the re-sized
+pump puts the valve exactly on its stop again. *Refusing with one clear diagnostic*: consistent with `S-82`'s verdict,
+but there the user's statement could not be met, and here it is the tool's own sizing. *A valve needing no more than
+90 % travel at maximum flow* (process-industry practice, *Pumps & Systems*): HVAC states authority with the valve
+fully open at design, and on an equal-percentage valve it more than doubles the valve's design drop.
+
+**Measured.** Steps 5, 11a and 12b with their controls: `IterationCap`/`IterationCap`/`Diverging` -> converged in 4,
+3 and 3 passes, the held valves at 0.98, 0.85 and 0.86 of travel. No other script in the corpus takes the reserve;
+the committed contract goldens change only the default's stated basis.

@@ -422,7 +422,8 @@ number.
 
 1. `flow` = the loop's design flow, from propagation.
 2. `head` = the sum of pressure drops around the loop at that flow, converted through ρ and g.
-3. Multiply by the pump's explicit `margin`, default 1.0.
+3. Multiply by the pump's explicit `margin`, default 1.0 -- or **1.1 when a two-way valve on the loop has its
+   `position` promoted**, a controller's valve or one holding a stated temperature (`D-188`).
 4. Basis: `"{head} m at {flow} l/s — loop drop {dp} kPa"`.
 
 **Every drop around the loop includes the mixing valve's, and the drops are this pass's** (`S-92`, `S-69`,
@@ -458,7 +459,7 @@ stated rise to a head at a reference density would miss by the density ratio, 2.
 80 °C, and the rise is what the script asserted.
 
 **No hidden safety margin.** `margin=1.1` is discoverable, recorded in the sizing basis, and multiplies
-only auto-sized head; omitting it means 1.0. This represents deliberate design allowance, not missing
+only auto-sized head; omitting it means 1.0, except for the control reserve below. This represents deliberate design allowance, not missing
 fittings. Physical local losses are stated separately as a pipe's `minor_loss` (`D-25`).
 
 ### Valve — `kv`
@@ -482,7 +483,24 @@ controllability at the cost of a slightly higher pump head.
 branch is a source of pressure, not a drop the valve shares authority with, and a branch oriented against its
 water summed its drops negative -- -20 kPa, clamped to 0, so the valve was sized against nothing
 (`OuterLoop.Passive`). Rounding down with the pump then sized to the loop at that valve's full-open drop leaves no
-margin at design: `S-93` is that case, open for a decision.
+margin at design: `S-93` was that case, and the control reserve is its answer.
+
+**A control reserve of 1.1 on a pump whose loop a held valve sets** (`D-188`, 2026-09-28). Where the design solve
+moves a two-way valve on the pump's loop to hold a stated value, the head is multiplied by 1.1 unless the script
+states `margin`, and the basis names the valve: `..., margin 1.1, the control reserve for CV1`. Sized without it the
+valve is fully open at exactly the design flow, and any effect the design point does not carry puts the setpoint out
+of reach: controlled step 5's return came back at 20.24 °C, not 20 -- the primary picks up 0.05 K throttling 249
+kPa, the ring's valve and pump shift it a few hundredths, and the exchanger's property drift is the likely rest (not
+fully decomposed) -- so the ring needed 0.2412 kg/s and 1.7 % more head than it had, and `CV1` sat on its stop.
+**The figure is this project's reasoning**: no published control reserve was found. The published figures are a
+friction allowance -- Cameron Hydraulic Data's 15-20 % for commercial piping (cited in *Consulting-Specifying
+Engineer*, "Sizing, selecting pumps and circulators") -- and Deppmann's warning that stacked factors overhead a pump
+by more than 15-20 %; 10 % sits under both. The process-industry rule that a control valve should need no more than
+90 % travel at maximum flow (Mathur, *Pumps & Systems*, "Pump & control valve optimization") was rejected: HVAC
+states authority with the valve fully open at design, and on an equal-percentage valve 90 % travel more than doubles
+its design drop (step 5: 114 to about 201 kPa). A three-way valve's position is not counted: it splits the flow the
+pump sets rather than throttling it. Measured: steps 5, 11a and 12b with their controls converge (4, 3 and 3
+passes) with the valves at 0.98, 0.85 and 0.86 of travel; no other script in the corpus takes the reserve.
 
 **A stated `dp` replaces steps 1–3** (`C-109`, 2026-09-21): the required Kv is the one that takes the
 stated drop at the design flow, and the catalogue row is the **next larger** one, so the valve drops

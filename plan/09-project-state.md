@@ -1429,12 +1429,13 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 13 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 12 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **60** | |
+| | **59** | |
 
+Recounted 2026-09-28 after `S-93` closed (`D-188`, a control reserve): 59.
 Recounted 2026-09-28 after `S-91`, `S-86` and `S-88` closed and `S-93`, `S-94` opened (group A, A2): 60.
 Recounted 2026-09-28 after `S-92` and `S-69` closed (group A, A1: a pump's head counts its mixing valve): 61.
 Recounted 2026-09-28 after `C-151` closed (the next branch starts past the whole chain): 63.
@@ -2229,6 +2230,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     ring right and fails on its substation exchanger's unrated primary (`S-94`). The user considered replacing the
     seed with an explicit design pass and chose to keep the seed-and-sizing approach (2026-09-28). Core 2602/0/2,
     Api 87/0. Next: `S-93`'s decision, then `S-94`, then A4 (`C-44`, `S-85`).
+  - **A pump whose loop a held valve sets takes a control reserve (2026-09-28; `D-188`; `S-93` closed).** The user
+    chose a default reserve of 1.1 on a pump whose loop holds a two-way valve with a promoted `position`, named in the
+    basis and replaced by a stated `margin`; the figure is this project's reasoning under the published 15-20 %
+    friction allowances, and rounding the Kvs down was confirmed as the manufacturers' practice. Steps 5, 11a and 12b
+    with their controls converge (4, 3, 3 passes; valves at 0.98, 0.85, 0.86), markers removed; nothing else in the
+    corpus moves, and the Api contract goldens change only in the default's basis text. The user also weighed an
+    explicit design pass in place of the seed and chose to continue with seeds and sizing order. Core 2602/0/2,
+    Api 87/0. Next: `S-94` (the syntax tour's substation), then A4 (`C-44`, `S-85`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

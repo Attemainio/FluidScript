@@ -1,4 +1,3 @@
-# does not settle: S-93 -- PU1 is sized to the loop with the zone valves fully open at the seeded flow, so CV3 pins open.
 # Layout ladder, step 12b (29, C-128): step 12 with its instruments.
 # Each zone valve holds its return temperature, the pump holds the pressure at the index point, and a
 # flow meter reads the supply.

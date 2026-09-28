@@ -76,19 +76,19 @@ control PC1 moves PropertyReference { Component = PU1, Property = speed } reads 
 control TC1 moves PropertyReference { Component = CV1, Property = position } reads PropertyReference { Component = TE1, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
 control TC2 moves PropertyReference { Component = CV2, Property = position } reads PropertyReference { Component = TE2, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
 control TC3 moves PropertyReference { Component = CV3, Property = position } reads PropertyReference { Component = TE3, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
-FS1510 [1036..1045] Added node 'PU1__HE1' (I2).
-FS1510 [1054..1056] Added node 'NS' (I1).
-FS1510 [1064..1067] Added node 'NA1' (I1).
-FS1510 [1070..1079] Added node 'CV1__in' (I9).
-FS1510 [1076..1085] Added node 'CV1__LD1' (I2).
-FS1510 [1088..1091] Added node 'NR1' (I1).
-FS1510 [1094..1097] Added node 'NB1' (I1).
-FS1510 [1106..1109] Added node 'NA2' (I1).
-FS1510 [1112..1121] Added node 'CV2__in' (I9).
-FS1510 [1118..1127] Added node 'CV2__LD2' (I2).
-FS1510 [1130..1133] Added node 'NR2' (I1).
-FS1510 [1136..1139] Added node 'NB2' (I1).
-FS1510 [1142..1151] Added node 'CV3__in' (I9).
-FS1510 [1148..1157] Added node 'CV3__LD3' (I2).
-FS1510 [1160..1163] Added node 'NR3' (I1).
-FS1510 [1190..1192] Added node 'NP' (I1).
+FS1510 [914..923] Added node 'PU1__HE1' (I2).
+FS1510 [932..934] Added node 'NS' (I1).
+FS1510 [942..945] Added node 'NA1' (I1).
+FS1510 [948..957] Added node 'CV1__in' (I9).
+FS1510 [954..963] Added node 'CV1__LD1' (I2).
+FS1510 [966..969] Added node 'NR1' (I1).
+FS1510 [972..975] Added node 'NB1' (I1).
+FS1510 [984..987] Added node 'NA2' (I1).
+FS1510 [990..999] Added node 'CV2__in' (I9).
+FS1510 [996..1005] Added node 'CV2__LD2' (I2).
+FS1510 [1008..1011] Added node 'NR2' (I1).
+FS1510 [1014..1017] Added node 'NB2' (I1).
+FS1510 [1020..1029] Added node 'CV3__in' (I9).
+FS1510 [1026..1035] Added node 'CV3__LD3' (I2).
+FS1510 [1038..1041] Added node 'NR3' (I1).
+FS1510 [1068..1070] Added node 'NP' (I1).

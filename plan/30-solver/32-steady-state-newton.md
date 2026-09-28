@@ -267,7 +267,7 @@ common port reaches, a pump's inlet meaning mixing. Without that last step the p
 radiators' 40 °C return and seeded the ring half again too fast (`S-88`); with it the source reads the 30 °C after
 the DHW block, and ring, coils and promoted duties all seed within 0.3 % of the answer. A promoted duty seeds from
 side 2's `in2`/`out2` when side 1 states only one end (`PromotedPower`, `S-94`). Measured: step 5, 11a and 12b with
-their controls seed at their answer (they stop on `S-93`), and 8c with its controls converges in three passes where
+their controls seed at their answer (and settle since `D-188`'s control reserve, `S-93`), and 8c with its controls converges in three passes where
 it left the domain.
 
 **One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
