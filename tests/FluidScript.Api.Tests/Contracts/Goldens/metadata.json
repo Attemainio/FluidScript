@@ -4858,7 +4858,7 @@
       "code": "FS1304",
       "severity": "error",
       "area": "Units",
-      "message": "'{parameter}' is a {expected}; '{value}' is a {actual}.",
+      "message": "'{parameter}' is {expected}; '{value}' is {actual}.",
       "arguments": [
         "parameter",
         "expected",
@@ -4870,7 +4870,7 @@
       "code": "FS1305",
       "severity": "error",
       "area": "Units",
-      "message": "Cannot {operation} a {left} and a {right}.",
+      "message": "Cannot {operation} {left} and {right}.",
       "arguments": [
         "operation",
         "left",
@@ -5530,7 +5530,7 @@
       "code": "FS1808",
       "severity": "error",
       "area": "Blocks",
-      "message": "'{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}.",
+      "message": "'{controller}' is {type} controller, which has no '{parameter}'. It takes: {available}.",
       "arguments": [
         "controller",
         "type",
@@ -5551,7 +5551,7 @@
       "code": "FS1810",
       "severity": "warning",
       "area": "Blocks",
-      "message": "'{controller}' is a {type} controller, which the solver does not run yet.",
+      "message": "'{controller}' is {type} controller, which the solver does not run yet.",
       "arguments": [
         "controller",
         "type"
@@ -5625,6 +5625,13 @@
         "run",
         "duration"
       ]
+    },
+    {
+      "code": "FS1818",
+      "severity": "error",
+      "area": "Blocks",
+      "message": "A file has one project block, and this is a second one, so its settings are not read. Move them into the first.",
+      "arguments": []
     },
     {
       "code": "FS2001",
@@ -5872,7 +5879,7 @@
       "code": "FS2201",
       "severity": "warning",
       "area": "Topology",
-      "message": "Using '{node}' as the pressure datum. Pressures are relative to it.",
+      "message": "Using {node} as the pressure datum. Pressures are relative to it.",
       "arguments": [
         "node"
       ]

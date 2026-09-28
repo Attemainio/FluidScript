@@ -646,8 +646,23 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void FS1305_TwoDimensionsThatDoNotCombine() =>
-        OnlyDiagnostic("fluidscript 2\n\nlet x = 30 kW + 2 kg/s\n", "FS1305");
+    public void FS1305_TwoDimensionsThatDoNotCombine()
+    {
+        // `L-90`: each dimension spoken with its own article, not the template's "a".
+        var diagnostic = OnlyDiagnostic("fluidscript 2\n\nlet x = 30 kW + 2 kg/s\n", "FS1305");
+
+        Assert.Contains("a power and a mass flow", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1304_SaysADimensionInWordsAReaderUses()
+    {
+        // `L-90`: an energy where a power goes. The template's own "a" in front of every dimension said "a energy".
+        var energy = OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  HE1  heat_exchanger  power = 30 kWh\n", "FS1304");
+
+        Assert.Contains("'30 kWh' is an energy", energy.Message, StringComparison.Ordinal);
+    }
 
     [Fact]
     [Trait("Category", "Unit")]

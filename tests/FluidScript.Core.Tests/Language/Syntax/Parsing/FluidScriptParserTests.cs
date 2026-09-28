@@ -506,6 +506,33 @@ public sealed class FluidScriptParserTests
         Assert.Equal("FS1108", Assert.Single(result.Diagnostics).Code);
     }
 
+    [Theory]
+    [InlineData("  V1  three-way-valve", "three-way-valve", "three_way_valve")]
+    [InlineData("  V1  three-way-valve  kv = 4", "three-way-valve", "three_way_valve")]
+    [InlineData("  HE1  heat-exchanger:", "heat-exchanger", "heat_exchanger")]
+    [Trait("Category", "Unit")]
+    public void AHyphenatedKindIsFS1108WithItsUnderscoredSpelling(string line, string written, string underscored)
+    {
+        // `L-89`: the kind the way its page title spells it got FS1114's "cannot read this line", because the hyphen
+        // reading was tried only when the second token was not a name. `three` is a name.
+        var result = Parse("circuit \"c\":\n" + line);
+        var diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("FS1108", diagnostic.Code);
+        Assert.Equal(written, diagnostic.Arguments.Single(static a => a.Name == "text").Value);
+        Assert.Equal(underscored, diagnostic.Arguments.Single(static a => a.Name == "underscored").Value);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AKindFollowedByASpacedMinusIsNotReadAsHyphenated()
+    {
+        // The hyphen reading needs the dash to touch both names. `V1 valve - N2` is not a kind with a hyphen.
+        var result = Parse("circuit \"c\":\n  V1  valve - N2");
+
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1108");
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void AnUnquotedColourSettingIsFS1203AndNothingElse()

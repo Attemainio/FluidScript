@@ -743,7 +743,7 @@ all but one free size on the path, or decoupling the blocks.
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS2201` | No pressure stated anywhere in a connected component | Warning | `Using '{node}' as the pressure datum. Pressures are relative to it.` |
+| `FS2201` | No pressure stated anywhere in a connected component | Warning | `Using {node} as the pressure datum. Pressures are relative to it.` — `{node}` is `'N1'` for a node the script named, and `the node at SP.in` for one the binder inserted (`L-66`) |
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
 | `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
 | `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither.` |
@@ -833,6 +833,14 @@ rather than nearly zero, and the check needs no tolerance argument.
 one of N1, N2, N3, or a flow to HE1" is a fix. Generating that list means tracking which unknowns are
 unconstrained during the counting pass, which is real work, and it is the difference between a usable
 tool and a frustrating one.
+
+**A candidate is something a line can state** (`L-66`, 2026-09-28). A node the binder inserted has a
+name nobody wrote -- `PU1__HE1` between two components, `TT1_node` under a chain sensor -- and "a
+temperature on PU1__HE1" cannot be followed. Such a node is named by the port beside it that takes the
+quantity: every port takes `p` (`D-124`), so "a pressure at PU1.out"; only some take `t`, so "a
+temperature at HE1.in", and where neither side does (a pump into a valve) "a temperature on a node
+written between PU1 and V1". A name a connection wrote (`N1 - PU1 - N1`, rule `I1`) is the user's and
+is kept. `FS2201` names a picked datum the same way.
 
 ## Worked example
 

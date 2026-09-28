@@ -110,7 +110,7 @@ public sealed class DeferredEvaluationTests
         var mismatch = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS1304");
 
         Assert.Contains("'PU1.head' is a head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length", mismatch.Message, StringComparison.Ordinal);
-        Assert.Contains("'1.2*HE1.dp' is a pressuredelta", mismatch.Message, StringComparison.Ordinal);
+        Assert.Contains("'1.2*HE1.dp' is a pressure difference", mismatch.Message, StringComparison.Ordinal);
         Assert.True(run.Settled);
         Assert.False(run.Graph.Components.Single(static c => c.Name == "PU1").StatedParameters.ContainsKey("head"));
     }
@@ -155,8 +155,9 @@ public sealed class DeferredEvaluationTests
 
         Assert.True(run.Settled);
         Assert.Equal(2, never.Length);
-        Assert.Contains("'HE1.in2 = HE2.secondary.out.t + 28 K' was never evaluated: HE2.t_out2 is not published by any pass", never[0], StringComparison.Ordinal);
-        Assert.Contains("'HE2.in2 = HE1.secondary.out.t' was never evaluated: HE1.t_out2 is not published by any pass", never[1], StringComparison.Ordinal);
+        // Both sides of each line in the script's spelling (`L-91`): they read "HE1.in2" and "HE2.t_out2".
+        Assert.Contains("'HE1.secondary.in.t = HE2.secondary.out.t + 28 K' was never evaluated: HE2.secondary.out.t is not published by any pass", never[0], StringComparison.Ordinal);
+        Assert.Contains("'HE2.secondary.in.t = HE1.secondary.out.t' was never evaluated: HE1.secondary.out.t is not published by any pass", never[1], StringComparison.Ordinal);
         Assert.False(run.Graph.Components.Single(static c => c.Name == "HE2").StatedParameters.ContainsKey("in2"));
     }
 

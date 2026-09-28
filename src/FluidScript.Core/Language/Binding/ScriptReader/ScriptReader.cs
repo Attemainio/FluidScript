@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
@@ -57,6 +58,10 @@ internal sealed partial class ScriptReader(ParseResult source, IComponentRegistr
         {
             switch (statement)
             {
+                case BlockSyntax { Head: ProjectHeadSyntax } project when _reading.Projects.Count > 0:
+                    Report(BlockDiagnostics.SecondProjectBlock, project.Head.Span);
+                    break;
+
                 case BlockSyntax { Head: ProjectHeadSyntax } project:
                     ReadProject(project);
                     break;

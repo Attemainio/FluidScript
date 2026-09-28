@@ -40,7 +40,7 @@ public sealed class DeltaPressureTests
         // The mirror of `t=20 dK`: a difference has no datum, so it cannot be a node's pressure.
         var mismatch = Assert.Single(Bind("\ncircuit \"script\":\n  N1  node  p = 10 dkPa\n").Diagnostics, static d => d.Code == "FS1304");
 
-        Assert.Contains("'10 dkPa' is a pressuredelta", mismatch.Message, StringComparison.Ordinal);
+        Assert.Contains("'10 dkPa' is a pressure difference", mismatch.Message, StringComparison.Ordinal);
         Assert.Equal(Dimension.PressureDelta, UnitTable.All.Single(static u => u.Text == "dkPa").Dimension);
     }
 

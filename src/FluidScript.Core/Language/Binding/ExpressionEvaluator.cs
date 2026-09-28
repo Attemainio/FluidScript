@@ -211,9 +211,9 @@ public sealed class ExpressionEvaluator
             BinderDiagnostics.ParameterDimensionMismatch,
             quantity.Span,
             new DiagnosticArgument("parameter", Text(quantity.Reference)),
-            new DiagnosticArgument("expected", value.Quantity.Dimension.Name.ToLowerInvariant()),
+            new DiagnosticArgument("expected", BinderDiagnostics.Phrase(value.Quantity.Dimension)),
             new DiagnosticArgument("value", quantity.Unit),
-            new DiagnosticArgument("actual", unit.Dimension.Name.ToLowerInvariant()));
+            new DiagnosticArgument("actual", BinderDiagnostics.Phrase(unit.Dimension)));
     }
 
     /// <summary>Reads a bare number in the unit written once for its list or range (<c>D-179</c>): <c>85</c> in <c>[85, 70] C</c> is 85 °C.</summary>
@@ -393,8 +393,8 @@ public sealed class ExpressionEvaluator
                     BinderDiagnostics.OperandDimensionMismatch,
                     call.Span,
                     new DiagnosticArgument("operation", name),
-                    new DiagnosticArgument("left", first.Dimension.Name),
-                    new DiagnosticArgument("right", "a dimensionless number"));
+                    new DiagnosticArgument("left", BinderDiagnostics.Phrase(first.Dimension)),
+                    new DiagnosticArgument("right", BinderDiagnostics.Phrase(Dimension.Dimensionless)));
 
             case "pow":
                 return new EvaluationResult.Value(
@@ -464,7 +464,7 @@ public sealed class ExpressionEvaluator
             return Fail(
                 BinderDiagnostics.CannotAddAbsolutes,
                 span,
-                new DiagnosticArgument("dimension", Describe(left.Dimension)),
+                new DiagnosticArgument("dimension", BinderDiagnostics.Words(left.Dimension)),
                 new DiagnosticArgument("example", Example(left, right)));
         }
 
@@ -472,11 +472,9 @@ public sealed class ExpressionEvaluator
             BinderDiagnostics.OperandDimensionMismatch,
             span,
             new DiagnosticArgument("operation", operation),
-            new DiagnosticArgument("left", Describe(left.Dimension)),
-            new DiagnosticArgument("right", Describe(right.Dimension)));
+            new DiagnosticArgument("left", BinderDiagnostics.Phrase(left.Dimension)),
+            new DiagnosticArgument("right", BinderDiagnostics.Phrase(right.Dimension)));
     }
-
-    private static string Describe(Dimension dimension) => dimension.Name.ToLowerInvariant();
 
     /// <summary>The line the user should have written, for <c>FS1302</c>.</summary>
     /// <param name="left">The left operand.</param>

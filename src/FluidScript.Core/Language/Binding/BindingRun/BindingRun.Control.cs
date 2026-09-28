@@ -320,7 +320,7 @@ internal sealed partial class BindingRun
             ("parameter", parameter),
             ("expected", BinderDiagnostics.Expected(expected)),
             ("value", parse.Source.ToString(argument.Value.Span).Trim()),
-            ("actual", actual.Name.ToLowerInvariant()));
+            ("actual", BinderDiagnostics.Phrase(actual)));
 
     /// <summary>Resolves a controller's <c>moves</c> or <c>reads</c>, bare or qualified.</summary>
     /// <param name="endpoint">The endpoint as written, with or without its <c>.</c> half.</param>

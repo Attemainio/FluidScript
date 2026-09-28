@@ -4,6 +4,7 @@ using System.Globalization;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Topology.Graph;
 using FluidScript.Core.Topology.Hydraulics;
 
@@ -153,18 +154,102 @@ public static partial class WellPosedness
 
     /// <summary>Reports every datum the graph had to pick for itself.</summary>
     private static void ReportDatums(
-        ImmutableArray<HydraulicComponent> hydraulics, ImmutableArray<Diagnostic>.Builder diagnostics)
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, ImmutableArray<Diagnostic>.Builder diagnostics)
     {
         foreach (var hydraulic in hydraulics)
         {
             if (!hydraulic.DatumWasStated && hydraulic.Datum.Length > 0)
             {
+                var node = graph.Nodes.FirstOrDefault(node => string.Equals(node.Name, hydraulic.Datum, StringComparison.Ordinal));
+                var named = node is not null && !Written(node) && Spoken(graph, node, "p") is { } spoken
+                    ? $"the node at {spoken}"
+                    : $"'{hydraulic.Datum}'";
+
                 diagnostics.Add(Diagnostic.Create(
-                    TopologyDiagnostics.DatumChosen, span: null, new DiagnosticArgument("node", hydraulic.Datum))
+                    TopologyDiagnostics.DatumChosen, span: null, new DiagnosticArgument("node", named))
                     with
                 { ComponentName = hydraulic.Datum });
             }
         }
+    }
+
+    /// <summary>A node as a script can name it: <c>N1</c> when it was written, else a port beside it that takes the quantity.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="node">The node.</param>
+    /// <param name="quantity">The port quantity the advice will be stated with: <c>p</c>, which every port takes, or <c>t</c>, which only some do.</param>
+    /// <returns><c>N1</c>, a port as <c>HE1.secondary.in</c>, or <see langword="null"/> when no port beside the node takes the quantity.</returns>
+    /// <remarks>
+    /// <para>
+    /// A node the binder inserted has a name nobody wrote -- <c>PU1__HE1</c> between two components, <c>TT1_node</c> under a
+    /// chain sensor -- and advice that names it cannot be followed (<c>L-66</c>). What the user can write is the port it stands
+    /// for: <c>PU1 pump out.p = 300</c> pins that node (<c>D-124</c>), and <c>HE1 heat_exchanger out.t = 40</c> fixes its
+    /// temperature. A pump, a pipe or a valve port takes no <c>t</c>, so a temperature is offered on a port that does.
+    /// </para>
+    /// <para>
+    /// A peer whose own name carries the binder's <c>__</c> stem is an inserted pipe (<c>I7</c>), and is offered last; a
+    /// written pipe's end comes after the equipment's port, so a picked datum reads as the pump suction <c>D-98</c> chose
+    /// (<c>SP.in</c>), not the pipe that feeds it.
+    /// </para>
+    /// </remarks>
+    private static string? Spoken(CircuitGraph graph, GraphNode node, string quantity)
+    {
+        if (Written(node))
+        {
+            return node.Name;
+        }
+
+        var index = graph.Components.IndexOf(node.Component);
+        var peers = Enumerable.Range(0, graph.Adjacency.PortCount(index))
+            .Select(port => graph.Adjacency.Peer(index, port))
+            .Where(peer => peer != PortRef.None && graph.Components[peer.Component] is not NodeComponent)
+            .OrderBy(peer => graph.Components[peer.Component].Name.Contains("__", StringComparison.Ordinal))
+            .ThenBy(peer => graph.Components[peer.Component] is PipeComponent);
+
+        foreach (var peer in peers)
+        {
+            var element = graph.Components[peer.Component];
+            var kind = ComponentRegistry.Default.ByKeyword(element.Kind);
+            var key = element.Ports[peer.Port].Name;
+            var port = kind?.PortName(key) ?? key;
+
+            if (quantity == "p" || kind?.ResolveParameter($"{port}.{quantity}", out _) is not null)
+            {
+                return $"{element.Name}.{port}";
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether a node's name is one the script wrote.</summary>
+    /// <param name="node">The node.</param>
+    /// <returns><see langword="true"/> for a declared node and for one a connection named (<c>I1</c>).</returns>
+    /// <remarks>
+    /// <see cref="NodeOrigin.Inferred"/> is not the answer: <c>N1 - PU1 - N1</c> declares no node and still names one, which
+    /// <c>I1</c> infers under the user's own name. What the binder generated carries its stem -- <c>__</c> joining the two
+    /// things it sits between (<c>I2</c>, <c>I3</c>, <c>I7</c>, <c>I9</c>), and <c>_node</c> under a chain sensor, which the
+    /// reader names before <c>I1</c> sees it. A user who writes such a name gets advice in ports instead, which is still
+    /// advice a line can follow.
+    /// </remarks>
+    private static bool Written(GraphNode node) =>
+        node.Origin == NodeOrigin.Declared
+        || (node.Origin == NodeOrigin.Inferred
+            && !node.Name.Contains("__", StringComparison.Ordinal)
+            && !node.Name.TrimEnd("0123456789".ToCharArray()).EndsWith("_node", StringComparison.Ordinal));
+
+    /// <summary>The components beside an inserted node, for advice no port of theirs can take.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="node">The node.</param>
+    /// <returns>Their names, in port order.</returns>
+    private static IEnumerable<string> Beside(CircuitGraph graph, GraphNode node)
+    {
+        var index = graph.Components.IndexOf(node.Component);
+
+        return Enumerable.Range(0, graph.Adjacency.PortCount(index))
+            .Select(port => graph.Adjacency.Peer(index, port))
+            .Where(peer => peer != PortRef.None && graph.Components[peer.Component] is not NodeComponent)
+            .Select(peer => graph.Components[peer.Component].Name)
+            .Distinct(StringComparer.Ordinal);
     }
 
     /// <summary>Reports any part of the model nothing couples to the rest.</summary>

@@ -104,9 +104,7 @@ public static partial class DeferredEvaluation
                 var expected = deferred.Target is ValueId.ComponentParameter target
                     ? kind?.Parameters.GetValueOrDefault(target.Parameter)?.Dimension
                     : null;
-                var spelled = deferred.Target is ValueId.ComponentParameter spelt && kind is not null
-                    ? $"{spelt.Component}.{kind.ParameterName(spelt.Parameter)}"
-                    : deferred.Target.ToString();
+                var spelled = Spelled(model, deferred.Target);
                 var said = ImmutableArray.CreateBuilder<Diagnostic>();
                 var evaluator = new ExpressionEvaluator(scope, deferred.Source!, said, expected);
 
@@ -128,7 +126,7 @@ public static partial class DeferredEvaluation
                                 new DiagnosticArgument("parameter", spelled),
                                 new DiagnosticArgument("expected", BinderDiagnostics.Expected(dimension)),
                                 new DiagnosticArgument("value", text),
-                                new DiagnosticArgument("actual", value.Quantity.Dimension.Name.ToLowerInvariant())));
+                                new DiagnosticArgument("actual", BinderDiagnostics.Phrase(value.Quantity.Dimension))));
                             pending.Remove(deferred);
                             progressed = true;
                             break;
@@ -369,9 +367,9 @@ public static partial class DeferredEvaluation
                 continue;
             }
 
-            var waited = string.Join(", ", deferred.Dependencies.Select(static id => id.ToString()).Order(StringComparer.Ordinal));
+            var waited = string.Join(", ", deferred.Dependencies.Select(id => Spelled(model, id)).Order(StringComparer.Ordinal));
 
-            var target = new DiagnosticArgument("target", deferred.Target.ToString());
+            var target = new DiagnosticArgument("target", Spelled(model, deferred.Target));
             var expression = new DiagnosticArgument("expr", deferred.Source.ToString(deferred.Expression.Span).Trim());
 
             result.Add(failedPass is { } pass
@@ -391,5 +389,31 @@ public static partial class DeferredEvaluation
         }
 
         return result.ToImmutable();
+    }
+
+    /// <summary>A value's name as the script writes it: <c>HE2.secondary.in.t</c> for the parameter keyed <c>in2</c>, <c>HE1.secondary.out.t</c> for the property keyed <c>t_out2</c>.</summary>
+    /// <param name="model">The model, for each component's kind.</param>
+    /// <param name="id">The value.</param>
+    /// <returns>The script spelling, or the identity's own text for anything that is not a component's parameter or property.</returns>
+    /// <remarks>
+    /// <c>L-91</c>: <c>FS1412</c> said "'HE2.in2 = HE1.secondary.out.t' was still waiting on HE1.t_out2" -- two spellings of one
+    /// port, neither of them the script's, beside the expression quoted as written.
+    /// </remarks>
+    private static string Spelled(SemanticModel model, ValueId id)
+    {
+        var (component, key, property) = id switch
+        {
+            ValueId.ComponentParameter parameter => (parameter.Component, parameter.Parameter, false),
+            ValueId.ComponentProperty read => (read.Component, read.Property, true),
+            _ => (null, null, false),
+        };
+
+        var kind = component is null
+            ? null
+            : model.Components.FirstOrDefault(declared => string.Equals(declared.Name, component, StringComparison.Ordinal))?.Kind;
+
+        return kind is null || key is null
+            ? id.ToString()
+            : $"{component}.{(property ? kind.PropertyName(key) : kind.ParameterName(key))}";
     }
 }

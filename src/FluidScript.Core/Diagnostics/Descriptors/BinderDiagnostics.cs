@@ -50,14 +50,14 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ParameterDimensionMismatch { get; } = new(
         "FS1304",
         DiagnosticSeverity.Error,
-        "'{parameter}' is a {expected}; '{value}' is a {actual}.");
+        "'{parameter}' is {expected}; '{value}' is {actual}.");
 
     /// <summary>Two operands whose dimensions the operator cannot combine.</summary>
     /// <value><c>FS1305</c>, an error.</value>
     public static DiagnosticDescriptor OperandDimensionMismatch { get; } = new(
         "FS1305",
         DiagnosticSeverity.Error,
-        "Cannot {operation} a {left} and a {right}.");
+        "Cannot {operation} {left} and {right}.");
 
     /// <summary>A value far outside what the parameter usually holds.</summary>
     /// <value><c>FS1306</c>, a warning.</value>
@@ -778,13 +778,49 @@ public static class BinderDiagnostics
 
     /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
     /// <param name="dimension">The parameter's dimension.</param>
-    /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
-    public static string Expected(Dimension dimension)
+    /// <returns><see cref="Phrase"/>; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
+    public static string Expected(Dimension dimension) =>
+        dimension == Dimension.Head
+            ? "a head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length"
+            : Phrase(dimension);
+
+    /// <summary>Spells a dimension the way a reader says it, with its article: "a temperature difference", "an energy".</summary>
+    /// <param name="dimension">The dimension.</param>
+    /// <returns>The words with "a" or "an" before them.</returns>
+    /// <remarks>
+    /// <c>L-90</c>: the messages printed the identifier lower-cased, so a band written in °C was "a temperaturedelta", and a
+    /// template that wrote its own "a" said "a energy". <c>16</c>'s rule 1 is a plain sentence.
+    /// </remarks>
+    public static string Phrase(Dimension dimension) => WithArticle(Words(dimension));
+
+    /// <summary>Spells a dimension the way a reader says it, without an article.</summary>
+    /// <param name="dimension">The dimension.</param>
+    /// <returns>Lower-case words; a dimension arithmetic produced and nobody named is the quantity in its SI unit.</returns>
+    public static string Words(Dimension dimension)
     {
-        return dimension == Dimension.Head
-            ? "head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length"
-            : dimension.Name.ToLowerInvariant();
+        if (!dimension.IsNamed)
+        {
+            return dimension.SiUnit.Length == 0 ? "plain number" : $"quantity in {dimension.SiUnit}";
+        }
+
+        return dimension.Id switch
+        {
+            DimensionId.Dimensionless => "plain number",
+            DimensionId.TemperatureDelta => "temperature difference",
+            DimensionId.PressureDelta => "pressure difference",
+            DimensionId.Enthalpy => "specific enthalpy",
+            DimensionId.Kv => "flow coefficient (Kv)",
+            DimensionId.NominalDiameter => "nominal diameter (DN)",
+            _ => string.Join(' ', System.Text.RegularExpressions.Regex.Split(dimension.Name, "(?<=[a-z])(?=[A-Z])")).ToLowerInvariant(),
+        };
     }
+
+    /// <summary>Puts "a" or "an" before a phrase, by its first letter as written.</summary>
+    /// <param name="words">The phrase: a dimension's words, or a controller type as the script spells it.</param>
+    /// <returns>"an onoff", "a PI", "an energy".</returns>
+    /// <remarks>By the letter, not the sound: every word the messages put here reads the same either way.</remarks>
+    public static string WithArticle(string words) =>
+        (words.Length > 0 && "aeiou".Contains(char.ToLowerInvariant(words[0]), StringComparison.Ordinal) ? "an " : "a ") + words;
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
     /// <value>Seventy-seven descriptors. Order does not matter; the registry sorts.</value>

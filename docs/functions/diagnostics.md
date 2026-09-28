@@ -63,8 +63,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1213` | Info | Style | '{name}' listed twice. |
 | `FS1214` | Warning | Style | Only the first 'show' is used. |
 | `FS1302` | Error | Units | Cannot add two {dimension}s. To offset by a difference, write '{example}'. |
-| `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |
-| `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |
+| `FS1304` | Error | Units | '{parameter}' is {expected}; '{value}' is {actual}. |
+| `FS1305` | Error | Units | Cannot {operation} {left} and {right}. |
 | `FS1306` | Warning | Units | {parameter} = {value} is outside the usual range ({low}–{high}). Check the unit. |
 | `FS1307` | Error | Units | {parameter} cannot be negative. |
 | `FS1308` | Warning | Units | '{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow. |
@@ -128,9 +128,9 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1805` | Error | Blocks | '{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out. |
 | `FS1806` | Error | Blocks | '{word}' does not start a line this way; {instead}. |
 | `FS1807` | Error | Blocks | A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'. |
-| `FS1808` | Error | Blocks | '{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}. |
+| `FS1808` | Error | Blocks | '{controller}' is {type} controller, which has no '{parameter}'. It takes: {available}. |
 | `FS1809` | Error | Blocks | '{controller}' states both band and kp, and each says the other. State one. |
-| `FS1810` | Warning | Blocks | '{controller}' is a {type} controller, which the solver does not run yet. |
+| `FS1810` | Warning | Blocks | '{controller}' is {type} controller, which the solver does not run yet. |
 | `FS1811` | Error | Blocks | '{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time. |
 | `FS1812` | Error | Blocks | A {head} line opens a block and ends with ':'. |
 | `FS1813` | Error | Blocks | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |
@@ -138,6 +138,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1815` | Info | Blocks | '{component}' is wired as {wiring}. |
 | `FS1816` | Error | Blocks | '{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'. |
 | `FS1817` | Warning | Blocks | This event starts at {time}, after '{run}' ends at {duration}, so it never happens. |
+| `FS1818` | Error | Blocks | A file has one project block, and this is a second one, so its settings are not read. Move them into the first. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |
@@ -161,7 +162,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2117` | Error | Components | '{name}': the {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
 | `FS2119` | Error | Components | '{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
-| `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
+| `FS2201` | Warning | Topology | Using {node} as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
 | `FS2204` | Error | Topology | '{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither. |

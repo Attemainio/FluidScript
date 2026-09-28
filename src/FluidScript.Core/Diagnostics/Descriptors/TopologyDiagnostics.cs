@@ -34,7 +34,7 @@ public static class TopologyDiagnostics
     public static DiagnosticDescriptor DatumChosen { get; } = new(
         "FS2201",
         DiagnosticSeverity.Warning,
-        "Using '{node}' as the pressure datum. Pressures are relative to it.");
+        "Using {node} as the pressure datum. Pressures are relative to it.");
 
     /// <summary>A port inference rule I3 had to terminate.</summary>
     /// <value><c>FS2202</c>, a warning.</value>

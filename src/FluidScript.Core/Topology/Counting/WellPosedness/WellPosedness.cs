@@ -53,7 +53,7 @@ public static partial class WellPosedness
         var hydraulics = HydraulicPartition.Of(graph);
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
 
-        ReportDatums(hydraulics, diagnostics);
+        ReportDatums(graph, hydraulics, diagnostics);
         ReportIsolation(hydraulics, diagnostics);
         ReportCompetingDatums(graph, hydraulics, diagnostics);
         ReportDriverlessLoops(graph, diagnostics);

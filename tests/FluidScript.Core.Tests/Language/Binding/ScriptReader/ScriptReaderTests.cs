@@ -204,6 +204,35 @@ public sealed class ScriptReaderTests
         Assert.Equal("winter", result.Model.Project.DesignScenario);
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASecondProjectBlockIsFS1818AndTheFirstIsTheProject()
+    {
+        // `L-88`: both blocks used to be read in turn, so the title and the cases came from whichever set each last,
+        // silently. The first block is the project; the second is named and not read.
+        const string Text = """
+            fluidscript 2
+            project "first":
+              cases = [winter, mild]
+            project "second":
+              cases = [summer]
+            circuit "c":
+              fluid = water
+              S1 inlet   t = [85, -5] C   p = 300 kPa
+              S2 outlet  p = 100 kPa
+              S1 - PU1 - S2
+              PU1 pump
+            """;
+        var result = Bind(Text);
+        var second = Assert.Single(result.Diagnostics, static d => d.Code == "FS1818");
+
+        Assert.Equal(DiagnosticSeverity.Error, second.Severity);
+        Assert.Equal(Text.IndexOf("project \"second\"", StringComparison.Ordinal), second.Span!.Value.Start);
+        Assert.Equal("first", result.Model.Project.Name);
+        Assert.Equal("winter", result.Model.Project.DesignScenario);
+        Assert.Equal(2, Component(result, "S1").Parameters["t"].Scenarios.Length);
+    }
+
     /// <summary>
     /// A shared unit is applied when the item is evaluated (<c>D-179</c>): <c>-26</c> is the bare −26 read in °C, a
     /// design day, never the negation of a temperature; and a range's bare lower end reads its upper end's unit.
@@ -995,16 +1024,31 @@ public sealed class ScriptReaderTests
                 td   = 30 s
             """), "FS1808");
 
-        Assert.Equal("'TC1' is a PI controller, which has no 'td'. A PI controller takes: type, moves, reads, setpoint, band, kp, ti, output, action.", diagnostic.Message);
+        Assert.Equal("'TC1' is a PI controller, which has no 'td'. It takes: type, moves, reads, setpoint, band, kp, ti, output, action.", diagnostic.Message);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ABandOnAnOnOffControllerIsFS1808() =>
-        Only(Controlled("""
+    public void ABandWrittenAsAReadingIsCalledATemperatureDifference()
+    {
+        // `L-90`: the band is a difference, and the message printed the identifier lower-cased -- "a temperaturedelta".
+        var diagnostic = Only(Controlled("        band = 20 C"), "FS1304");
+
+        Assert.Equal("'band' is a temperature difference; '20 C' is a temperature.", diagnostic.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ABandOnAnOnOffControllerIsFS1808()
+    {
+        var diagnostic = Only(Controlled("""
                 type = onoff
                 band = 20 K
             """), "FS1808");
+
+        // `L-90`: "a onoff controller" was the template's article in front of a type that needs "an".
+        Assert.Contains("is an onoff controller", diagnostic.Message, StringComparison.Ordinal);
+    }
 
     [Fact]
     [Trait("Category", "Unit")]

@@ -169,9 +169,9 @@ wart; the alternative — a space before every unit — costs `2px` and `20C`, w
 names would make `N1-N2` one name that the binder silently creates a node for (`15`'s rule I1) — a wrong
 answer that compiles. Because a hyphenated name is what a user coming from HTML, CSS or a `/docs` file name
 will type, the parser recognises the shape and says so — for a component's name (`HX-1 pump`), a name in
-a chain (`N1 - HX-1 - N2`) and a kind that starts with a digit (`V1 3-way-valve`): `FS1108`,
-*'3-way-valve' — a name cannot contain '-'. Write '3_way_valve'.* A kind that starts with a letter,
-`V1 three-way-valve`, reads as the kind `three` followed by text the line cannot hold, `FS1114`. Case and underscores are
+a chain (`N1 - HX-1 - N2`) and a kind (`V1 3-way-valve`, `V1 three-way-valve`): `FS1108`,
+*'three-way-valve' — a name cannot contain '-'. Write 'three_way_valve'.* The dash must touch both words: `V1 valve - N2`
+is not read as one. (A kind starting with a letter was `FS1114`, "cannot read this line", until `L-89`.) Case and underscores are
 normalised when a kind or parameter is resolved (`D-15`'s first stage, which `D-170` keeps), so only the
 hyphen needs a diagnostic.
 
@@ -475,7 +475,8 @@ project "Title":
     ...
 ```
 
-The title is optional (`project:`). The settings:
+The title is optional (`project:`). A file has one project block: a second is `FS1818` and is not read, so the first
+is the project (`L-88`). The settings:
 
 | Setting | Value |
 |---|---|
@@ -565,8 +566,7 @@ part may carry an index that touches it — `in[2]`, never `in [2]` or `in[ 2 ]`
 
 **The kind is any name**, resolved against the component registry at bind time ([`15`](15-semantic-model.md)),
 so a new kind never changes this grammar. **`at NODE`** after the kind places an observer — a sensor — on a
-node (`D-61`). A declaration with no kind is `FS1104`; a hyphenated kind is `FS1108` or `FS1114`
-([Names](#names)).
+node (`D-61`). A declaration with no kind is `FS1104`; a hyphenated kind is `FS1108` ([Names](#names)).
 
 **A controller is a declaration** of kind `controller` (`D-40`, `D-168`), usually in block form:
 

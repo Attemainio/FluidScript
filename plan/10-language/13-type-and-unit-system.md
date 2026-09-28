@@ -444,8 +444,8 @@ A format that depends on the reader's locale means one file means two things on 
 | `FS1301` | Unknown unit symbol | Error | `'{sym}' is not a unit. Did you mean '{suggestion}'?` |
 | `FS1302` | Adding two absolute temperatures (or pressures) | Error | `Cannot add two {dimension}s. To offset by a difference, write '{example}'.` |
 | ~~`FS1303`~~ | Never implemented; unreachable since `K` is a difference (`D-172`) | — | — |
-| `FS1304` | Dimension mismatch in an assignment | Error | `'{parameter}' is a {expected}; '{value}' is a {actual}.` |
-| `FS1305` | Dimension mismatch in an operation | Error | `Cannot {operation} a {left} and a {right}.` |
+| `FS1304` | Dimension mismatch in an assignment | Error | `'{parameter}' is {expected}; '{value}' is {actual}.` Each dimension is spoken with its article -- "a temperature difference", "an energy" -- never as its identifier (`L-90`) |
+| `FS1305` | Dimension mismatch in an operation | Error | `Cannot {operation} {left} and {right}.` (`L-90`) |
 | `FS1306` | Value outside a parameter's physical range | Warning | `{parameter} = {value} is outside the usual range ({low}–{high}). Check the unit.` |
 | `FS1307` | Negative value for a strictly positive parameter | Error | `{parameter} cannot be negative.` |
 | `FS1308` | Negative `power` on a role spelling whose word carries the sign | Warning | `'{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow.` |

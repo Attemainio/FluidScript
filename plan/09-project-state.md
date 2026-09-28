@@ -1427,14 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **59** | |
+| | **54** | |
 
+Recounted 2026-09-28 after `L-88`–`L-91` and `L-93` closed (group 5, batch 1, the messages): 54.
 Recounted 2026-09-28 after `S-95` closed and `S-97`, `C-152` opened (`D-189`, the design flow field): 59.
 Recounted 2026-09-28 after `S-85` closed (group A, A4, the seed at a diverting valve and a junction's balance): 58.
 Recounted 2026-09-28 after `S-96` closed (the tour's numbers, the user's choice): 59.
@@ -2274,6 +2275,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     scripts settle in fewer passes, and every other size moves in its fourth digit. The field covers 199 of 263 branches
     (`S-97`). The tour now carries `FS4014` on `HX1`: its stated 45 C primary return is not held, and nothing said so
     before (`C-152`). Core 2605/0/2, Api 87/0. Next: `C-152`, then `S-97`'s held outlets, then `C-149`.
+  - **Group 5, batch 1: messages say what the user wrote (2026-09-28; `L-88`–`L-91`, `L-93` closed, `L-66`
+    narrowed).** The user took the message and wire group before steady-state correctness. A second `project` block
+    is `FS1818`; a hyphenated kind is `FS1108` with its underscored spelling; a dimension reads as a reader says it
+    ("a temperature difference", "an energy") and a controller type takes its article; `FS1410`/`FS1412` quote a
+    parameter and a waited-on value in the script's spelling; the units table reads `D-126`'s head rule from
+    `Quantity.TryAssign` instead of saying a head takes a bare number only. `FS2211` and `FS2201` name a node the binder
+    inserted by the port beside it that takes the quantity (`23`); `L-66` keeps only `volume[2]`, which waits on the
+    vocabulary review. No solve moved; the metadata golden carries the new templates and `FS1818`. Core 2612/0/2,
+    Api 87/0. Next: batch 2 (`C-137`, `L-50`), then batch 3 (`C-138`'s runs on the wire, `L-58`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

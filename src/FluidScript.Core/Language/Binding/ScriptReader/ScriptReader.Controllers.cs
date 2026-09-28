@@ -82,7 +82,7 @@ internal sealed partial class ScriptReader
                     BlockDiagnostics.ControllerSettingNotOfType,
                     setting.Name.Span,
                     ("controller", name),
-                    ("type", typeWritten),
+                    ("type", BinderDiagnostics.WithArticle(typeWritten)),
                     ("parameter", setting.Name.Text),
                     ("available", string.Join(", ", allowed)));
                 kept.Remove(setting);
@@ -102,7 +102,7 @@ internal sealed partial class ScriptReader
                 BlockDiagnostics.ControllerTypeNotRun,
                 typeSetting?.Value.Span ?? declaration.Kind.Span,
                 ("controller", name),
-                ("type", typeWritten));
+                ("type", BinderDiagnostics.WithArticle(typeWritten)));
         }
 
         return kept;

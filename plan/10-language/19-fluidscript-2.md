@@ -566,9 +566,9 @@ what the kind accepts. `ScriptDiagnosticsTests` holds a corpus of mistakes to it
 | `FS1805` | Error | A `mixing_valve` or `diverting_valve` whose connections say the other function | `'{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out.` |
 | `FS1806` | Error | A line in a shape the language does not have, with the form to write ([`12`](12-grammar.md) §Lines the language does not have). Each shape is exact, so a line that merely starts with the same word is not caught; the price is that a component may not be declared under one of these words in that shape (`design valve`) — this project's reasoning: that reading is far more likely to be meant | `'{word}' does not start a line this way; {instead}.` |
 | `FS1807` | Error | A ramp missing an end: of its time (`over 30 min`) or of its value (`= 75 C`); the message says which | `A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'.` |
-| `FS1808` | Error | A controller parameter that its stated type does not have | `'{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}.` |
+| `FS1808` | Error | A controller parameter that its stated type does not have | `'{controller}' is {type} controller, which has no '{parameter}'. It takes: {available}.` (`{type}` carries its article, `L-90`) |
 | `FS1809` | Error | Both `band` and `kp` stated | `'{controller}' states both band and kp, and each says the other. State one.` |
-| `FS1810` | Warning | A controller type the solver does not run yet | `'{controller}' is a {type} controller, which the solver does not run yet.` |
+| `FS1810` | Warning | A controller type the solver does not run yet | `'{controller}' is {type} controller, which the solver does not run yet.` (`{type}` carries its article: "an onoff", `L-90`) |
 | `FS1811` | Error | A curve whose driver is neither a `let` nor `time` | `'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.` |
 | `FS1812` | Error | A block head without its `:` | `A {head} line opens a block and ends with ':'.` |
 | `FS1813` | Error | A word after a pipe's link that is not a DN designation (`12 m NPS1`); the pipe keeps its length and is sized | `'{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'.` |
@@ -576,6 +576,7 @@ what the kind accepts. `ScriptDiagnosticsTests` holds a corpus of mistakes to it
 | `FS1815` | Info | How the rule wired a component where it chose between ports: a three-way valve, an exchanger with two sides, a tank side with more than one stream | `'{component}' is wired as {wiring}.` |
 | `FS1816` | Error | A clock time in a run that states no `start` | `'{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'.` |
 | `FS1817` | Warning | An event that starts after its run ends, and so never happens (`L-67`) | `This event starts at {time}, after '{run}' ends at {duration}, so it never happens.` |
+| `FS1818` | Error | A second `project` block; it is not read, and the first is the project (`L-88`) | `A file has one project block, and this is a second one, so its settings are not read. Move them into the first.` |
 
 ## Invariants
 

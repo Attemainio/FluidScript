@@ -79,7 +79,7 @@ accepted in any case.
 | Area | `m2`, `mm2`, `cm2` |
 | Volume | `m3`, `dm3`, `l`, `ml` |
 | Kv | *a bare number only* |
-| Head | *a bare number only* |
+| Head | a length: `m`, `mm`, `cm`, `dm`, `km`, `ft` |
 | Nominal diameter | *a bare number only* |
 | Pixels | `px` |
 | Heat transfer coefficient | `W/(m2*K)`, `kW/(m2*K)` |
@@ -117,12 +117,16 @@ what circuits are specified in. `p = 300`, `p = 300 kPa` and `p = 3 bar` are the
 `a` for absolute: `p = 401.325 kPaa` is that same pressure, measured from vacuum instead of from the
 weather.
 
-## Pump head has no unit to write
+## Pump head is a height of the pumped fluid
 
-`head = 15` is 15 metres **of the fluid being pumped**, and there is deliberately no way to write a
-unit after it. Metres of water column is a pressure, not a head, and the two are only equal when the
-fluid is water — so a glycol circuit that let you write one for the other would be wrong by the
-density ratio, and would look entirely reasonable on the diagram.
+`head = 15` is 15 metres **of the fluid being pumped**, and so is `head = 15 m` or
+`head = 15000 mm`: a head takes a length, and reads it as that height of whatever the pump moves. A
+pressure is refused — `head = 150 kPa` is an error. Metres of water column is a pressure, not a head,
+and the two are only equal when the fluid is water, so a glycol circuit that let you write one for
+the other would be wrong by the density ratio and would look entirely reasonable on the diagram.
 
-Valve `kv` and pipe `dn` are the same: both are bare numbers. A `dn` is a name rather than a
+Any length is accepted, so `head = P1.length` is a head of the pipe's length. That is legal and is
+almost never what you meant; the script is taken at its word.
+
+Valve `kv` and pipe `dn` take bare numbers only. A `dn` is a name rather than a
 measurement, so DN25 pipe does not have a 25 mm bore.

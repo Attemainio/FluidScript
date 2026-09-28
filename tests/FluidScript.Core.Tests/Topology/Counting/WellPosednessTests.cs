@@ -232,7 +232,10 @@ public sealed class WellPosednessTests
         var result = Check(Substation);
 
         Assert.Equal("SR__SP", result.Hydraulics[1].Datum);
-        Assert.Contains("SR__SP", Assert.Single(result.Diagnostics, static d => d.Code == "FS2201").Message, StringComparison.Ordinal);
+        // The node's name is the binder's, so the message names the port it stands for (L-66).
+        Assert.Equal(
+            "Using the node at SP.in as the pressure datum. Pressures are relative to it.",
+            Assert.Single(result.Diagnostics, static d => d.Code == "FS2201").Message);
     }
 
     [Fact]
@@ -820,7 +823,7 @@ public sealed class WellPosednessTests
         var reported = result.Diagnostics.Single(static d => d.Code == "FS2211");
 
         Assert.Equal(-1, result.Counting.Excess);
-        Assert.Contains("a temperature on N1", reported.Message, StringComparison.Ordinal);
+        Assert.Equal("This circuit is under-specified by 1. Add one of: a temperature on N1, a temperature on N2.", reported.Message);
     }
 
     [Fact]
@@ -854,6 +857,53 @@ public sealed class WellPosednessTests
 
         Assert.Equal(-1, result.Counting.Excess);
         Assert.StartsWith("This circuit is under-specified by 1. Add one of: a temperature on N1", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnInsertedNodeIsAdvisedAsThePortItStandsFor()
+    {
+        // L-66: a loop that writes no node has three the binder inserted, PU1__HE1, HE1__LD1 and LD1__PU1, and
+        // FS2211 offered "a temperature on PU1__HE1" -- a name nobody wrote and no line can state. Each is now
+        // the port beside it that takes a t, and FS2201 names its datum the same way.
+        var result = Check("""
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+              PU1  pump
+              HE1  heat_exchanger  power = 50
+              LD1  load  power = 50
+              PU1 - HE1 - LD1 - PU1
+            """);
+
+        Assert.Equal(
+            "This circuit is under-specified by 1. Add one of: a temperature at HE1.in, a temperature at HE1.out, a temperature at LD1.out.",
+            result.Diagnostics.Single(static d => d.Code == "FS2211").Message);
+        Assert.Equal(
+            "Using the node at LD1.out as the pressure datum. Pressures are relative to it.",
+            result.Diagnostics.Single(static d => d.Code == "FS2201").Message);
+    }
+
+    [Fact]
+    public void AnInsertedNodeNoPortOfWhichTakesATemperatureIsWhereANodeWouldGo()
+    {
+        // A pump's and a valve's ports take p and nothing else (FS1538), so the node between them has no port to
+        // state a temperature on: the advice is the node the user would write there.
+        var result = Check("""
+            fluidscript 2
+
+            circuit "loop":
+              fluid = water
+              PU1  pump
+              V1  valve
+              LD1  load  power = 50
+              N1  node  p = 300
+              N1 - PU1 - V1 - LD1 - N1
+            """);
+
+        Assert.Equal(
+            "This circuit is under-specified by 1. Add one of: a temperature on N1, a temperature on a node written between PU1 and V1, a temperature at LD1.in.",
+            result.Diagnostics.Single(static d => d.Code == "FS2211").Message);
     }
 
     [Fact]

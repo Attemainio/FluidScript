@@ -322,6 +322,33 @@ public sealed record ComponentKindInfo
         return key;
     }
 
+    /// <summary>Spells a property's key the way a script writes it: <c>t_out2</c> as <c>secondary.out.t</c>, <c>t3</c> as <c>layer[3].t</c>.</summary>
+    /// <param name="key">The key a solved value is published under.</param>
+    /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>
+    /// <remarks><see cref="ParameterName"/>'s mirror for what a reference reads rather than what a declaration states (<c>L-91</c>).</remarks>
+    public string PropertyName(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        foreach (var property in Properties.Values)
+        {
+            if (string.Equals(property.Key, key, StringComparison.Ordinal))
+            {
+                return property.Name;
+            }
+        }
+
+        foreach (var family in IndexedPropertyFamilies)
+        {
+            if (IndexedName.Matches(family.KeyPattern, key, out var index))
+            {
+                return IndexedName.Spell(family.Pattern, index);
+            }
+        }
+
+        return key;
+    }
+
     /// <summary>Spells a port's key the way a script writes it: an exchanger's <c>in2</c> as <c>secondary.in</c>, a tank's <c>in1</c> as <c>in</c>.</summary>
     /// <param name="key">The key the model knows the port by.</param>
     /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>

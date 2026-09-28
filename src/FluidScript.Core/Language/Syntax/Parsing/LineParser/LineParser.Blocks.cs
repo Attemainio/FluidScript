@@ -191,7 +191,25 @@ internal sealed partial class LineParser
             return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
         }
 
+        var kindAt = _index;
         var kind = new IdentifierSyntax(Advance());
+
+        // `V1 three-way-valve`: the kind the way its page title spells it (`L-89`). A dash touching the kind is never a
+        // parameter, so the hyphen reading is tried here as it is on the name, instead of failing on `-way` below.
+        if (Current is { Kind: TokenKind.Minus })
+        {
+            _index = kindAt;
+            if (TryReadHyphenated(out var writtenKind, out var underscoredKind))
+            {
+                return Fail(
+                    ParserDiagnostics.HyphenInName,
+                    LineSpan,
+                    new DiagnosticArgument("text", writtenKind),
+                    new DiagnosticArgument("underscored", underscoredKind));
+            }
+
+            _index = kindAt + 1;
+        }
 
         // `TE1 temperature_sensor at N2` places an observer on a node (`D-61`).
         Token? atKeyword = null;

@@ -313,7 +313,7 @@ internal sealed partial class BindingRun
                         ("parameter", $"sized_at.{entry.WrittenName}"),
                         ("expected", BinderDiagnostics.Expected(current.Dimension)),
                         ("value", parse.Source.ToString(given.Expression.Span).Trim()),
-                        ("actual", value.Dimension.Name.ToLowerInvariant()));
+                        ("actual", BinderDiagnostics.Phrase(value.Dimension)));
                     mismatched = true;
                 }
             }

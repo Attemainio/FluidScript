@@ -18,6 +18,8 @@ project "Substation 12":
 
 The title is quoted and is only a name; `project:` with no title is fine. Every setting is optional,
 and a file with no project block at all has one case, the shipped catalogue and the default drawing.
+A file has one project block: a second one is an error, [`FS1818`](diagnostics.md), and its settings are
+not read.
 
 ## Settings
 

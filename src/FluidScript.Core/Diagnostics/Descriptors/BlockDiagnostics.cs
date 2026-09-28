@@ -143,7 +143,7 @@ public static class BlockDiagnostics
     public static DiagnosticDescriptor ControllerSettingNotOfType { get; } = new(
         "FS1808",
         DiagnosticSeverity.Error,
-        "'{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}.");
+        "'{controller}' is {type} controller, which has no '{parameter}'. It takes: {available}.");
 
     /// <summary>A controller stating both its proportional band and its gain.</summary>
     /// <value><c>FS1809</c>, an error.</value>
@@ -162,7 +162,7 @@ public static class BlockDiagnostics
     public static DiagnosticDescriptor ControllerTypeNotRun { get; } = new(
         "FS1810",
         DiagnosticSeverity.Warning,
-        "'{controller}' is a {type} controller, which the solver does not run yet.");
+        "'{controller}' is {type} controller, which the solver does not run yet.");
 
     /// <summary>A clock time in a run that states no start.</summary>
     /// <value><c>FS1816</c>, an error.</value>
@@ -194,8 +194,20 @@ public static class BlockDiagnostics
         DiagnosticSeverity.Warning,
         "This event starts at {time}, after '{run}' ends at {duration}, so it never happens.");
 
+    /// <summary>A second <c>project</c> block in one file.</summary>
+    /// <value><c>FS1818</c>, an error.</value>
+    /// <remarks>
+    /// A file describes one project (<c>12</c> §The project block). Both blocks used to be read, one after the other, so
+    /// a title, the cases and the catalogue came from whichever block set each last, and nothing said so (<c>L-88</c>).
+    /// The first block is the project; the second is not read.
+    /// </remarks>
+    public static DiagnosticDescriptor SecondProjectBlock { get; } = new(
+        "FS1818",
+        DiagnosticSeverity.Error,
+        "A file has one project block, and this is a second one, so its settings are not read. Move them into the first.");
+
     /// <summary>Gets every code in the <c>FS18xx</c> range, for the registry to collect.</summary>
-    /// <value>Seventeen descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Eighteen descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -215,5 +227,6 @@ public static class BlockDiagnostics
         ControllerTypeNotRun,
         ClockTimeWithoutStart,
         EventAfterRun,
+        SecondProjectBlock,
     ];
 }

@@ -54,18 +54,30 @@ public static class UnitsPage
 
         foreach (var dimension in Dimension.All)
         {
-            // `in` and `t` convert but cannot be written after a number (`19`), so the page does not offer them (`A-9`).
-            var symbols = UnitTable.For(dimension)
-                .Where(static s => !Lexer.ExcludedUnitSymbols.Contains(s.Text, StringComparer.Ordinal))
+            var symbols = Writable(dimension);
+            var accepted = Dimension.All
+                .Where(other => other != dimension && Quantity.TryAssign(Quantity.FromSi(1.0, other), dimension, out _))
                 .ToImmutableArray();
-            builder.AppendLine(
-                $"| {Spaced(dimension.Name)} | {(symbols.IsEmpty
-                    ? "*a bare number only*"
-                    : string.Join(", ", symbols.Select(static s => $"`{s.Text}`")))} |");
+            var spellings = symbols.IsEmpty && accepted.IsEmpty
+                ? "*a bare number only*"
+                : string.Join(", ", symbols.Select(static s => $"`{s.Text}`"));
+
+            // A head has no symbol of its own but takes a length (`D-126`); the table reads the binder's rule, not a list (`L-93`).
+            foreach (var other in accepted)
+            {
+                spellings += $"{(spellings.Length == 0 ? "a" : ", or a")} {Spaced(other.Name).ToLowerInvariant()}: "
+                    + string.Join(", ", Writable(other).Select(static s => $"`{s.Text}`"));
+            }
+
+            builder.AppendLine($"| {Spaced(dimension.Name)} | {spellings} |");
         }
 
         return builder.ToString().TrimEnd();
     }
+
+    // `in` and `t` convert but cannot be written after a number (`19`), so the page does not offer them (`A-9`).
+    private static ImmutableArray<UnitSymbol> Writable(Dimension dimension) =>
+        [.. UnitTable.For(dimension).Where(static s => !Lexer.ExcludedUnitSymbols.Contains(s.Text, StringComparer.Ordinal))];
 
     private static string Code(string? text) =>
         string.IsNullOrEmpty(text) ? "—" : $"`{text}`";

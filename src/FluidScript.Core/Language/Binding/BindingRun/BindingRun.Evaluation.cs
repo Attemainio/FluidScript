@@ -142,7 +142,7 @@ internal sealed partial class BindingRun
                     ("parameter", target.Info.Name),
                     ("expected", BinderDiagnostics.Expected(target.Info.Dimension)),
                     ("value", parse.Source.ToString(pending.Expression.Span).Trim()),
-                    ("actual", quantity.Dimension.Name.ToLowerInvariant()));
+                    ("actual", BinderDiagnostics.Phrase(quantity.Dimension)));
                 return;
             }
 

@@ -343,15 +343,21 @@ public static partial class WellPosedness
 
             if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic) && !levelled)
             {
-                candidates.AddRange(hydraulic.Nodes.Select(static node => $"a temperature on {node.Name}"));
+                // Each node as the script can name it (L-66): N1, a port that takes t, or where a node would go.
+                candidates.AddRange(hydraulic.Nodes
+                    .Where(static node => node.Origin != NodeOrigin.PipeInternal)
+                    .Select(node => Spoken(graph, node, "t") is { } spoken
+                        ? $"a temperature {(Written(node) ? "on" : "at")} {spoken}"
+                        : $"a temperature on a node written between {string.Join(" and ", Beside(graph, node))}"));
             }
         }
 
         candidates.AddRange(graph.Nodes
             .Where(static node =>
-                node.Component.CarriesMassBalance
+                node.Origin != NodeOrigin.PipeInternal
+                && node.Component.CarriesMassBalance
                 && HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is null)
-            .Select(static node => $"a pressure on {node.Name}"));
+            .Select(node => $"a pressure {(Written(node) ? "on" : "at")} {Spoken(graph, node, "p") ?? node.Name}"));
 
         return candidates.Count > 0 ? [.. candidates] : ["a boundary condition"];
     }
