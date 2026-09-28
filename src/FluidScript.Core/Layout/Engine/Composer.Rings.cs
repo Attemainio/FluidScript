@@ -17,6 +17,9 @@ internal sealed partial class Composer
     /// <summary>Whether a block on this ring's top rail climbed back to the rail (<c>D-187</c>), so its return runs under a row.</summary>
     private bool _climbed;
 
+    /// <summary>How far right the last chain of blocks hung from a split reaches, boxes and bubbles, world units (<c>C-151</c>).</summary>
+    private double _chainRight = double.NegativeInfinity;
+
     /// <summary>The branches beside a ring's source that rise into a top-rail merge (<c>D-159</c>), by merge; set per ring.</summary>
     private readonly Dictionary<int, Branch> _rising = [];
     private string? _declined;
@@ -99,6 +102,7 @@ internal sealed partial class Composer
             _pass = pass;
             _rowBottom = double.MaxValue;
             _climbed = false;
+            _chainRight = double.NegativeInfinity;
             _parallelMerge.Clear();
 
             if (pass > 0)

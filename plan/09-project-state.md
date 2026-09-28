@@ -1428,13 +1428,14 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **64** | |
+| | **63** | |
 
+Recounted 2026-09-28 after `C-151` closed (the next branch starts past the whole chain): 63.
 Recounted 2026-09-28 after `C-151` and `S-92` opened (a header with two series branches): 64.
 Recounted 2026-09-28 after `C-149` opened (a mixing valve's bypass drawn heating): 62.
 Recounted 2026-09-28 after `C-123` and `C-144` closed (`D-183`) and `S-91` opened: 61.
@@ -2200,6 +2201,11 @@ that governed each size. What P6.8 still owes, and what comes after:
     faces, so 8d's gap cannot close without making every block a column. Core 2602/0/2, Api 87/0, frontend 257/0.
     The layout pass the user asked for (R1 `D-184`, labels `D-185`, R2 `D-186`, R4 `D-187`) is complete; next by
     the earlier ranking is group A, the flow seed (`S-86`, `S-91`, `S-88`, `S-69`, `S-85`, `C-44`).
+  - **The next hanging branch starts past the whole chain (2026-09-28; `C-151` closed).** A header branch of two
+    blocks in series put its second block where the next branch's bypass and return ran; the next branch now starts
+    a margin and a fifth past every block after a chain's first (`28` C14). The user's mixed header: four `FS5002`
+    -> none; no checked-in picture changes. `C-108`'s wider variant was measured and not taken (in its row). `S-92`,
+    the same plant's solve failure, is next with group A.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

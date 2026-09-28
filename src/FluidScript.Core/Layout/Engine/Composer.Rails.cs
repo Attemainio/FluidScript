@@ -576,7 +576,7 @@ internal sealed partial class Composer
 
         // The block hangs under the split's box by a margin, and its bubbles under the rail by a margin (D-151).
         var yIn = Math.Min(yTop - half - _margin - rise, yTop - _margin - (BubbleTop(first) - first.In.At.Y));
-        var origin = Math.Max(_sheet.Centre[j.Component].X, _hangFloor.GetValueOrDefault(j.Component, double.NegativeInfinity));
+        var origin = Math.Max(Math.Max(_sheet.Centre[j.Component].X, _hangFloor.GetValueOrDefault(j.Component, double.NegativeInfinity)), ChainClear());
         var (uIn, uOut) = Slide(first, origin, yIn, runs);
         var jx = uIn.At.X - _margin;
 
@@ -598,8 +598,21 @@ internal sealed partial class Composer
         }
 
         hangers.Add(new Hanger(chain.End, chain.Previous, j.Component, branch.Merge, branch.MergePort, false));
+
+        // C-151: the next branch hung from this rail starts past the whole chain, not past its first block: its feed, bypass
+        // and return stand clear of the blocks that stepped on to the right. The first block is cleared by the slide already.
+        var chained = units.Skip(1).SelectMany(static u => u.Members).ToList();
+
+        if (chained.Count > 0)
+        {
+            _chainRight = Math.Max(_chainRight, chained.Select(_sheet.InnerOf).Concat(_sheet.HatBoxes(chained)).Max(static b => b.Right));
+        }
+
         return _sheet.AnchorOf(j.Component, j.OutPort);
     }
+
+    /// <summary>Where the next hanging branch's split may stand at the leftmost: a margin and a fifth past the last hung chain of blocks (<c>C-151</c>).</summary>
+    private double ChainClear() => _chainRight + _margin + (_margin / 5);
 
     /// <summary>
     /// A branch with no loop hangs as a column (<c>28</c> C14, P6.10): its members stand one under the other straight
@@ -649,6 +662,7 @@ internal sealed partial class Composer
         if (boxed.Count > 0)
         {
             dx = Math.Max(dx, left + _margin - boxed.Min(i => _sheet.InnerOf(i).X));
+            dx = Math.Max(dx, ChainClear() - boxed.Min(i => _sheet.InnerOf(i).X));
         }
 
         for (var shift = _sheet.Shift(boxed, dx, 0); shift > 0; shift = _sheet.Shift(boxed, dx, 0))
@@ -732,6 +746,7 @@ internal sealed partial class Composer
         if (boxed.Count > 0)
         {
             dx = Math.Max(dx, left + _margin - boxed.Min(i => _sheet.InnerOf(i).X));
+            dx = Math.Max(dx, ChainClear() - boxed.Min(i => _sheet.InnerOf(i).X));
         }
 
         for (var shift = _sheet.Shift(boxed, dx, 0); shift > 0; shift = _sheet.Shift(boxed, dx, 0))

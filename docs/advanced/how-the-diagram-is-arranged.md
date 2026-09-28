@@ -101,7 +101,9 @@ script wrote -- a `load`, a `radiator` or a stated negative power -- not from a 
 is laid out first as a block of its own, its inlet and outlet side by side facing its header, and
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
-declared, each under the junction that feeds it and over the one it returns to; branches in series
+declared, each under the junction that feeds it and over the one it returns to, and each clear of
+the whole branch before it -- where that branch carries two blocks in series, the next one starts
+past the second, so no pipe of one runs along a pipe of the other; branches in series
 stand in a row, each block's outlet climbing back to the supply line into the next block's inlet, with the
 return running under them all; a branch that leaves a level pipe and
 rejoins that same pipe -- a duty and a standby pump, each with its valve -- runs as a second row just
