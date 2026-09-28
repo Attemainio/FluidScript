@@ -1429,12 +1429,13 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **63** | |
+| | **61** | |
 
+Recounted 2026-09-28 after `S-92` and `S-69` closed (group A, A1: a pump's head counts its mixing valve): 61.
 Recounted 2026-09-28 after `C-151` closed (the next branch starts past the whole chain): 63.
 Recounted 2026-09-28 after `C-151` and `S-92` opened (a header with two series branches): 64.
 Recounted 2026-09-28 after `C-149` opened (a mixing valve's bypass drawn heating): 62.
@@ -2206,6 +2207,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     a margin and a fifth past every block after a chain's first (`28` C14). The user's mixed header: four `FS5002`
     -> none; no checked-in picture changes. `C-108`'s wider variant was measured and not taken (in its row). `S-92`,
     the same plant's solve failure, is next with group A.
+  - **Group A, A1: a pump's head counts the mixing valve it draws through (2026-09-28; `S-92`, `S-69` closed).**
+    Measured first: `S-92` and `S-69` were not the seed -- their seeds were the answer to three digits -- but the
+    block pumps' loop drop, which left out the three-way valve (a junction element, in no branch's path) and read
+    the coils at last pass's rating. Now the valve's full-open common-port drop is in the loop, and the pumps are
+    sized last against the pass's other sizes (Siemens, *Hydronics in building systems*, 2.4.2; `24` Pump). 8c:
+    stalled -> settles in 4 passes, marker removed; the mixed header: `NonFinite` -> 3 passes. No converging sample
+    moved. Core 2602/0/2, Api 87/0. Next: A2, the seed's design temperature across a split and from a setpoint
+    (`S-91`, `S-86`), then A3 (`S-88`), then A4 (`C-44`, `S-85`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

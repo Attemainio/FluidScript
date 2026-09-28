@@ -62,8 +62,10 @@ public sealed partial class OuterLoop
     /// <param name="posedness">Which parameters the solver claimed, or <see langword="null"/> before the first check.</param>
     /// <param name="layout">Where the iterate keeps each unknown, or <see langword="null"/> to derive it.</param>
     /// <param name="solved">Whether <paramref name="iterate"/> is a converged solution rather than the seed; a rule that reads pressures off a solved field only waits when it is not.</param>
+    /// <param name="lower">Lowers the model with a set of sizes, for the pumps to be sized last against this pass's; <see langword="null"/> sizes them with the rest.</param>
     /// <returns>The new overlay, the bases, and the notes.</returns>
     /// <remarks>
+    /// <para>
     /// <strong>A promoted parameter is skipped, and that is the whole of the division of labour.</strong>
     /// A parameter omitted with a <c>Size</c> policy is normally chosen here, but where a stated
     /// constraint needs somewhere to go, well-posedness promotes one such parameter to an unknown and
@@ -71,6 +73,17 @@ public sealed partial class OuterLoop
     /// saying they disagreed. A rule is skipped whole when <em>any</em> of its parameters is promoted:
     /// <see cref="ValveSizer"/> reports an <c>authority</c> for the Kv it chose, and a Kv the solver is
     /// choosing instead would make that authority a number about a valve that does not exist (<c>C-75</c>).
+    /// </para>
+    /// <para>
+    /// <strong>A pump is sized to the circuit as this pass leaves it, not as the last pass did</strong>
+    /// (<c>S-92</c>). Its head is the sum of every drop around its loop (Siemens, <em>Hydronics in building
+    /// systems</em>, 2.4.2), and every rule here reads the graph the pass was lowered with. So a coil re-rated to
+    /// the flow the pass found, or a mixing valve given its Kv, reached the pump one pass late: on the series ring
+    /// the coils were re-rated from the seed's 0.72 kg/s to the solved 0.48, the pump read the old rating's 9 kPa at
+    /// 0.48 where the coil now drops 20, and the next pass had no position its valves could hold. Given
+    /// <paramref name="lower"/>, the pumps wait until everything else has chosen and are sized on a graph lowered
+    /// from those choices -- <see cref="Prepare"/>'s second application, for the one rule that sums the others.
+    /// </para>
     /// </remarks>
     private (SizingOverlay Overlay, ImmutableDictionary<string, string> Bases, ImmutableArray<string> Notes, ImmutableArray<Diagnostics.Diagnostic> Raised) Apply(
         CircuitGraph graph,
@@ -78,7 +91,8 @@ public sealed partial class OuterLoop
         SizingOverlay previous,
         WellPosednessResult? posedness = null,
         SystemLayout? layout = null,
-        bool solved = true)
+        bool solved = true,
+        Func<SizingOverlay, CircuitGraph>? lower = null)
     {
         var posed = posedness ?? WellPosedness.Check(graph);
         var places = layout ?? SystemLayout.Build(graph, posed.Counting);
@@ -91,57 +105,68 @@ public sealed partial class OuterLoop
 
         CloseEnergyBalance(graph, ref overlay, bases);
 
-        foreach (var component in graph.Components)
+        void Rules(CircuitGraph on, bool pumps)
         {
-            // A two-way valve on a three-way valve's switched leg with nothing deciding its `kv` is a
-            // balancing valve, and the authority rule is the wrong rule for it: `BypassValves` sets it.
-            if (component is ValveComponent balancing && OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted))
+            foreach (var component in on.Components)
             {
-                continue;
-            }
-
-            foreach (var sizer in sizers)
-            {
-                if (!sizer.CanSize(component)
-                    || sizer.Parameters.All(parameter => Claimed(component, parameter, promoted))
-                    || sizer.Parameters.Any(parameter => promoted.Contains(Ownership.Key(component.Name, parameter))))
+                // A two-way valve on a three-way valve's switched leg with nothing deciding its `kv` is a
+                // balancing valve, and the authority rule is the wrong rule for it: `BypassValves` sets it.
+                if (component is ValveComponent balancing && OnSwitchedLeg(on, balancing) is not null && !Claimed(balancing, "kv", promoted))
                 {
                     continue;
                 }
 
-                if (Context(graph, places, iterate, component) is not { } context)
+                foreach (var sizer in sizers)
                 {
-                    continue;
-                }
-
-                var sized = sizer.Size(component, context);
-
-                if (!sized.IsSuccess)
-                {
-                    continue;
-                }
-
-                foreach (var (parameter, value) in sized.Value.Values)
-                {
-                    if (Claimed(component, parameter, promoted))
+                    if (!sizer.CanSize(component)
+                        || (lower is not null && (sizer is PumpSizer) != pumps)
+                        || sizer.Parameters.All(parameter => Claimed(component, parameter, promoted))
+                        || sizer.Parameters.Any(parameter => promoted.Contains(Ownership.Key(component.Name, parameter))))
                     {
                         continue;
                     }
 
-                    overlay = overlay.With(
-                        component.Name,
-                        parameter,
-                        value.Value);
-                    bases[Ownership.Key(component.Name, parameter)] = value.Basis;
-                }
+                    if (Context(on, places, iterate, component) is not { } context)
+                    {
+                        continue;
+                    }
 
-                notes.AddRange(sized.Value.Notes);
-                raised.AddRange(sized.Value.Diagnostics);
+                    var sized = sizer.Size(component, context);
+
+                    if (!sized.IsSuccess)
+                    {
+                        continue;
+                    }
+
+                    foreach (var (parameter, value) in sized.Value.Values)
+                    {
+                        if (Claimed(component, parameter, promoted))
+                        {
+                            continue;
+                        }
+
+                        overlay = overlay.With(
+                            component.Name,
+                            parameter,
+                            value.Value);
+                        bases[Ownership.Key(component.Name, parameter)] = value.Basis;
+                    }
+
+                    notes.AddRange(sized.Value.Notes);
+                    raised.AddRange(sized.Value.Diagnostics);
+                }
             }
         }
 
+        Rules(graph, pumps: false);
         ThreeWay(graph, places, iterate, ref overlay, bases, notes, promoted);
         BypassValves(graph, places, iterate, ref overlay, bases, notes, promoted, solved);
+
+        if (lower is not null)
+        {
+            Rules(lower(overlay), pumps: true);
+        }
+
         Unsized(graph, overlay, bases, notes);
 
         return (overlay, bases.ToImmutable(), notes.ToImmutable(), raised.ToImmutable());

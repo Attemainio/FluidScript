@@ -663,15 +663,25 @@ public sealed class OuterLoopTests
         // pump's head to the rule. The rule read the loop's drop off the bootstrap graph, where a coil
         // with no design point is ideal, and sized the head to zero -- "no modelled resistance" on a loop
         // whose coil drops 20 kPa. Prepare now applies the rules twice, so the head is read against the
-        // coil.
+        // coil -- and against the mixing valve the pump draws through, which stands at the branches' ends
+        // and so in no branch's path (S-92): each block's loop drop is its coil's 20 kPa and its valve's own
+        // drop through the common port, as the valve's basis reports it.
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08c-header-series-four.fluid"),
             TestContext.Current.CancellationToken);
         var prepared = Loop().Prepare(GraphFixture.Bind(source), Water.Instance, "series-four");
 
-        foreach (var pump in new[] { "PU_AHU", "PU_FLR", "PU_DHW" })
+        static double Kilopascals(string basis, string pattern) =>
+            double.Parse(
+                System.Text.RegularExpressions.Regex.Match(basis, pattern).Groups[1].Value,
+                System.Globalization.CultureInfo.InvariantCulture);
+
+        foreach (var block in new[] { "AHU", "FLR", "DHW" })
         {
-            Assert.Contains("loop drop 20 kPa", prepared.Bases[$"{pump}.head"], StringComparison.Ordinal);
+            var loop = Kilopascals(prepared.Bases[$"PU_{block}.head"], @"loop drop ([\d.]+) kPa");
+            var valve = Kilopascals(prepared.Bases[$"TV_{block}.kv"], @"— ([\d.]+) kPa at");
+
+            Assert.Equal(20 + valve, loop, 0.15);
         }
 
         Assert.DoesNotContain(prepared.Notes, note => note.Contains("no modelled resistance", StringComparison.Ordinal));

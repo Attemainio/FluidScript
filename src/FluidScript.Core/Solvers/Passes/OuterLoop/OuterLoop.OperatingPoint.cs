@@ -1,5 +1,6 @@
 using FluidScript.Core.Components;
 using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing;
@@ -169,6 +170,10 @@ public sealed partial class OuterLoop
     /// with a second pump on it is left out of the index search. Only a pump is treated this way: a
     /// valve's circuit is still every loop through it, since a valve shares head with nothing.
     /// </para>
+    /// <para>
+    /// A pump's loop also counts the mixing valves it crosses (<see cref="MixingValves"/>, <c>S-92</c>), which
+    /// stand at the ends of branches and so in no branch's path.
+    /// </para>
     /// </remarks>
     private static double? Circuit(
         CircuitGraph graph,
@@ -204,16 +209,77 @@ public sealed partial class OuterLoop
                     graph, state, branch, iterate.Values[layout.BranchFlow(branch.Index)], component);
             }
 
+            if (component is PumpComponent)
+            {
+                drop += MixingValves(graph, layout, iterate, loop.Branches, state);
+            }
+
             worst = Math.Max(worst ?? drop, drop);
         }
 
         if (worst is null && onALoop
             && graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(component)) is { } own)
         {
-            return Resistance(graph, state, own, iterate.Values[layout.BranchFlow(own.Index)], component);
+            // Its own branch, and the mixing valve it draws through when that branch is a valve's common leg: the
+            // consumer circuit primary-secondary practice sizes a secondary pump for (S-92).
+            var mixing = component is PumpComponent
+                ? MixingValves(graph, layout, iterate, [own], state)
+                : 0;
+
+            return Resistance(graph, state, own, iterate.Values[layout.BranchFlow(own.Index)], component) + mixing;
         }
 
         return worst;
+    }
+
+    /// <summary>What the mixing valves a pump's loop crosses by their common port drop, fully open at the flow through it (<c>S-92</c>).</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current values.</param>
+    /// <param name="branches">The loop through the pump, or the pump's own branch.</param>
+    /// <param name="state">The fluid at the pump's inlet, for the density.</param>
+    /// <returns>Pa, non-negative.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>A pump's head is every drop in its circuit, the valve's included</strong>: Siemens,
+    /// <em>Hydronics in building systems</em>, 2.4.2 -- <c>Δp_pump = Δp_generation + Δp_supply + Δp_valve +
+    /// Δp_consumer + Δp_return</c> -- and in a mixing circuit the three-port valve stands in the consumer circuit
+    /// its pump drives at constant flow (1.4.5). The valve is a junction element, in no branch's path, so the
+    /// branch sum never saw it: the floor block of a series pair was sized to its coil's 20 kPa and asked to
+    /// drive 20 kPa and the valve's 7.5, and no position could satisfy the valve's law.
+    /// </para>
+    /// <para>
+    /// Fully open at the common port's flow, the figure the valve was selected to (<c>D-122</c>): with linear legs
+    /// the drop through the valve is that band's whatever the mixing ratio. Only a loop that passes the common
+    /// port counts one -- a loop from one switched leg to the other is not a path the water takes. The Kv is the
+    /// graph's: a pump is sized on a graph lowered from its pass's other sizes (<see cref="Apply"/>), so it is the
+    /// Kv the three-way rule chose in the same pass.
+    /// </para>
+    /// </remarks>
+    private static double MixingValves(
+        CircuitGraph graph, SystemLayout layout, StateVector iterate, IReadOnlyList<Branch> branches, FluidState state)
+    {
+        var drop = 0.0;
+
+        foreach (var valve in graph.JunctionElements.OfType<ThreeWayValveComponent>())
+        {
+            if (!valve.BypassConnected
+                || branches.FirstOrDefault(branch =>
+                    (ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+                    && ValveLegs.PortName(branch, valve) == "ab") is not { } common)
+            {
+                continue;
+            }
+
+            var across = ValveLaw.PressureDrop(valve.Kv, iterate.Values[layout.BranchFlow(common.Index)], state.Density.SiValue);
+
+            if (double.IsFinite(across))
+            {
+                drop += across;
+            }
+        }
+
+        return drop;
     }
 
     /// <summary>What a run of components resists at a flow, by their own laws.</summary>

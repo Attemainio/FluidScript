@@ -433,7 +433,13 @@ public sealed partial class OuterLoop(
                     { Valves = valves });
             }
 
-            var (next, chosen, said, raisedNow) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
+            var (next, chosen, said, raisedNow) = Apply(
+                lowered.Graph,
+                solve.Solution,
+                overlay,
+                posedness,
+                layout,
+                lower: sizes => Lowering.Lower(current, substance, new ComponentFactory(bores, sizes, substance), name).Graph);
             raised = raisedNow;
 
             bases = chosen;

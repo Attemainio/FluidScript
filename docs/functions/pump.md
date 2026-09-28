@@ -31,6 +31,13 @@ a heat exchanger with a power and two temperatures fixes it through an energy ba
 then sized to it. Everything on the loop states its own drop, so the number includes your pipes,
 valves and exchangers and nothing you did not write down.
 
+That includes a mixing valve the pump draws through. In a mixing circuit — a three-way valve feeding a
+consumer's pump — the valve stands in the consumer's circuit, so its drop through the common port,
+fully open at the consumer's flow, is part of that pump's head: a coil dropping 20 kPa behind a Kv 6.3
+valve passing 0.48 l/s asks 27.5 kPa, 2.8 m. And the head is read against the circuit as the same pass
+sized it: when a coil is re-rated to the flow the solve found, or a valve is given its Kv, the pump is
+sized after them, so it never drives last pass's circuit.
+
 **A loop with a second pump on it is that pump's to drive, not this one's.** Two pumps in series on
 one loop have one head between them, and the loop equation alone does not say how it divides. The
 convention is primary–secondary practice: the primary pump is sized for the primary circuit, each

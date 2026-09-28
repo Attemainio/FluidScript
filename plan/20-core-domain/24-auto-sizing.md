@@ -425,6 +425,23 @@ number.
 3. Multiply by the pump's explicit `margin`, default 1.0.
 4. Basis: `"{head} m at {flow} l/s — loop drop {dp} kPa"`.
 
+**Every drop around the loop includes the mixing valve's, and the drops are this pass's** (`S-92`, `S-69`,
+2026-09-28). The convention is the manufacturers': "the differential pressure across the pump is supposed to
+be equal to the sum of all other partial pressure drops, Δp_pump = Δp_generation + Δp_supply + Δp_valve +
+Δp_consumer + Δp_return" (Siemens, *Hydronics in building systems*, 2.4.2), and in a mixing circuit the
+three-port valve stands in the consumer circuit that the consumer pump drives at constant flow (1.4.5). Two
+things kept the valve out. A three-way valve with its bypass connected is a junction element, at the ends of
+branches and in no branch's path, so a sum over the branches never met it; a loop through its common port now
+adds its full-open drop at the common port's flow -- the figure it was selected to (`D-122`), and with linear
+legs its drop whatever the mixing ratio -- and so does a pump sized to its own branch when every loop through it
+is shared (`D-93`), since that branch is the consumer circuit. And every rule reads the graph its pass was
+lowered with, so a coil re-rated to the flow the pass found, or a valve given its Kv, reached the pump a pass
+late; the pumps are now sized last, on a graph lowered from the pass's other choices, as `Prepare`'s second
+application already did before the first solve. Measured: the block pumps of the series header 8c went from
+0.91 m ("loop drop 8.9 kPa", its coils at the previous pass's rating) to 2.82 m (27.5 kPa: the coil's 20 and
+its Kv 6.3 valve's 7.5), and 8c settles in four passes where it stalled; the header with two series branches
+(`S-92`) settles in three where it left the fluid's domain; no converging sample moved.
+
 **A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
 `p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved
 density and g -- the mean of the inlet and outlet densities, the convention the pump's residual uses,

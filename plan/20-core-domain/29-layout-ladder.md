@@ -634,7 +634,9 @@ in margins, not in units, and the pictures scale with the margin. The scripts we
 radiators: `step-08c-header-series-four.fluid`, the radiators at 50/40 and 20 kW, then AHU, floor
 and DHW loads cooling the ring 40 → 36 → 33 → 30 with sized duties, `HS1` at 30 kW, `N4`–`N6`
 inline between the branches (marked `S-63` like 8b; since `S-63` closed it carried `S-68`, a
-seed flow-field defect of its own; since `S-68` closed on 2026-09-19 it carries `S-69`). The first
+seed flow-field defect of its own; since `S-68` closed on 2026-09-19 it carries `S-69`; since
+`S-69` closed on 2026-09-28 -- each block pump's head now counts its mixing valve -- it carries no
+marker and settles in four passes). The first
 form of the script had each load's `in` equal to the temperature it is fed -- 40 into an AHU
 stated `in=40` -- which asks its valve to sit exactly on its open bound with nothing to mix, the
 one point where the `in` constraint has no sensitivity to the position; the script now gives each

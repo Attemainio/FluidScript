@@ -345,7 +345,8 @@ no duty on a stream seeded at its design flow; and a three-way valve whose coil 
 balanced flow, from which the stated `in` and `out` partition the coil and the recirculating leg,
 skipping a switched-off coil (`S-56`). On the four-block series ring the seed's residual fell from
 1.52 to 0.185 and every coil and duty seeded at its answer; the ring still does not solve, and what is
-left is the sizing passes, not the seed (`S-69`). The same script found `EquationSystem` reading a
+left is the sizing passes, not the seed (`S-69`) -- the block pumps' head, which left out the mixing valve each
+draws through, and closed with it (2026-09-28, [`24`](../20-core-domain/24-auto-sizing.md) Pump). The same script found `EquationSystem` reading a
 `dt` row's sign from the power as written rather than as carried: `load power=20 dt=20` is lowered to
 -20 kW (`22`), and the row demanded that the load heat its stream by 20 K.
 
