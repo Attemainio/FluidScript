@@ -423,8 +423,11 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   a ring is a block, not only the one through the consumer. The last in flow order is the ring's
   right side with its outlet facing back; each earlier one stands on the top rail as a member with
   its outlet facing *on* -- its split junction at the bottom-right corner (C10) with the free port
-  to the right -- and the rail continues level from that outlet into the next member, so a chain of
-  blocks steps down from outlet to inlet (the series header). A block is laid out on a clean canvas:
+  to the right -- and the rail climbs from that outlet back to its own level, a margin and a fifth clear of the
+  block's boxes and bubbles, into the next member, so a chain of blocks stands in a row (the series header,
+  `D-187`; a staircase, each block level with the outlet feeding it, until then). The ring's return runs under the
+  row a margin and a fifth below its lowest box, and a right-side block whose outlet would stand above that return
+  is laid again deeper so its outlet meets it (C12's open-form rule). A block is laid out on a clean canvas:
   nothing placed before it is an obstacle to its own arrangement, and it is slid into its parent
   afterwards, jumping past each obstacle by whole tenths. A load whose power is sized from stated
   inlet and outlet temperatures is a consumer of nominal duty, so a series branch's second load is

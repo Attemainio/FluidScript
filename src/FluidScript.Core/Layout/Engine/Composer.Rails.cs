@@ -382,6 +382,9 @@ internal sealed partial class Composer
         // Branches that rejoin this rail (C14, C-130): laid as a row beside the spine once the rail reaches the merge.
         var rows = new List<(Member Split, Branch Branch, List<Member> Members, List<int> Spine)>();
 
+        // D-187: the rail's level, to which it climbs back after a block that leaves it lower, so blocks in series stand in a row.
+        double? level = cursor.Outward == Direction.Right ? cursor.At.Y : null;
+
         foreach (var item in items)
         {
             if (item.Unit is { } u)
@@ -397,6 +400,26 @@ internal sealed partial class Composer
                 cursor = uOut;
                 pending = [uOut.At];
                 previous = u.OutFrom;
+
+                // D-187 (amending C11's step down): a block whose outlet leaves the rail lower climbs back to it, one margin clear
+                // of the block's boxes and bubbles, so the next block in series stands level with this one -- a row, not a staircase.
+                if (level is { } rail && uOut.Outward == Direction.Right && uOut.At.Y < rail - Eps)
+                {
+                    var boxes = u.Members.Select(_sheet.InnerOf).Concat(_sheet.HatBoxes(u.Members)).ToList();
+                    // A fifth of a margin past the clearance edge, as the return under hanging branches keeps (Under), so the
+                    // climb does not run along a box's outer edge.
+                    var clear = boxes.Max(static b => b.Right) + _margin + (_margin / 5);
+                    var x = Math.Max(uOut.At.X + _margin, clear);
+
+                    // The ring's return now runs under the row rather than meeting the last step, so it keeps under the block
+                    // as it keeps under a parallel row (RowFloor).
+                    _rowBottom = Math.Min(_rowBottom, boxes.Min(static b => b.Y) - (_margin / 5));
+                    _climbed = true;
+                    pending.Add(new Point(x, uOut.At.Y));
+                    cursor = Sheet.Anchor(new Point(x, rail), Direction.Right, Direction.Right);
+                    pending.Add(cursor.At);
+                }
+
                 continue;
             }
 

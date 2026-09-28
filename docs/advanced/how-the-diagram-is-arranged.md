@@ -102,7 +102,8 @@ is laid out first as a block of its own, its inlet and outlet side by side facin
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
 declared, each under the junction that feeds it and over the one it returns to; branches in series
-step down from one block's outlet to the next block's inlet; a branch that leaves a level pipe and
+stand in a row, each block's outlet climbing back to the supply line into the next block's inlet, with the
+return running under them all; a branch that leaves a level pipe and
 rejoins that same pipe -- a duty and a standby pump, each with its valve -- runs as a second row just
 over the first, outside the loop, rising from the split and dropping into the merge, the branch you
 wrote first on top; where the two branches hold the same kinds of component in the same order, each

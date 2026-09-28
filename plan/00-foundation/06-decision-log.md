@@ -229,6 +229,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-184` | Accepted | 2026-09-28 | Only what is drawn takes room on a run |
 | `D-185` | Accepted | 2026-09-28 | A diagram never draws a name its author did not write |
 | `D-186` | Accepted | 2026-09-28 | A ring's source stands at the top of its side, level with the supply it feeds |
+| `D-187` | Accepted | 2026-09-28 | Blocks in series stand in a row, not a staircase |
 <!-- index:end -->
 
 ---
@@ -8391,3 +8392,29 @@ first, as C15 places them. Fixed in the same change; it had been masked while th
 narrows 21.65 -> 21.0; the stress plant's source drops 1.1 of its slack so its two supply sensors stand on the rise.
 The user's accepted sketch of that plant had `FE_S` inside `HS1`'s clearance; the layout's gate refuses that, so the
 source goes down that far and no further.
+
+## D-187 · Blocks in series stand in a row, not a staircase
+
+**Accepted · 2026-09-28** (the user accepted R4 -- "a series chain as a row" -- with R2 and R3; `29`'s open question of
+2026-09-17, "is a series chain a staircase ... or a row of blocks on one rail, with the rail climbing back between
+them?") · amends `28` C11's step down · constrains [`28`](../20-core-domain/28-layout-solver.md) C11,
+[`29`](../20-core-domain/29-layout-ladder.md) step 8c, `docs/advanced/how-the-diagram-is-arranged.md`
+
+**What changes.** C11 laid a block on the top rail with its outlet facing on and continued the rail level from that
+outlet, so each block in series stood one block-height below the last: 8c's four blocks were a staircase 8.3 high.
+Now a block whose outlet leaves the rail lower climbs back to the rail's level -- one margin and a fifth clear of its
+boxes and bubbles, so the climb does not run along an outer edge -- and the next block stands level with it. The
+ring's return runs under the row, a margin and a fifth under its lowest box (`RowFloor`), and where it does the
+ring's right-side block, whose outlet would otherwise drop beside its own bypass, is laid again deeper so its outlet
+meets the return: C12's open-form rule, applied only to a ring whose blocks climbed.
+
+**Measured.** Four pictures change, all hard 0 and soft 0: 8b 8.0 × 4.1 -> 8.6 × 2.8, 8b with controls 11.8 × 5.4 ->
+12.7 × 4.9, 8c 16.0 × 8.3 -> 17.8 × 2.8, 8c with controls 21.0 × 9.6 -> 22.8 × 4.9. A little wider for the climbs,
+a third to a half the height. The return sensor in the controlled pictures hangs under the return rail.
+
+**Rejected.** *Rebuilding the right-side block deeper on every ring whose return is lowered* (the parallel headers
+too): 0.8 narrower there, but the right block's bypass then ran through the neighbouring coil's clearance (+2 soft
+in 8a, 8d, 8e), a change nobody asked for. **R3** -- a header branch entering its valve from above -- was accepted
+and then dropped the same day: the valve's `a` and `b` are always at right angles with `ab` on the straight run
+(`D-112`), so with `a` facing up a vertical pipe still stands left of the valve (the bypass) unless the whole block
+becomes a column, and 8d's gap stays two margins either way.

@@ -14,6 +14,9 @@ internal sealed partial class Composer
     private readonly Dictionary<int, int> _parallelMerge = [];
     private double _rowBottom = double.MaxValue;
 
+    /// <summary>Whether a block on this ring's top rail climbed back to the rail (<c>D-187</c>), so its return runs under a row.</summary>
+    private bool _climbed;
+
     /// <summary>The branches beside a ring's source that rise into a top-rail merge (<c>D-159</c>), by merge; set per ring.</summary>
     private readonly Dictionary<int, Branch> _rising = [];
     private string? _declined;
@@ -95,6 +98,7 @@ internal sealed partial class Composer
             _floorRaised = false;
             _pass = pass;
             _rowBottom = double.MaxValue;
+            _climbed = false;
             _parallelMerge.Clear();
 
             if (pass > 0)
@@ -235,7 +239,7 @@ internal sealed partial class Composer
 
         var column = upper.Count + lower.Count > 0 || _rising.Count > 0;
         var mark = _sheet.Groups.Count;
-        var (unit, unitStart, unitEnd, items, range, _) = RailItems(path, mark);
+        var (unit, unitStart, unitEnd, items, range, unitGroups) = RailItems(path, mark);
 
         if (unit is null)
         {
@@ -358,6 +362,35 @@ internal sealed partial class Composer
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, fixedHead ? sIn.At.Y : sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
         yBottom = Math.Min(yBottom, Math.Min(Under(hangers), Math.Min(RowFloor(bottomMembers), fixedHead ? InstrumentFloor(bottomMembers, top.End.At.Y) : double.PositiveInfinity)));
+
+        // D-187: blocks in a row on the top rail take the return under them, so a right-side block whose outlet leaves leftwards
+        // above that return would drop beside its own bypass. It is rebuilt deeper instead, its outlet on the rail -- C12's rule
+        // for the open form, here for the ring the row makes.
+        if (_climbed && range is { } rightRange && unit.Out.Outward == Direction.Left
+            && top.End.At.Y - drop + unit.Out.At.Y - unit.In.At.Y is var outletAt && outletAt > yBottom + Eps)
+        {
+            _sheet.Groups.RemoveRange(mark, unitGroups);
+            var at = _sheet.Groups.Count;
+
+            if (Block(rightRange.Loop, cycle[rightRange.Start], cycle[rightRange.End], Direction.Left, outletAt - yBottom) is not { } deeper)
+            {
+                return attempt.Decline("the ring's right-side block could not be laid deeper under the row");
+            }
+
+            unit = deeper;
+            var created = _sheet.Groups.GetRange(at, _sheet.Groups.Count - at);
+            _sheet.Groups.RemoveRange(at, created.Count);
+            _sheet.Groups.InsertRange(mark, created);
+
+            foreach (var i in unit.Members)
+            {
+                _sheet.Placed[i] = false;
+            }
+
+            (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);
+            (drop, var own) = Bottom(unit, top.End.At.Y, fixedHead ? sIn.At.Y : sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
+            yBottom = Math.Min(yBottom, own);
+        }
 
         if (!fixedHead && !column)
         {

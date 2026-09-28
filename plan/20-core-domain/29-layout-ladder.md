@@ -650,7 +650,9 @@ rail at `y = 1`, `TV_AHU` at `−1.1`, `TV_FLR` at `−3.2`, `TV_DHW` at `−5.3
 `−7.4`, `HS1` centred on a 6.3-unit side. Ten bends, length 47.9, hard 0, soft 0. The question
 the picture puts to the user: is a series chain a staircase -- each block level with the outlet
 that feeds it, which is C11 as built -- or a row of blocks on one rail, with the rail climbing back
-between them?
+between them? **Answered 2026-09-28 (`D-187`): a row.** The four blocks stand level on the supply rail at
+`y = 1`, each outlet climbing back past its coil, the return under them; 17.8 × 2.8 where the staircase
+was 16.0 × 8.3, hard 0, soft 0.
 
 **Four in parallel (2026-09-17):** `step-08d-header-parallel-four.fluid`, 8a's shape with two more
 taps on each rail: supply `N3 → N6`, return `N10 → N7`, every load at 50/30 (30, 24, 18, 12 kW),

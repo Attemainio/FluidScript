@@ -2192,6 +2192,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     supply bubbles need. Making it found that the bubble room test predicted one bubble per point; it now predicts
     every one. Seventeen pictures change, all hard 0, no extent grows. Core 2602/0/2, Api 87/0, frontend 257/0.
     Next: R3, a header branch entering its valve from above; then R4, a series chain as a row.
+  - **Blocks in series stand in a row (2026-09-28; `D-187`, R4; R3 dropped).** A block that leaves the top rail lower
+    climbs back to it, the return runs under the row, and the right-side block is laid deeper to meet it. 8c 16.0 ×
+    8.3 -> 17.8 × 2.8, 8b 8.0 × 4.1 -> 8.6 × 2.8; four pictures change, all hard 0 soft 0. R3 was dropped on
+    inspection: the valve's port geometry (`D-112`) leaves a vertical pipe left of the valve whichever way `a`
+    faces, so 8d's gap cannot close without making every block a column. Core 2602/0/2, Api 87/0, frontend 257/0.
+    The layout pass the user asked for (R1 `D-184`, labels `D-185`, R2 `D-186`, R4 `D-187`) is complete; next by
+    the earlier ranking is group A, the flow seed (`S-86`, `S-91`, `S-88`, `S-69`, `S-85`, `C-44`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
