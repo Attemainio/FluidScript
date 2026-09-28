@@ -55,22 +55,19 @@ public static class LabelLayout
     public const int Reach = 4;
 
     /// <summary>The box a label of this text reserves, centred on a point.</summary>
-    /// <param name="text">The label's text.</param>
+    /// <param name="text">The label's text; <see langword="null"/> for no label, which reserves an empty box at the point (<c>D-185</c>).</param>
     /// <param name="centre">Where its centre sits.</param>
     /// <returns>The box, world units.</returns>
-    public static Box BoxFor(string text, Point centre)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        return Box.Around(centre, Math.Max(1, text.Length) * Advance * Size, Size);
-    }
+    public static Box BoxFor(string? text, Point centre) =>
+        text is null ? Box.Around(centre, 0, 0) : Box.Around(centre, Math.Max(1, text.Length) * Advance * Size, Size);
 
     /// <summary>Places every label that is placed at all, and boxes the rest where they stand.</summary>
     /// <param name="placements">The scene's placements, in scene order, with each <see cref="Placement.LabelAt"/> at the side its symbol names.</param>
     /// <param name="routes">Every route, pipes and signals; a label keeps clear of all of them.</param>
-    /// <param name="textOf">The text a component's label carries: its tag, or its id.</param>
+    /// <param name="textOf">The text a component's label carries: its tag, or its id; <see langword="null"/> for a name the script never wrote (<c>D-185</c>).</param>
     /// <returns>The same placements with <see cref="Placement.LabelAt"/>, <see cref="Placement.LabelBox"/> and <see cref="Placement.LabelClear"/> set.</returns>
     public static ImmutableArray<Placement> Place(
-        IReadOnlyList<Placement> placements, IReadOnlyList<Route> routes, Func<Placement, string> textOf)
+        IReadOnlyList<Placement> placements, IReadOnlyList<Route> routes, Func<Placement, string?> textOf)
     {
         ArgumentNullException.ThrowIfNull(placements);
         ArgumentNullException.ThrowIfNull(routes);
@@ -94,11 +91,11 @@ public static class LabelLayout
         {
             var text = textOf(placement);
 
-            if (placement.IsInline || placement.Inner.ContainsInterior(placement.LabelAt))
+            if (text is null || placement.IsInline || placement.Inner.ContainsInterior(placement.LabelAt))
             {
-                // Not laid out: an inline element's label is a detail-level annotation on its run, and an
-                // instrument's label sits inside its own bubble.
-                result.Add(placement with { LabelBox = BoxFor(text, placement.LabelAt), LabelClear = true });
+                // Not laid out: a name the script never wrote is not drawn (D-185), an inline element's label is a
+                // detail-level annotation on its run, and an instrument's label sits inside its own bubble.
+                result.Add(placement with { Label = text, LabelBox = BoxFor(text, placement.LabelAt), LabelClear = true });
                 continue;
             }
 
@@ -123,7 +120,7 @@ public static class LabelLayout
             }
 
             placed.Add(bestBox);
-            result.Add(placement with { LabelAt = best, LabelBox = bestBox, LabelClear = bestCost == 0 });
+            result.Add(placement with { Label = text, LabelAt = best, LabelBox = bestBox, LabelClear = bestCost == 0 });
         }
 
         return result.ToImmutable();

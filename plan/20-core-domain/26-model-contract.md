@@ -491,6 +491,14 @@ word-valued parameter -- a pipe's `material`, a controller's `type` and `action`
 `null` beside it; every pipe carries its `material`, the series it names or the script's catalogue as a default, since
 that series decides its bore and its roughness (`C-142`). The frontend reads both; `contractMajor` stays 4.
 
+### `4.1` → `4.2`: a placement's label
+
+The user's rule (2026-09-28, `D-185`): a diagram never draws a name its author did not write. Additive, so a minor.
+A placement gains an optional `label`, the text the renderer draws -- the tag, else the name -- absent for a name the
+compiler made (an I2, I3, I7, I8 or I9 component, or a pipe's cell). The layout reserves no label box for it, so
+nothing is laid out around a name nobody sees. The frontend draws `label` instead of choosing a text itself;
+`contractMajor` stays 4.
+
 ### `pressureDatum` moved out of the circuit, and that is a correction
 
 It was `circuit.pressureDatum`, which quietly asserted one datum per circuit. That was never true —

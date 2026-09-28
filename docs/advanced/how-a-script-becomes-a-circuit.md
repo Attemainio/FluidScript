@@ -40,7 +40,8 @@ you wrote. The script above declares two — `N1` and `N3` — and the graph has
 The `__` nodes exist because **components do not connect to each other; they connect to nodes.**
 Without that rule there would be nowhere for the temperature between the pump and the exchanger to
 live, and that temperature is the one you usually want to see. The generated names use `__` so they
-are recognisable, and the diagram draws them smaller than the ones you named.
+are recognisable in the log and the hover card; the diagram never draws them, because you did not
+write them.
 
 **A port on a junction has its own point.** `N2` is where the primary supply and the recirculation
 meet, so its temperature is the mix. The valve's bypass leaving at 50 °C is not the mix, and neither

@@ -227,6 +227,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-182` | Accepted | 2026-09-27 | The canvas draws the merged plant, in the case the interface chooses |
 | `D-183` | Accepted | 2026-09-28 | A component port on a junction has a point of its own; the junction only mixes |
 | `D-184` | Accepted | 2026-09-28 | Only what is drawn takes room on a run |
+| `D-185` | Accepted | 2026-09-28 | A diagram never draws a name its author did not write |
 <!-- index:end -->
 
 ---
@@ -8337,3 +8338,29 @@ sit on. *A shorter reserve with the even spread kept*: the bubble would stand at
 crowd where the points are squeezed; whether an inferred point's name is drawn at all is the next question. Where the
 source stands on its side (R2), a header branch's entry into its valve (R3) and a series chain as a row (R4) are the
 user's picture decisions still to come.
+
+## D-185 · A diagram never draws a name its author did not write
+
+**Accepted · 2026-09-28** (the user's rule: "Never draw a name we did not write") · refines `D-34` (a label is the
+tag, else the name) · constrains [`53`](../50-frontend/53-canvas-renderer.md) §Level of detail,
+[`26`](../20-core-domain/26-model-contract.md) (`4.2`), `docs/advanced/the-canvas.md`,
+`docs/advanced/how-a-script-becomes-a-circuit.md`, `docs/advanced/how-the-diagram-is-arranged.md`
+
+**What was wrong.** Every placement carried a label, and the canvas drew the compiler's own names above 3× zoom --
+`PU1__HE1`, `3WV__N3__in`, `PU1__in` -- and an I3 boundary's or an I8 sensor's at every zoom. `D-183` and `D-184`
+made it worse: more inferred points, squeezed closer, and their names overlapping where they stood.
+
+**The rule.** A label is drawn only for a name the script wrote: a declared component, or a node named in a
+connection line (I1). Everything else the compiler made -- I2, I3, I7, I8 and I9 components, and a pipe's cells --
+has no label: Core's layout leaves `Placement.Label` null and reserves no box for it, the contract omits
+`label` (`4.2`, additive), and the renderer draws only what `label` says. Hover and the log still name every
+component, because those answer "what is this", which a drawing does not.
+
+**Why.** The drawing is the author's plant; a name they never wrote is noise they cannot relate to their script, and
+a name like `3WV__N3__in` is implementation, not engineering. The renderer no longer chooses a label's text, so the
+rule lives in one place, Core. Measured: one layout picture changes (step 2, whose I3 boundary no longer has a label
+to place), no extent or placement moves elsewhere; the canvas goldens lose exactly the inferred names.
+
+**Left as it is.** An I8 sensor's bubble is empty: its function letters (`TE`) are not a name, but drawing them is a
+separate choice about bubble content (ISA-5.1's identification) for the user to make. A pipe's size beside its line,
+which published P&ID practice shows, is likewise a separate addition, not part of this rule.

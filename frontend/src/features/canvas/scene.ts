@@ -158,7 +158,8 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
     const labelAt = pointOf(placement.labelAt);
     const labelBox = boxOf(placement.labelBox);
     const labelClear = placement.labelClear;
-    const text = component?.tag ?? placement.componentId;
+    // The layout names only what the script wrote (D-185): an inferred node, pipe or sensor carries no label.
+    const text = placement.label ?? null;
 
     if (isDegenerate(inner)) {
       const kind = placement.symbolId.startsWith('pipe') ? 'pipe' : 'node';
@@ -169,16 +170,18 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
         inferred,
         boundary: kind === 'node' && (connectionsOf.get(placement.componentId) ?? 0) < 2,
       });
-      labels.push({
-        ownerId: placement.componentId,
-        text,
-        at: labelAt,
-        box: labelBox,
-        clear: labelClear,
-        owner: centreOf(inner),
-        inferred,
-        inline: true,
-      });
+      if (text !== null) {
+        labels.push({
+          ownerId: placement.componentId,
+          text,
+          at: labelAt,
+          box: labelBox,
+          clear: labelClear,
+          owner: centreOf(inner),
+          inferred,
+          inline: true,
+        });
+      }
       continue;
     }
 
@@ -202,16 +205,18 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
       ports: portsOf(placement),
       style: placement.style ?? null,
     });
-    labels.push({
-      ownerId: placement.componentId,
-      text,
-      at: labelAt,
-      box: labelBox,
-      clear: labelClear,
-      owner: centreOf(inner),
-      inferred,
-      inline: false,
-    });
+    if (text !== null) {
+      labels.push({
+        ownerId: placement.componentId,
+        text,
+        at: labelAt,
+        box: labelBox,
+        clear: labelClear,
+        owner: centreOf(inner),
+        inferred,
+        inline: false,
+      });
+    }
   }
 
   const corner = cornerOf(model.style.default.corner) ?? 'sharp';

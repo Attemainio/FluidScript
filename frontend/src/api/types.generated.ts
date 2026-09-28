@@ -756,6 +756,10 @@ export interface Placement {
     [k: string]: Anchor | undefined;
   };
   /**
+   * The label's text: the component's tag, else its name; absent for a name the script never wrote -- a node, pipe or sensor the compiler inferred, or a pipe's cell -- which the renderer does not draw (D-185, contract 4.2).
+   */
+  label?: string | null;
+  /**
    * Where the label sits, [x, y]: the centre of LabelBox.
    */
   labelAt: number[];

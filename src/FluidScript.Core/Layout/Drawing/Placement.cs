@@ -34,6 +34,13 @@ public sealed record Placement
     /// <summary>Every port's anchor after placement, by port name; a node's ports each get their own entry.</summary>
     public required ImmutableSortedDictionary<string, PlacedAnchor> Anchors { get; init; }
 
+    /// <summary>
+    /// The label's text: the component's tag, else its name -- and <see langword="null"/> for a name the script never
+    /// wrote, which is drawn nowhere and reserves no room (<c>D-185</c>): a node or a pipe the compiler inferred, or a
+    /// pipe's cell.
+    /// </summary>
+    public string? Label { get; init; }
+
     /// <summary>Where the label sits: the centre of <see cref="LabelBox"/>.</summary>
     public required Point LabelAt { get; init; }
 

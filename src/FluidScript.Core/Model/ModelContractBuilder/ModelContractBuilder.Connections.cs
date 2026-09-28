@@ -120,6 +120,7 @@ public static partial class ModelContractBuilder
                 static a => a.Key,
                 static a => new AnchorWire { At = [Round(a.Value.At.X), Round(a.Value.At.Y)], Direction = [a.Value.Direction.X, a.Value.Direction.Y] },
                 StringComparer.Ordinal),
+            Label = p.Label,
             LabelAt = [Round(p.LabelAt.X), Round(p.LabelAt.Y)],
             LabelBox = Styles.BoxOf(p.LabelBox),
             LabelClear = p.LabelClear,

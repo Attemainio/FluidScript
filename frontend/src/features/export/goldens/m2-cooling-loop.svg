@@ -3,7 +3,7 @@
 <desc id="export-desc">FluidScript diagram
 document: plant_01
 application: 0.0.0-test
-model contract: 4.1
+model contract: 4.2
 language major: 2
 source hash: sha256:fa08d7cb8ad07ffbfe7518030c9ac428892b65affaa3fc84afd1ea70c204f584
 catalogue: steel_en10255 2026.1

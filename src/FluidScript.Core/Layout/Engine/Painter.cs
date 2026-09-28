@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Layout.Routing;
 
@@ -380,7 +381,7 @@ internal sealed partial class Painter
 
         var labelled = LabelLayout.Place(placements, routes, p => TextOf(p.ComponentId));
 
-        foreach (var placement in labelled.Where(static p => !p.IsInline))
+        foreach (var placement in labelled.Where(static p => !p.IsInline && p.Label is not null))
         {
             extent = extent is { } e ? e.Union(placement.LabelBox) : placement.LabelBox;
         }
@@ -501,9 +502,16 @@ internal sealed partial class Painter
         return false;
     }
 
-    /// <summary>The text a label carries: the tag where the declaration has one, else the id (<c>D-34</c>).</summary>
-    private string TextOf(string componentId) =>
-        _view.Model.Components.FirstOrDefault(c => string.Equals(c.Name, componentId, StringComparison.Ordinal))?.Tag ?? componentId;
+    /// <summary>
+    /// The text a label carries: the tag where the declaration has one, else the name (<c>D-34</c>) -- but only a name
+    /// the script wrote, declared or named in a connection line (I1). A node, pipe or sensor the compiler inferred, and a
+    /// pipe's cell, has no label: a diagram never draws a name its author did not write (<c>D-185</c>).
+    /// </summary>
+    private string? TextOf(string componentId) =>
+        _view.Model.Components.FirstOrDefault(c => string.Equals(c.Name, componentId, StringComparison.Ordinal)) is { } component
+        && component.Origin is Origin.Declared or Origin.Inferred { Rule: "I1" }
+            ? component.Tag ?? component.Name
+            : null;
 
     /// <summary>A label's first position, just outside the placed box on the side the symbol's label anchor names.</summary>
     private Point LabelFor(int component)

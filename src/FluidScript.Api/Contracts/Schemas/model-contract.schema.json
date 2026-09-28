@@ -1473,6 +1473,13 @@
                   "$ref": "#/properties/symbols/items/properties/portAnchors/additionalProperties"
                 }
               },
+              "label": {
+                "description": "The label\u0027s text: the component\u0027s tag, else its name; absent for a name the script never wrote -- a node, pipe or sensor the compiler inferred, or a pipe\u0027s cell -- which the renderer does not draw (D-185, contract 4.2).",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "labelAt": {
                 "description": "Where the label sits, [x, y]: the centre of LabelBox.",
                 "type": "array",

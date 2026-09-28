@@ -2181,6 +2181,12 @@ that governed each size. What P6.8 still owes, and what comes after:
     counts; 8b 14.6 -> 11.8 wide, 8c 23.4 -> 21.65; step 7 narrower and taller (`TE_R` outside its ring). The user
     accepted the pictures. Next, the user's picture decisions: inferred points' labels (they crowd now), R2 the source
     level with its supply rail, R3 a header branch entering its valve from above, R4 a series chain as a row.
+  - **A diagram never draws a name its author did not write (2026-09-28; `D-185`; contract `4.2`).** The user's rule.
+    Core's layout gives a placement a `Label` only for a declared component or an I1 node, reserves no box otherwise,
+    and the wire carries `label`; the canvas draws only that. One layout picture changed (step 2's I3 boundary); the
+    canvas goldens lose exactly the inferred names. An I8 sensor's bubble is now empty -- its function letters are a
+    separate choice, as is a pipe's size beside its line. Core 2602/0/2, Api 87/0, frontend 257/0. The user accepted
+    R2, R3 and R4 (2026-09-28); they are next, in that order.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

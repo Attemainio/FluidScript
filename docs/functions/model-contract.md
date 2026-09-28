@@ -485,6 +485,7 @@ One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y`
 | `mirrored` | boolean | Whether the symbol is mirrored left-to-right before the turn. |
 | `arrangement` | string | `default` or one of the symbol's alternative arrangements (`D-102`). |
 | `anchors` | object of [`Anchor`](#anchor) | Every port's anchor in world coordinates with its outward direction; a node's ports are `#0`, `#1`, … |
+| `label` | string or `null` | The label's text: the component's tag, else its name; absent for a name the script never wrote -- a node, pipe or sensor the compiler inferred, or a pipe's cell -- which the renderer does not draw (`D-185`, contract 4.2). Absent when not applicable. |
 | `labelAt` | array of number | Where the label sits, `[x, y]`: the centre of `LabelBox`. |
 | `labelBox` | array of number | The box the label reserves, `[x, y, width, height]`, from the declared metric (`D-73`): height is the label size, width the advance times the characters. The renderer draws the text centred in it. |
 | `labelClear` | boolean | Whether the label sits clear of every symbol, label and line; when `false` the renderer draws a leader from the label to its owner (`53`). |

@@ -78,7 +78,12 @@ public static class SceneSvg
                     svg.Append("<circle cx=\"").Append(F(inner.X * Scale)).Append("\" cy=\"").Append(Y(inner.Y)).Append("\" r=\"3\" fill=\"white\" stroke=\"#1f5f8b\"/>\n");
                 }
 
-                svg.Append("<text x=\"").Append(F(placement.LabelAt.X * Scale)).Append("\" y=\"").Append(Y(placement.LabelAt.Y)).Append("\" text-anchor=\"middle\" fill=\"#777\" font-style=\"italic\" font-size=\"9\">").Append(placement.ComponentId).Append("</text>\n");
+                // A name the script never wrote is not drawn (D-185); the hollow dot still shows where the point stands.
+                if (placement.Label is { } inlineLabel)
+                {
+                    svg.Append("<text x=\"").Append(F(placement.LabelAt.X * Scale)).Append("\" y=\"").Append(Y(placement.LabelAt.Y)).Append("\" text-anchor=\"middle\" fill=\"#777\" font-style=\"italic\" font-size=\"9\">").Append(inlineLabel).Append("</text>\n");
+                }
+
                 continue;
             }
 
@@ -130,7 +135,10 @@ public static class SceneSvg
                 svg.Append("<circle cx=\"").Append(F(anchor.At.X * Scale)).Append("\" cy=\"").Append(Y(anchor.At.Y)).Append("\" r=\"2.5\" fill=\"#c0392b\"/>\n");
             }
 
-            svg.Append("<text x=\"").Append(F(placement.LabelAt.X * Scale)).Append("\" y=\"").Append(Y(placement.LabelAt.Y)).Append("\" text-anchor=\"middle\" fill=\"#333\">").Append(placement.ComponentId).Append("</text>\n");
+            if (placement.Label is { } label)
+            {
+                svg.Append("<text x=\"").Append(F(placement.LabelAt.X * Scale)).Append("\" y=\"").Append(Y(placement.LabelAt.Y)).Append("\" text-anchor=\"middle\" fill=\"#333\">").Append(label).Append("</text>\n");
+            }
         }
 
         svg.Append("</svg>\n");

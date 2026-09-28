@@ -77,14 +77,26 @@ describe('the scene view', () => {
 
   it('shows and hides by level of detail: no labels below 0.5×, inline names above 3×', () => {
     const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
-    const scene = prepareScene(loop);
-    const at = (zoom: number): string => render(scene, detailFor(zoom));
-    expect(at(0.3)).not.toContain('<text');
-    expect(at(1)).toContain('>100PU01</text>');
-    expect(at(1)).not.toContain('>PU1__HE1</text>');
-    expect(at(1)).not.toContain('class="scene__port"');
-    expect(at(2)).toContain('class="scene__port"');
-    expect(at(4)).toContain('>PU1__HE1</text>');
+    const at = (model: typeof loop, zoom: number): string =>
+      render(prepareScene(model), detailFor(zoom));
+    expect(at(loop, 0.3)).not.toContain('<text');
+    expect(at(loop, 1)).toContain('>100PU01</text>');
+    expect(at(loop, 1)).not.toContain('class="scene__port"');
+    expect(at(loop, 2)).toContain('class="scene__port"');
+    // A name the script never wrote is drawn at no zoom (D-185): PU1__HE1 is I2's.
+    expect(at(loop, 4)).not.toContain('>PU1__HE1</text>');
+    // A written inline name -- a declared pipe, say -- appears above 3× only.
+    const named = {
+      ...loop,
+      layout: {
+        ...loop.layout,
+        placements: loop.layout.placements.map((p) =>
+          p.componentId === 'PU1__HE1' ? { ...p, label: 'P9' } : p,
+        ),
+      },
+    };
+    expect(at(named, 1)).not.toContain('>P9</text>');
+    expect(at(named, 4)).toContain('>P9</text>');
   });
 
   it('changes only the arrows when the solved flow reverses (53 invariant 7)', () => {

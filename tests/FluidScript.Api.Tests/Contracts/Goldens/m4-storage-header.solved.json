@@ -1,5 +1,5 @@
 {
-  "contractVersion": "4.1",
+  "contractVersion": "4.2",
   "provenance": {
     "sourceHash": "sha256:8acb7bb092fba371bbf0e66f7c7116c472bca40107b1495571531f08516d0410",
     "languageMajor": 2,
@@ -1220,6 +1220,7 @@
             ]
           }
         },
+        "label": "S1",
         "labelAt": [
           0,
           0.25
@@ -1311,6 +1312,7 @@
             ]
           }
         },
+        "label": "100S01",
         "labelAt": [
           1.1,
           0.31
@@ -1372,6 +1374,7 @@
             ]
           }
         },
+        "label": "S2",
         "labelAt": [
           0,
           -0.71
@@ -1433,6 +1436,7 @@
             ]
           }
         },
+        "label": "RAD_NETWORK",
         "labelAt": [
           2.45,
           0.25
@@ -1494,6 +1498,7 @@
             ]
           }
         },
+        "label": "AHU_NETWORK",
         "labelAt": [
           2.45,
           -0.71

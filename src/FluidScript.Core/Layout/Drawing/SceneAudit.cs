@@ -116,7 +116,7 @@ public static partial class SceneAudit
         // Labels (53 invariant 3a, C-84): a placed label's box holds no other symbol, no other label and
         // no line. Soft, because the layout places a label it cannot clear at its least-collided spot
         // with a leader rather than dropping it, and the count is what says how busy a drawing got.
-        var labelled = scene.Placements.Where(static p => !p.IsInline && !p.Inner.ContainsInterior(p.LabelAt)).ToList();
+        var labelled = scene.Placements.Where(static p => p.Label is not null && !p.IsInline && !p.Inner.ContainsInterior(p.LabelAt)).ToList();
 
         for (var i = 0; i < labelled.Count; i++)
         {

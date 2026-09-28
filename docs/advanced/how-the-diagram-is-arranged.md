@@ -67,7 +67,8 @@ moves to make room.
 
 **A pipe is a line, not a box.** A declared `pipe` and the pieces a pipe is split into have no box:
 they are points on the run between the two elements either side of them, and the line through them
-*is* the pipe; a pipe shows only its name beside the line. A node where three or more pipes meet is
+*is* the pipe; a pipe you declared shows only its name beside the line, and one the compiler made from a
+connection line shows nothing, since a diagram draws only the names you wrote. A node where three or more pipes meet is
 drawn as a small dot, with at most one pipe on each of its four sides. **Only what is drawn takes
 room:** a pipe's length is never drawn -- a diagram shows the system, not the pipework -- and a pipe,
 or a node the language added between two components, costs the line no length. A line is made longer

@@ -327,7 +327,11 @@ Conventions applied to every symbol:
 | < 0.5× | Symbols and routes only; no labels, no axes ticks, no grid |
 | 0.5×–1.5× | Names |
 | > 1.5× | Names, key values, port markers |
-| > 3× | Everything, including internal pipe nodes and inferred node names |
+| > 3× | Everything, including the names of declared pipes and two-connection nodes |
+
+**A name the script never wrote is drawn at no zoom** (`D-185`): an inferred node, pipe, pipe cell or sensor
+has no label on the wire, so the renderer has nothing to draw; hover and the log still name it. A node named
+only in a connection line (I1) was written, and keeps its label.
 
 Without level-of-detail, a 200-component circuit at fit zoom is unreadable text soup, and that is the
 first impression a user forms.
@@ -408,7 +412,7 @@ the labels.
 - [x] The prepared scene passes the shared renderer/export golden test in [`59-static-export`](59-static-export.md). (P5.6: one SVG per Api sample under `canvas/goldens`, rendered by the same component the pane uses; `59` reads the same markup.)
 - [x] An unknown component kind renders a labelled rectangle rather than breaking the canvas. (P5.6)
 - [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning. (Unmeasured: no browser launches in the build environment, `U-4`, and no 200-component golden exists on the frontend side. What Node measures, P5.11's `baseline.test.tsx`: 4.8 ms to prepare and render the 24-placement header to static markup, which extrapolates to ~40 ms at 200 -- over the 8 ms commit budget before the DOM is touched, so the budget is not met by extrapolation and a browser measurement is the next step, `U-10`.)
-- [x] Inferred components are visually distinguishable from declared ones without hovering. (P5.6: `--canvas-symbol-inferred` and an italic label.)
+- [x] Inferred components are visually distinguishable from declared ones without hovering. (P5.6: `--canvas-symbol-inferred` and an italic label; since `D-185` only an I1 node has a label to italicise, and every other inferred component has none.)
 - [x] Symbols carry their tag as a label, and a test asserts no DOM key, selection key, or export id
       contains a tag. (P5.6)
 - [x] The header's two pumps render with distinct DOM keys from their identifiers (`PU_AHU`,

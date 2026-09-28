@@ -142,7 +142,9 @@ diagram. Clicking a component's name in the log does both at once.
 
 Zoomed far out, only symbols and pipes are drawn, so a large plant is a shape rather than a fog
 of text. From half size the tags appear; from one and a half times, the port positions are marked
-as small dots; from three times, the names of the inferred nodes and pipes appear too.
+as small dots; from three times, the names of the pipes and two-connection nodes you declared appear
+too. A name you did not write is never drawn, at any zoom: the nodes, pipes and sensors the compiler
+added carry no label. Hover over one, or look in the log, to see what it is called.
 
 ## A kind the drawing does not know
 

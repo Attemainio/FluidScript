@@ -17,7 +17,10 @@ describe('prepareScene', () => {
       expect(scene.symbols.map((s) => s.id)).toEqual(boxed.map((p) => p.componentId));
       expect(scene.symbols.length + scene.marks.length).toBe(model.layout.placements.length);
       expect(scene.routes.length).toBe(model.layout.routes.length);
-      expect(scene.labels.length).toBe(model.layout.placements.length);
+      // One label per placement that carries one: a name the script never wrote has none (D-185).
+      expect(scene.labels.map((l) => l.ownerId)).toEqual(
+        model.layout.placements.filter((p) => p.label != null).map((p) => p.componentId),
+      );
     }
   });
 

@@ -29,6 +29,10 @@ public sealed record PlacementWire
     /// <summary>Every port's anchor in world coordinates with its outward direction; a node's ports are <c>#0</c>, <c>#1</c>, …</summary>
     public required IReadOnlyDictionary<string, AnchorWire> Anchors { get; init; }
 
+    /// <summary>The label's text: the component's tag, else its name; absent for a name the script never wrote -- a node, pipe or sensor the compiler inferred, or a pipe's cell -- which the renderer does not draw (<c>D-185</c>, contract 4.2).</summary>
+    [AbsentWhenNull]
+    public string? Label { get; init; }
+
     /// <summary>Where the label sits, <c>[x, y]</c>: the centre of <see cref="LabelBox"/>.</summary>
     public required ImmutableArray<double> LabelAt { get; init; }
 
