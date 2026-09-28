@@ -100,7 +100,87 @@ public static partial class BranchFlows
 
         Propagate(graph, estimates);
 
+        if (Transfer(graph, estimates))
+        {
+            Propagate(graph, estimates);
+        }
+
         return [.. estimates];
+    }
+
+    /// <summary>Rates the unrated side of a coupled exchanger from the duty its rated side implies.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="estimates">The estimates so far, written in place.</param>
+    /// <returns><see langword="true"/> when a side was rated.</returns>
+    /// <remarks>
+    /// An exchanger whose <c>power</c> is left to the solve rates neither side by <see cref="Duty"/>, and a side that
+    /// states both its temperatures still has a flow from the circuit it sits in: the syntax tour's substation states
+    /// `secondary.in.t = 40` and `secondary.out.t = 60`, and its secondary carries the radiator ring. That flow over
+    /// those temperatures is the duty, and the duty over the other side's temperatures -- stated, or read along its
+    /// water (<see cref="UpstreamOutlet"/>, <see cref="DownstreamTemperature"/>) -- is the other side's flow: 1.794 kg/s
+    /// over 40/60 is 150 kW, and 150 kW over the primary's 85/45 is 0.897 kg/s, where the primary seeded at the nominal
+    /// 0.1 and the exchanger's pressure drop was referenced to it (<c>S-94</c>).
+    /// </remarks>
+    private static bool Transfer(CircuitGraph graph, BranchFlow[] estimates)
+    {
+        var moved = false;
+
+        foreach (var exchanger in graph.Components.OfType<HeatExchangerComponent>())
+        {
+            if (Ownership.Of(exchanger, "power") is not ParameterState.Free)
+            {
+                continue;
+            }
+
+            var sides = graph.Branches
+                .Where(branch => branch.Path.Contains(exchanger))
+                .ToLookup(branch => Side(graph, branch, exchanger));
+
+            if (sides[1].FirstOrDefault() is not { } primary || sides[2].FirstOrDefault() is not { } secondary)
+            {
+                continue;
+            }
+
+            foreach (var (rated, unrated, from, to) in new[] { (secondary, primary, 2, 1), (primary, secondary, 1, 2) })
+            {
+                if (estimates[rated.Index].Basis <= FlowBasis.Nominal
+                    || estimates[unrated.Index].Basis > FlowBasis.Nominal
+                    || Terminals(graph, exchanger, from) is not { } known
+                    || Terminals(graph, exchanger, to) is not { } other
+                    || RatedFlow(graph.Substance, 1, known.Entering, known.Leaving) is not { } perWatt)
+                {
+                    continue;
+                }
+
+                var duty = estimates[rated.Index].Magnitude / perWatt;
+                var before = estimates[unrated.Index];
+
+                Offer(ref estimates[unrated.Index], RatedFlow(graph.Substance, duty, other.Entering, other.Leaving), FlowBasis.Propagated, exchanger.Name);
+                moved |= estimates[unrated.Index] != before;
+            }
+        }
+
+        return moved;
+    }
+
+    /// <summary>A side's two design temperatures: side 2's as stated, side 1's stated or read along its water.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="exchanger">The exchanger.</param>
+    /// <param name="side">1 or 2.</param>
+    /// <returns>The entering and leaving temperatures, or <see langword="null"/> without both.</returns>
+    private static (Quantity Entering, Quantity Leaving)? Terminals(CircuitGraph graph, HeatExchangerComponent exchanger, int side)
+    {
+        var stated = exchanger.StatedParameters;
+
+        if (side == 2)
+        {
+            return stated.TryGetValue("in2", out var in2) && stated.TryGetValue("out2", out var out2) ? (in2, out2) : null;
+        }
+
+        var entering = stated.TryGetValue("in", out var inlet) ? inlet : UpstreamOutlet(graph, exchanger);
+        var leaving = stated.TryGetValue("out", out var outlet) ? outlet : DownstreamTemperature(graph, exchanger, "out");
+
+        return entering is { } a && leaving is { } b ? (a, b) : null;
     }
 
     /// <summary>A stated volume flow on a path element, as a mass flow at its inlet's stated temperature or 20 °C.</summary>

@@ -199,8 +199,8 @@ public sealed class PipelineTimingDiagnostics
         var nodeColumns = Enumerable.Range(0, system.Columns).Count(column => system.NodeOfUnknown(column) >= 0);
 
         // A seed outside the substance's range has no residual to time: every property call past it fails
-        // fast, so the number would be a failure's cost. The sample is listed under the table instead; the
-        // syntax tour's is, until its substation's pressure drop is referenced to a real flow (`S-94`).
+        // fast, so the number would be a failure's cost. The sample is listed under the table instead: the
+        // syntax tour's was, while its substation's primary seeded at the nominal flow (`S-94`).
         if (!system.TryEvaluateScaled(x, scaled))
         {
             return null;

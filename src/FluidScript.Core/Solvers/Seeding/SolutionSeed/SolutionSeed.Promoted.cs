@@ -251,7 +251,7 @@ public static partial class SolutionSeed
             return candidate.Path
                 .Where(part => !ReferenceEquals(part, except))
                 .Sum(part => BranchResistance.Of(
-                    graph, state, part, carried, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion));
+                    graph, state, part, carried, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion, candidate));
         }
 
         foreach (var sibling in graph.Branches)

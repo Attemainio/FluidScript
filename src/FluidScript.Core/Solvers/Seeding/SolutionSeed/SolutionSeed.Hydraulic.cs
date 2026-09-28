@@ -248,7 +248,7 @@ public static partial class SolutionSeed
                         var drop = part is PumpComponent { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
                             ? -Hydrostatic.Pressure(state.Density.SiValue, NominalPumpHead)
                             : BranchResistance.Of(
-                                graph, state, part, flow, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion);
+                                graph, state, part, flow, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion, branch);
 
                         running += forward ? -drop : drop;
                     }

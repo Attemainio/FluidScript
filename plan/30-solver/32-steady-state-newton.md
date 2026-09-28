@@ -270,6 +270,17 @@ side 2's `in2`/`out2` when side 1 states only one end (`PromotedPower`, `S-94`).
 their controls seed at their answer (and settle since `D-188`'s control reserve, `S-93`), and 8c with its controls converges in three passes where
 it left the domain.
 
+**A coupled exchanger whose duty the solve decides still rates both sides** (`S-94`, 2026-09-28). Neither side is
+rated by its own duty, but a side stating both temperatures carries whatever flow its circuit gives it, and that flow
+over those temperatures is the duty; the duty over the other side's temperatures, stated or read along its water, is
+the other side's flow (`BranchFlows.Transfer`). The syntax tour's substation: the radiator ring's 1.794 kg/s over the
+secondary's 40/60 is 150 kW, which over the primary's 85/45 is about 0.9 kg/s, where the primary seeded at the nominal
+0.1. The feed a mixing valve's `a` leg receives from such an exchanger is its `out2`, and a mixing fraction of exactly
+1 or 0 -- a supply held at the very temperature the feed arrives at -- stands, held off zero by the valve's leakage
+(`D-135`) rather than falling to half and half. And a coupled exchanger's side-2 branch reads side 2's pressure law,
+not side 1's at side 2's flow (`BranchResistance.Of`): billed the primary's 20 kPa, the tour's ring was 90 kPa too
+resistive, and each sizing pass sized its pump for more than the loop resisted.
+
 **One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
 role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it
 appears in and its column is identically zero (`S-23`). That is the physics: stagnant fluid has no

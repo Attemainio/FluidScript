@@ -2,8 +2,10 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Components.Declarations;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing.Flows;
 using FluidScript.Core.Solvers.Passes;
 using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Topology.Graph;
@@ -55,6 +57,10 @@ public static class BranchResistance
     /// values. Indexed as <c>IFlowComponent.Resolvable</c> declares them (<c>S-66</c>).
     /// </param>
     /// <param name="bound">Pa. The magnitude the drop is clamped to when the law has to be solved for it; see <see cref="Across"/>.</param>
+    /// <param name="on">
+    /// The branch the flow runs on, or <see langword="null"/> for side 1. It decides which side of a coupled exchanger the
+    /// flow crosses: the side-2 branch reads the side-2 drop, not side 1's at side 2's flow (<c>S-94</c>).
+    /// </param>
     /// <returns>Pa, positive against the flow; zero where its own laws determine none.</returns>
     /// <remarks>
     /// <para>
@@ -79,7 +85,8 @@ public static class BranchResistance
         IFlowComponent element,
         double flow,
         double[]? parameters = null,
-        double bound = double.PositiveInfinity)
+        double bound = double.PositiveInfinity,
+        Branch? on = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(element);
@@ -89,7 +96,13 @@ public static class BranchResistance
             return 0;
         }
 
-        var ordinal = PressureRow(element);
+        // A coupled exchanger writes one pressure row per side, side 1's first. Read by the first alone, its secondary
+        // branch was charged the primary's drop at the secondary's flow: the syntax tour's substation, ideal on side 2,
+        // billed its radiator ring some 90 kPa that is not there, and the ring's pump was sized to it.
+        var side = on is not null && element is HeatExchangerComponent { SecondarySideConnected: true } coupled
+            ? BranchFlows.Side(graph, on, coupled)
+            : 1;
+        var ordinal = PressureRow(element, side - 1);
 
         if (ordinal < 0)
         {
@@ -271,17 +284,26 @@ public static class BranchResistance
 
     /// <summary>Where a component's pressure row sits in its own residual buffer.</summary>
     /// <param name="element">The component.</param>
-    /// <returns>Its position, or -1 when the component writes no pressure row.</returns>
-    private static int PressureRow(IFlowComponent element)
+    /// <param name="skip">How many pressure rows to pass first: 1 for a coupled exchanger's side 2.</param>
+    /// <returns>Its position, or -1 when the component writes no such pressure row.</returns>
+    private static int PressureRow(IFlowComponent element, int skip = 0)
     {
         var declarations = element.DeclareEquations();
+        var seen = 0;
 
         for (var ordinal = 0; ordinal < declarations.Length; ordinal++)
         {
-            if (declarations[ordinal].Kind == EquationKind.Pressure)
+            if (declarations[ordinal].Kind != EquationKind.Pressure)
+            {
+                continue;
+            }
+
+            if (seen == skip)
             {
                 return ordinal;
             }
+
+            seen++;
         }
 
         return -1;
@@ -427,7 +449,7 @@ public static class BranchResistance
         {
             if (!skip(element))
             {
-                total += Of(graph, state, element, flow);
+                total += Of(graph, state, element, flow, on: branch);
             }
         }
 

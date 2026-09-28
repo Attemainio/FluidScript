@@ -450,6 +450,11 @@ plant's pump was sized to a fraction of its loop. The loop is walked from the pu
 branch's drop, evaluated at `|ṁ|`, is added with the sign of that traversal (`OuterLoop.Traversal`). A loop that
 meets a three-way valve only by its two switched legs is not sized to: no water runs from `a` to `b` through a
 valve body, and the two-pumped-sources plant held its DHW pump at 0 while one was counted (`SwitchedOnly`).
+**A coupled exchanger is billed the side a branch crosses** (`S-94`, 2026-09-28): its side-2 branch reads side 2's
+pressure law, not side 1's at side 2's flow. The syntax tour's ring was billed its substation's primary 20 kPa at the
+ring's flow, some 90 kPa, and the pump sized to it drove the ring faster each pass. **Open (`S-95`):** step 1's "design
+flow" is today the flow the last pass ran at, for the pump and for an exchanger's drop alike; where nothing pins the
+flow, that makes any flow a fixed point.
 
 **A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
 `p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved

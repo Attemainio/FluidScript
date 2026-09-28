@@ -5,8 +5,8 @@
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
 # to that.
 #
-# does not settle: S-94 -- HX1 states only its secondary temperatures, so nothing rates its primary and its
-# pressure drop is referenced to the nominal flow (plan/30-solver/defects.md).
+# does not settle: S-96 -- winter holds the supply at HX1's own outlet, leaving the mixing valve no margin,
+# and mild states a secondary return above its supply (plan/30-solver/defects.md).
 
 fluidscript 2
 

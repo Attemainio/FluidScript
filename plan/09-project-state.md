@@ -1429,12 +1429,13 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 12 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 13 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **59** | |
+| | **60** | |
 
+Recounted 2026-09-28 after `S-94` closed and `S-95`, `S-96` opened (the syntax tour): 60.
 Recounted 2026-09-28 after `S-93` closed (`D-188`, a control reserve): 59.
 Recounted 2026-09-28 after `S-91`, `S-86` and `S-88` closed and `S-93`, `S-94` opened (group A, A2): 60.
 Recounted 2026-09-28 after `S-92` and `S-69` closed (group A, A1: a pump's head counts its mixing valve): 61.
@@ -2238,6 +2239,17 @@ that governed each size. What P6.8 still owes, and what comes after:
     corpus moves, and the Api contract goldens change only in the default's basis text. The user also weighed an
     explicit design pass in place of the seed and chose to continue with seeds and sizing order. Core 2602/0/2,
     Api 87/0. Next: `S-94` (the syntax tour's substation), then A4 (`C-44`, `S-85`).
+  - **The syntax tour's seed reaches its physics (2026-09-28; `S-94` closed; `S-95`, `S-96` opened).** A coupled
+    exchanger whose duty the solve decides now rates its unrated side from the rated one's duty, a mixing valve's feed
+    reads such an exchanger's `out2`, a mixing fraction of 1 stands at the valve's leakage, and a coupled exchanger's
+    side-2 branch is billed its own side's drop -- it was billed side 1's, 90 kPa too many on the tour's ring, and the
+    pump sized to it drove the ring faster every pass (`32`, `24`). The tour as written: `NonFinite` after 0 -> after 4,
+    `SP` 171 -> 8.7 m; it still fails, now on its own numbers (`S-96`: winter holds the supply at the exchanger's own
+    outlet, mild states a return above its supply; **the user's call**, the tour being `19`'s reference script). With
+    consistent numbers both cases converge and stop on `S-95` (the pump and a free load's drop sized at the running
+    flow, not the design flow `24` names). Sizing an exchanger's drop from its duty was tried and withdrawn: it needs
+    `S-85`'s seed for the diverting cooling loop first. No other script moved. Core 2602/0/2, Api 87/0. Next: `S-96`'s
+    decision, then A4 (`C-44`, `S-85`), which unblocks `S-95`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

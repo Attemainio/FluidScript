@@ -179,7 +179,15 @@ public static partial class BranchFlows
         var span = hotState.Enthalpy.SiValue - coldState.Enthalpy.SiValue;
         var fraction = (mixedState.Enthalpy.SiValue - coldState.Enthalpy.SiValue) / span;
 
-        return span > 0 && fraction > 0 && fraction < 1 ? fraction : null;
+        // A design that needs no bypass -- the supply held at the very temperature the feed arrives at, the syntax
+        // tour's winter case -- is a fraction of 1, and a real answer: the valve's recirculating leg passes only its
+        // leakage (D-135). So is 0. Rounding either to the leakage keeps the leg off zero flow, which no Newton step
+        // leaves (S-21); anything past them is a design the temperatures cannot make, and is not guessed (S-94).
+        const double Rounding = 1e-6;
+
+        return span > 0 && fraction > -Rounding && fraction < 1 + Rounding
+            ? Math.Clamp(fraction, valve.Leakage, 1 - valve.Leakage)
+            : null;
     }
 
     /// <summary>The temperature of the water arriving at a valve's <c>a</c> port, read from the exchanger that last touched it.</summary>
@@ -210,6 +218,15 @@ public static partial class BranchFlows
                 && source.StatedParameters.TryGetValue("out", out var outlet))
             {
                 return outlet;
+            }
+
+            // A coupled exchanger heating the feed on its side 2 -- a substation's secondary -- gives that side's
+            // outlet; its `power` is side 1's, and may be left to the solve (S-94).
+            if (element is HeatExchangerComponent coupled
+                && Side(graph, feed, coupled) == 2
+                && coupled.StatedParameters.TryGetValue("out2", out var secondary))
+            {
+                return secondary;
             }
         }
 
