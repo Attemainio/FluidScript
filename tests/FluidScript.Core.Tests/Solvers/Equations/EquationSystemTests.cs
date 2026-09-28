@@ -197,7 +197,9 @@ public sealed class EquationSystemTests
         var residuals = new double[system.Rows];
         var values = seed.Values.ToArray();
 
-        var link = Assert.Single(posedness.Counting.IdealLinks);
+        // N1 - N2, and the two I9 points on the junction N2 (D-183).
+        Assert.Equal(3, posedness.Counting.IdealLinks.Length);
+        var link = posedness.Counting.IdealLinks[0];
         var from = Array.FindIndex([.. graph.Nodes], node => node.Name == link.From.Name);
 
         // Push one end 5 kPa up and the link's residual must be exactly that, in pascals.

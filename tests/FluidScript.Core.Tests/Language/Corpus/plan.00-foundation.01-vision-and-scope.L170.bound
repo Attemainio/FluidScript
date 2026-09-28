@@ -2,23 +2,27 @@ project project cases [] design  start
 style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
 circuit coolingLoop 100 water cooling Static
 component 3WV three_way_valve in coolingLoop at  tag 100TV01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component 3WV__a node in coolingLoop at  tag  style 
 component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
   in = 293.15 Temperature  
   out = 323.15 Temperature  
   power = 30000 Power  
 component HE1__3WV node in coolingLoop at  tag  style 
+component HE1__in node in coolingLoop at  tag  style 
 component N1 node in coolingLoop at  tag  style 
 component N2 node in coolingLoop at  tag  style 
 component N3 node in coolingLoop at  tag  style 
 component PU1 pump in coolingLoop at  tag 100PU01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
 component PU1__in node in coolingLoop at  tag  style 
 component PU1__out node in coolingLoop at  tag  style 
-connection 3WV.a -> N2.
+connection 3WV.a -> 3WV__a.
 connection 3WV.b -> N3.
+connection 3WV__a. -> N2.
 connection HE1.out -> HE1__3WV.
 connection HE1__3WV. -> 3WV.ab
+connection HE1__in. -> HE1.in
 connection N1. -> N2.
-connection N2. -> HE1.in
+connection N2. -> HE1__in.
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
 FS1507 [453..462] 'PU1' is not connected to anything.
@@ -27,6 +31,8 @@ FS1510 [453..462] Added node 'PU1__out' (I3).
 FS1510 [520..522] Added node 'N1' (I1).
 FS2107 [520..527] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [525..527] Added node 'N2' (I1).
+FS1510 [587..595] Added node 'HE1__in' (I9).
 FS1510 [598..610] Added node 'HE1__3WV' (I2).
+FS1510 [613..623] Added node '3WV__a' (I9).
 FS2107 [626..636] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [634..636] Added node 'N3' (I1).

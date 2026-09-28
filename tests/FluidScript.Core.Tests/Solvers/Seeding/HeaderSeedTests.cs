@@ -329,7 +329,8 @@ public sealed class HeaderSeedTests
 
         Assert.Equal(0, Through(run.Graph, layout, solved, "N3__N9"), 9);
         Assert.Equal(solved[layout.NodeEnthalpy(n3)], solved[layout.NodeEnthalpy(n9)], 3);
-        Assert.Contains("rank         15: 0 unknown(s) nothing determines", report, StringComparison.Ordinal);
+        // 19: N3 is a junction, so HE1's outlet and LOAD's inlet each have a point on it (I9, D-183).
+        Assert.Contains("rank         19: 0 unknown(s) nothing determines", report, StringComparison.Ordinal);
     }
 
     private static OuterLoop Loop()

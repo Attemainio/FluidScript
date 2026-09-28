@@ -257,7 +257,12 @@ the valve law uses, for the same reason
 
 **Every state in the circuit lives on a node.** Pipes, valves, and pumps have states at their ports,
 but those ports are attached to nodes. This is why inference rule I2 exists: two components connected
-directly have no state between them to write an equation about.
+directly have no state between them to write an equation about. And it is why I9 exists (`D-183`): a
+junction's one state is the mix of everything arriving, so a port on a junction gets a two-connection
+node of its own between them, and that node's state *is* the port's stream -- its energy balance
+reduces to `h = h_arriving`. A stated `out.t` or `in.p` constrains that point, never the mix
+(`C-123`), and an exchanger's hold-up (`D-146`) goes on it rather than being mixed into the other
+streams. A pipe is exempt: nothing is stated on its ends and it holds no volume there.
 
 ### A boundary is a node that states what a boundary needs
 
@@ -1068,7 +1073,8 @@ reconstructs the outlet from the same term the balance used: `h_out = h_in + inj
 node's pressure, wherever the outlet's flow group has exactly one inlet. A port whose group mixes
 several inflows -- a mixing valve's common port, a vessel with two returns -- keeps the node's state,
 which is the mix the component itself produces. Reading every port from its node is the shortcut
-that drew the cooling loop's diverting valve at the mixed 20 °C.
+that drew the cooling loop's diverting valve at the mixed 20 °C. Since `D-183` a non-pipe port is never
+wired to a junction, so the reconstruction matters for a pipe's outlet and as the guard it always was.
 
 ## Acceptance criteria
 

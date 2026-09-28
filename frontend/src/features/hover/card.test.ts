@@ -73,11 +73,12 @@ describe('the hover card', () => {
   });
 
   it('shows a connection with its flow and the pipe the line carries', () => {
-    const c9 = connectionCard(loop, 'c9')!;
-    expect(c9.title).toBe('3WV__N3.out – N3');
-    expect(c9.subtitle).toBe('pipe 3WV__N3');
-    expect(c9.parameters.map((p) => p.label)).toContain('length');
-    expect(c9.state.map((r) => r.label)).toEqual(expect.arrayContaining(['flow']));
+    // c11: the last piece of the return line, once I2 and I9 (D-183) have split the lines before it.
+    const c11 = connectionCard(loop, 'c11')!;
+    expect(c11.title).toBe('3WV__N3.out – N3');
+    expect(c11.subtitle).toBe('pipe 3WV__N3');
+    expect(c11.parameters.map((p) => p.label)).toContain('length');
+    expect(c11.state.map((r) => r.label)).toEqual(expect.arrayContaining(['flow']));
     expect(connectionCard(loop, 'c0')!.subtitle).toBe('connection');
   });
 

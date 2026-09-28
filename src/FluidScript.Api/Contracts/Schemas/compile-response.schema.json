@@ -303,7 +303,7 @@
                 "type": "string"
               },
               "origin": {
-                "description": "declared, or inferred:I1, inferred:I2, inferred:I3, inferred:I7 (a pipe a connection line\u0027s properties made, D-110).",
+                "description": "declared, or inferred:I1, inferred:I2, inferred:I3, inferred:I7 (a pipe a connection line\u0027s properties made, D-110), inferred:I9 (a component port\u0027s own point on a junction, D-183).",
                 "type": "string"
               },
               "sourceSpan": {

@@ -8,15 +8,19 @@ circuit dhw 104  hot_water
 component HE_AHU heat_exchanger in AHU at  tag 101HE01 style 
   out = 303.15 Temperature  
   power = 24000 Power  
+component HE_AHU__out node in AHU at  tag  style 
 component HE_DHW heat_exchanger in dhw at  tag 104HE01 style 
   out = 303.15 Temperature  
   power = 12000 Power  
+component HE_DHW__out node in dhw at  tag  style 
 component HE_FLR heat_exchanger in floor at  tag 103HE01 style 
   out = 303.15 Temperature  
   power = 18000 Power  
+component HE_FLR__out node in floor at  tag  style 
 component HE_RAD heat_exchanger in radiators at  tag 102HE01 style 
   out = 303.15 Temperature  
   power = 30000 Power  
+component HE_RAD__out node in radiators at  tag  style 
 component HS1 heat_exchanger in heating at  tag 100HE01 style 
   out = 333.15 Temperature  
   power = 84000 Power  
@@ -88,16 +92,24 @@ component TE_RAD t_sensor in radiators at NT_RAD tag 102TE01 style
 component TE_S t_sensor in heating at NS tag 100TE01 style 
 component TV_AHU three_way_valve in AHU at  tag 101TV01 style 
 component TV_AHU__PU_AHU node in AHU at  tag  style 
+component TV_AHU__b node in AHU at  tag  style 
 component TV_DHW three_way_valve in dhw at  tag 104TV01 style 
 component TV_DHW__PU_DHW node in dhw at  tag  style 
+component TV_DHW__b node in dhw at  tag  style 
 component TV_FLR three_way_valve in floor at  tag 103TV01 style 
 component TV_FLR__PU_FLR node in floor at  tag  style 
+component TV_FLR__b node in floor at  tag  style 
 component TV_RAD three_way_valve in radiators at  tag 102TV01 style 
 component TV_RAD__PU_RAD node in radiators at  tag  style 
-connection HE_AHU.out -> NM_AHU.
-connection HE_DHW.out -> NM_DHW.
-connection HE_FLR.out -> NM_FLR.
-connection HE_RAD.out -> NM_RAD.
+component TV_RAD__b node in radiators at  tag  style 
+connection HE_AHU.out -> HE_AHU__out.
+connection HE_AHU__out. -> NM_AHU.
+connection HE_DHW.out -> HE_DHW__out.
+connection HE_DHW__out. -> NM_DHW.
+connection HE_FLR.out -> HE_FLR__out.
+connection HE_FLR__out. -> NM_FLR.
+connection HE_RAD.out -> HE_RAD__out.
+connection HE_RAD__out. -> NM_RAD.
 connection HS1.out -> NS.
 connection N1. -> HS1.in
 connection N10. -> N9.
@@ -120,16 +132,16 @@ connection N7. -> NR.
 connection N8. -> N7.
 connection N9. -> N8.
 connection NM_AHU. -> NM_AHU__N8.in
-connection NM_AHU. -> TV_AHU.b
+connection NM_AHU. -> TV_AHU__b.
 connection NM_AHU__N8.out -> N8.
 connection NM_DHW. -> NM_DHW__N10.in
-connection NM_DHW. -> TV_DHW.b
+connection NM_DHW. -> TV_DHW__b.
 connection NM_DHW__N10.out -> N10.
 connection NM_FLR. -> NM_FLR__N9.in
-connection NM_FLR. -> TV_FLR.b
+connection NM_FLR. -> TV_FLR__b.
 connection NM_FLR__N9.out -> N9.
 connection NM_RAD. -> NM_RAD__N7.in
-connection NM_RAD. -> TV_RAD.b
+connection NM_RAD. -> TV_RAD__b.
 connection NM_RAD__N7.out -> N7.
 connection NR. -> N1.
 connection NS. -> N3.
@@ -143,12 +155,16 @@ connection PU_FLR.out -> NT_FLR.
 connection PU_RAD.out -> NT_RAD.
 connection TV_AHU.ab -> TV_AHU__PU_AHU.
 connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_AHU__b. -> TV_AHU.b
 connection TV_DHW.ab -> TV_DHW__PU_DHW.
 connection TV_DHW__PU_DHW. -> PU_DHW.in
+connection TV_DHW__b. -> TV_DHW.b
 connection TV_FLR.ab -> TV_FLR__PU_FLR.
 connection TV_FLR__PU_FLR. -> PU_FLR.in
+connection TV_FLR__b. -> TV_FLR.b
 connection TV_RAD.ab -> TV_RAD__PU_RAD.
 connection TV_RAD__PU_RAD. -> PU_RAD.in
+connection TV_RAD__b. -> TV_RAD.b
 control TC_AHU moves PropertyReference { Component = TV_AHU, Property = position } reads PropertyReference { Component = TE_AHU, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
 control TC_DHW moves PropertyReference { Component = TV_DHW, Property = position } reads PropertyReference { Component = TE_DHW, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
 control TC_FLR moves PropertyReference { Component = TV_FLR, Property = position } reads PropertyReference { Component = TE_FLR, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
@@ -167,27 +183,35 @@ FS1510 [808..832] Added node 'N3__TV_RAD__out' (I2).
 FS1510 [808..832] Added pipe 'N3__TV_RAD' (I7).
 FS1815 [813..819] 'TV_RAD' is wired as a mixing valve: a from N3, b from NM_RAD, ab to PU_RAD.
 FS1510 [835..841] Added node 'NM_RAD' (I1).
+FS1510 [835..850] Added node 'TV_RAD__b' (I9).
 FS1510 [853..868] Added node 'TV_RAD__PU_RAD' (I2).
 FS1510 [871..877] Added node 'NT_RAD' (I1).
+FS1510 [880..895] Added node 'HE_RAD__out' (I9).
 FS1510 [898..922] Added pipe 'NM_RAD__N7' (I7).
 FS1510 [1171..1195] Added node 'N4__TV_AHU__out' (I2).
 FS1510 [1171..1195] Added pipe 'N4__TV_AHU' (I7).
 FS1815 [1176..1182] 'TV_AHU' is wired as a mixing valve: a from N4, b from NM_AHU, ab to PU_AHU.
 FS1510 [1198..1204] Added node 'NM_AHU' (I1).
+FS1510 [1198..1213] Added node 'TV_AHU__b' (I9).
 FS1510 [1216..1231] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [1234..1240] Added node 'NT_AHU' (I1).
+FS1510 [1243..1258] Added node 'HE_AHU__out' (I9).
 FS1510 [1261..1285] Added pipe 'NM_AHU__N8' (I7).
 FS1510 [1523..1547] Added node 'N5__TV_FLR__out' (I2).
 FS1510 [1523..1547] Added pipe 'N5__TV_FLR' (I7).
 FS1815 [1528..1534] 'TV_FLR' is wired as a mixing valve: a from N5, b from NM_FLR, ab to PU_FLR.
 FS1510 [1550..1556] Added node 'NM_FLR' (I1).
+FS1510 [1550..1565] Added node 'TV_FLR__b' (I9).
 FS1510 [1568..1583] Added node 'TV_FLR__PU_FLR' (I2).
 FS1510 [1586..1592] Added node 'NT_FLR' (I1).
+FS1510 [1595..1610] Added node 'HE_FLR__out' (I9).
 FS1510 [1613..1637] Added pipe 'NM_FLR__N9' (I7).
 FS1510 [1892..1916] Added node 'N6__TV_DHW__out' (I2).
 FS1510 [1892..1916] Added pipe 'N6__TV_DHW' (I7).
 FS1815 [1897..1903] 'TV_DHW' is wired as a mixing valve: a from N6, b from NM_DHW, ab to PU_DHW.
 FS1510 [1919..1925] Added node 'NM_DHW' (I1).
+FS1510 [1919..1934] Added node 'TV_DHW__b' (I9).
 FS1510 [1937..1952] Added node 'TV_DHW__PU_DHW' (I2).
 FS1510 [1955..1961] Added node 'NT_DHW' (I1).
+FS1510 [1964..1979] Added node 'HE_DHW__out' (I9).
 FS1510 [1982..2007] Added pipe 'NM_DHW__N10' (I7).

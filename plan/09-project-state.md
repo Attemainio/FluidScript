@@ -1428,13 +1428,14 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 26 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 15 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **62** | |
+| | **61** | |
 
+Recounted 2026-09-28 after `C-123` and `C-144` closed (`D-183`) and `S-91` opened: 61.
 Recounted 2026-09-27 after `L-92`, `C-147` and `C-148` (filed and closed the same day) closed: 62.
 Recounted 2026-09-27 after `C-142`, `S-90` and `L-87` closed and `C-146`, `C-147` opened: 64.
 Recounted 2026-09-27 after the language sweep (`D-180`) filed `L-87`–`L-93`, `C-141`–`C-145` and `S-90`: 65.
@@ -2160,6 +2161,18 @@ that governed each size. What P6.8 still owes, and what comes after:
     sizes over all of them; the request names a case; the contract (`4.1`) carries `cases` and each parameter's word
     (`C-147`); the canvas has a Case picker, the export names the case, and `FS2315` names a case that does not solve.
     Core 2602/0/2, Api 87/0, frontend 257/0. Next: P6.12, or the remaining rows that wait on the user.
+  - **A component port on a junction has a point of its own (2026-09-28; `D-183`; `C-123`, `C-144` closed; `S-91`
+    opened).** The user's rule: a fluid's state lives at the port, and a junction is only where streams mix.
+    Inference rule I9 puts a node `{Component}__{Port}` between every non-pipe port and the junction it is wired to,
+    joined by a zero-length link, so a stated `out.t` is the component's own stream -- `C-123`'s load now returns at
+    40.00 °C at 5.74 kg/s wired straight, as it did through a pipe. Pipes are exempt (their ends state nothing; 52
+    more components and 76 KiB on the reference plant for nothing). The cooling loop counts 24 = 24 with eight
+    nodes; every sample converges in the same iterations; no equipment moved in any picture; the reference plant
+    lists 237 components, 400.6 KiB compile and 464.2 KiB solved against the 512 KiB budget. `23`'s worked example is
+    redone on the current sample (`C-144`). The two-radiator face of `C-123` now diverges as its piped variant always
+    did, which is the seed's (`S-91`, one fix with `S-86`). Core 2602/0/2, Api 87/0, frontend 257/0. Next: the
+    layout rule the user asked for with it -- a two-connection node or a pipe costs the drawing no run length --
+    shown in before/after pictures for acceptance.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

@@ -219,7 +219,7 @@ export interface Component {
    */
   symbolId: string;
   /**
-   * declared, or inferred:I1, inferred:I2, inferred:I3, inferred:I7 (a pipe a connection line's properties made, D-110).
+   * declared, or inferred:I1, inferred:I2, inferred:I3, inferred:I7 (a pipe a connection line's properties made, D-110), inferred:I9 (a component port's own point on a junction, D-183).
    */
   origin: string;
   /**

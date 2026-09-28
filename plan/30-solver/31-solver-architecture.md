@@ -296,30 +296,29 @@ Every message names a component. That mapping exists only in `EquationSystem`, w
 
 ## Worked example
 
-The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)): 6 nodes,
+The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)): 8 nodes,
 4 branches, assembled per [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md)'s
 counting scheme.
 
-**Unknowns (20):**
+**Unknowns (24):**
 
 | Index | Kind | Owner |
 |---|---|---|
 | 0–3 | Branch flow | branches 1–4 |
-| 4–9 | Node pressure | N1, N2, N3, PU1__HE1, HE1__3WV, 3WV__P1 |
-| 10–15 | Node enthalpy | the same six nodes |
-| 16–17 | External mass flux | N1, N3 — the two nodes with a stated pressure |
-| 18 | `PU1.head` | promoted by `HE1 out=50` fixing the flow |
-| 19 | `3WV.position` | promoted by `HE1 in=20` fixing the mix |
+| 4–11 | Node pressure | N1, N3, N2, PU1__HE1, HE1__3WV, 3WV__N3__in, PU1__in, 3WV__b |
+| 12–19 | Node enthalpy | the same eight nodes |
+| 20–21 | External mass flux | N1, N3 — the two nodes with a stated pressure |
+| 22 | `PU1.head` | promoted by `HE1 out.t=50` fixing the flow |
+| 23 | `3WV.position` | promoted by `HE1 in.t=20` fixing the mix |
 
-**Equations (20):**
+**Equations (24):**
 
 | Index | Kind | Owner |
 |---|---|---|
-| 0–5 | Pressure relation | PU1, HE1, P1 (one each), 3WV (a→b and a→c), the N1–N2 ideal link |
-| 6–9 | Mass balance | N1, N2, N3, and the 3WV split — not the three interior nodes |
-| 10–15 | Energy balance | the six nodes |
-| 16–17 | Stated pressure | N1 = 300 kPa, N3 = 280 kPa |
-| 18–19 | Component constraint | `HE1.in` = 20 °C, `HE1.out` = 50 °C |
+| 0–16 | Component and node rows | pressure relations for PU1, HE1, the pipe 3WV__N3 (one each) and 3WV (ab→a and ab→b); mass balances at N1, N2, N3 and the 3WV split — not the five interior nodes; an energy balance at each of the eight nodes |
+| 17–19 | Ideal link | N1–N2, and the I9 points' links PU1__in–N2 and 3WV__b–N2 (`D-183`) |
+| 20–21 | Stated pressure | N1 = 300 kPa, N3 = 280 kPa |
+| 22–23 | Component constraint | `HE1.in.t` = 20 °C, `HE1.out.t` = 50 °C |
 
 No datum row appears and no mass balance is dropped: `N1` states a pressure, so it supplies the datum,
 and the external fluxes make the mass balances independent
@@ -347,9 +346,9 @@ not only the endpoint.
 
 ## Acceptance criteria
 
-- [ ] The cooling loop assembles to exactly the 20 unknowns and 20 equations tabulated above.
+- [ ] The cooling loop assembles to exactly the 24 unknowns and 24 equations tabulated above.
 - [ ] Removing `HE1 in=20` removes both that equation and the `3WV.position` unknown, leaving the
-      system square at 19 — promotion and constraint always appear and disappear together.
+      system square at 23 — promotion and constraint always appear and disappear together.
 - [ ] Every unknown and equation reports its owning component by name.
 - [ ] A steady solve from a warm start converges in fewer iterations than from a cold one, measured.
 - [ ] The time-domain solver run to steady state reproduces Newton's answer within tolerance

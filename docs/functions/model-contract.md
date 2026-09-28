@@ -183,7 +183,7 @@ One graph component.
 | `kind` | string | The script keyword for the kind. |
 | `mode` | string or `null` | The kind's canonical mode -- an exchanger's `duty`, `rated` or `coupled` -- absent for a kind without one. Absent when not applicable. |
 | `symbolId` | string | Which entry in `symbols` draws it. |
-| `origin` | string | `declared`, or `inferred:I1`, `inferred:I2`, `inferred:I3`, `inferred:I7` (a pipe a connection line's properties made, `D-110`). |
+| `origin` | string | `declared`, or `inferred:I1`, `inferred:I2`, `inferred:I3`, `inferred:I7` (a pipe a connection line's properties made, `D-110`), `inferred:I9` (a component port's own point on a junction, `D-183`). |
 | `sourceSpan` | [`Span`](#span) or `null` | Where the declaration sits in the source: the component's line, or for an implicit pipe (I7) the connection line that made it; `null` for an inferred node, which has no text. |
 | `circuit` | string | The owning circuit (`D-33`; the losing side's under `D-36`). |
 | `tag` | string or `null` | The equipment tag, display metadata only; `null` when the kind has no code or the component is inferred (`D-34`). |

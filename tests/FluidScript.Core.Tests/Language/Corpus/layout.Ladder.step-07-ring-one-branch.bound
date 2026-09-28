@@ -6,6 +6,7 @@ component HE_AHU heat_exchanger in AHU at  tag 101HE01 style
   in = 323.15 Temperature  
   out = 303.15 Temperature  
   power = 24000 Power  
+component HE_AHU__out node in AHU at  tag  style 
 component HS1 heat_exchanger in heating at  tag 100HE01 style 
   out = 333.15 Temperature  
   power = 24000 Power  
@@ -25,7 +26,9 @@ component PU_AHU pump in AHU at  tag 101PU01 style
 component PU_AHU__HE_AHU node in AHU at  tag  style 
 component TV_AHU three_way_valve in AHU at  tag 101TV01 style 
 component TV_AHU__PU_AHU node in AHU at  tag  style 
-connection HE_AHU.out -> NM_AHU.
+component TV_AHU__b node in AHU at  tag  style 
+connection HE_AHU.out -> HE_AHU__out.
+connection HE_AHU__out. -> NM_AHU.
 connection HS1.out -> N3.
 connection N1. -> HS1.in
 connection N3. -> N3__TV_AHU.in
@@ -33,18 +36,21 @@ connection N3__TV_AHU.out -> N3__TV_AHU__out.
 connection N3__TV_AHU__out. -> TV_AHU.a
 connection N5. -> N1.
 connection NM_AHU. -> NM_AHU__N5.in
-connection NM_AHU. -> TV_AHU.b
+connection NM_AHU. -> TV_AHU__b.
 connection NM_AHU__N5.out -> N5.
 connection PU_AHU.out -> PU_AHU__HE_AHU.
 connection PU_AHU__HE_AHU. -> HE_AHU.in
 connection TV_AHU.ab -> TV_AHU__PU_AHU.
 connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_AHU__b. -> TV_AHU.b
 FS1510 [650..652] Added node 'N3' (I1).
 FS1510 [655..657] Added node 'N5' (I1).
 FS1510 [826..850] Added node 'N3__TV_AHU__out' (I2).
 FS1510 [826..850] Added pipe 'N3__TV_AHU' (I7).
 FS1815 [831..837] 'TV_AHU' is wired as a mixing valve: a from N3, b from NM_AHU, ab to PU_AHU.
 FS1510 [853..859] Added node 'NM_AHU' (I1).
+FS1510 [853..868] Added node 'TV_AHU__b' (I9).
 FS1510 [871..886] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [880..895] Added node 'PU_AHU__HE_AHU' (I2).
+FS1510 [889..904] Added node 'HE_AHU__out' (I9).
 FS1510 [907..931] Added pipe 'NM_AHU__N5' (I7).

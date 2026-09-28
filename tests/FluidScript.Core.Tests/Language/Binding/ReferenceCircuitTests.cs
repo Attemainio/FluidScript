@@ -71,8 +71,9 @@ public sealed class ReferenceCircuitTests
     public void TheCoolingLoopsInferenceInventoryIsExactly01s()
     {
         // `01` states this inventory in as many words, and says any document counting three I1 nodes
-        // or six inferred components here is stale. Five declared, five inferred, ten in total -- the
-        // return pipe is the connection line's own since D-110 (I7) and counts among the inferred.
+        // or six inferred components here is stale. Five declared, seven inferred, twelve in total -- the
+        // return pipe is the connection line's own since D-110 (I7), and N2 is a junction, so the pump's
+        // inlet and the valve's bypass each get a point of their own on it (I9, D-183).
         var model = Model("m2-cooling-loop.fluid");
 
         Assert.Equal(
@@ -83,25 +84,26 @@ public sealed class ReferenceCircuitTests
         Assert.Equal(["PU1__HE1", "HE1__3WV", "3WV__N3__in"], Named(model, "I2"));
         Assert.Empty(Named(model, "I3"));
         Assert.Equal(["3WV__N3"], Named(model, "I7"));
+        Assert.Equal(["PU1__in", "3WV__b"], Named(model, "I9"));
 
-        Assert.Equal(10, model.Components.Length);
+        Assert.Equal(12, model.Components.Length);
 
-        // Four of the six are `node`. The two boundaries declare their roles instead, which is the
+        // Six of the eight are `node`. The two boundaries declare their roles instead, which is the
         // whole of D-64: `supply` and `return` in kind position are state points that say which way
         // fluid crosses them, and the inference inventory is unchanged by the spelling.
-        Assert.Equal(4, model.Components.Count(static c => c.Kind?.Keyword == "node"));
+        Assert.Equal(6, model.Components.Count(static c => c.Kind?.Keyword == "node"));
         Assert.Equal(["N1"], Kinded(model, "inlet"));
         Assert.Equal(["N3"], Kinded(model, "outlet"));
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheCoolingLoopReportsExactlyFiveInferences()
+    public void TheCoolingLoopReportsExactlySevenInferences()
     {
         // A count is the cheapest specification there is, and this one is `01`'s own: four inferred
-        // nodes and, since D-110, the return pipe the connection line carries (I7) -- five FS1510 and
-        // nothing else to say about the topology.
-        Assert.Equal(5, Codes("m2-cooling-loop.fluid").Count(static code => code == "FS1510"));
+        // nodes, since D-110 the return pipe the connection line carries (I7), and since D-183 the two
+        // ports on the junction N2 (I9) -- seven FS1510 and nothing else to say about the topology.
+        Assert.Equal(7, Codes("m2-cooling-loop.fluid").Count(static code => code == "FS1510"));
     }
 
     [Fact]
@@ -111,15 +113,21 @@ public sealed class ReferenceCircuitTests
         // The part `01` says is easy to get wrong: with `PU1` on the primary branch the secondary loop
         // contains nothing that drives flow, the only solution is zero recirculation, and `HE1`'s
         // stated in.t=20 cannot be met. Asserted structurally so a later edit to the fixture cannot
-        // quietly move it.
+        // quietly move it. Both reach N2 through their own point (I9, D-183).
         var model = Model("m2-cooling-loop.fluid");
 
         Assert.Contains(
             model.Connections,
-            connection => connection is { From.Component: "N2", To.Component: "PU1" });
+            connection => connection is { From.Component: "N2", To.Component: "PU1__in" });
         Assert.Contains(
             model.Connections,
-            connection => connection is { From.Component: "3WV", To.Component: "N2" });
+            connection => connection is { From.Component: "PU1__in", To.Component: "PU1" });
+        Assert.Contains(
+            model.Connections,
+            connection => connection is { From.Component: "3WV", To.Component: "3WV__b" });
+        Assert.Contains(
+            model.Connections,
+            connection => connection is { From.Component: "3WV__b", To.Component: "N2" });
     }
 
     // ---- the simple loop — sizing and solver reference ----------------------------------------

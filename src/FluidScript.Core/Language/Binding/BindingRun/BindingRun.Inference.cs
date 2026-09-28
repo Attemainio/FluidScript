@@ -15,6 +15,69 @@ internal sealed partial class BindingRun
     {
         InsertIntermediateNodes();
         TerminateOpenPorts();
+        SeparateJunctionPorts();
+    }
+
+    private void SeparateJunctionPorts()
+    {
+        // I9 (D-183) — a junction holds one state, the mix of everything arriving. A component port
+        // wired straight to one would have no state of its own: its stated `out.t` would land on the
+        // mix (C-123), and its hold-up would be mixed into the other streams (D-146). So every
+        // component port on a junction gets its own point, joined to the junction by a zero-length
+        // link, and the junction is left to mix. Inlets as well as outlets, because a flow may reverse
+        // in the solve and an inlet then discharges into the junction.
+        bool IsJunction(string component) => IsNode(component) && _degrees.GetValueOrDefault(component) >= 3;
+
+        // A pipe is left on the junction: nothing is stated on its ends and it holds no volume there, and its
+        // outlet stream is reported on its own port already (C-103), so a point would cost the wire and the
+        // layout and settle nothing.
+        bool OwnsAPoint(string component) =>
+            !IsNode(component)
+            && !(_componentsByName.TryGetValue(component, out var at) && _components[at.Index].Kind?.Keyword == "pipe");
+
+        var rewritten = new List<ConnectionSymbol>(_connections.Count);
+
+        foreach (var connection in _connections)
+        {
+            var (port, junction, portIsFrom) =
+                IsJunction(connection.To.Component) && OwnsAPoint(connection.From.Component) ? (connection.From, connection.To, true)
+                : IsJunction(connection.From.Component) && OwnsAPoint(connection.To.Component) ? (connection.To, connection.From, false)
+                : (default(EndpointSymbol), default(EndpointSymbol), false);
+
+            if (port.Component is null)
+            {
+                rewritten.Add(connection);
+                continue;
+            }
+
+            var stem = $"{port.Component}__{port.Port}";
+            var name = stem;
+
+            for (var ordinal = 2; _componentsByName.ContainsKey(name); ordinal++)
+            {
+                name = $"{stem}_{ordinal.ToString(CultureInfo.InvariantCulture)}";
+            }
+
+            var slot = Infer(name, "I9", connection.Circuit ?? CircuitOf(port.Component), connection.SourceSpan);
+            var point = new EndpointSymbol(_components[slot.Index].Name, string.Empty);
+
+            if (portIsFrom)
+            {
+                rewritten.Add(connection with { To = point });
+                rewritten.Add(new ConnectionSymbol(point, junction, connection.SourceSpan) { Circuit = connection.Circuit });
+            }
+            else
+            {
+                rewritten.Add(new ConnectionSymbol(junction, point, connection.SourceSpan) { Circuit = connection.Circuit });
+                rewritten.Add(connection with { From = point });
+            }
+
+            Count(point.Component);
+            Count(point.Component);
+        }
+
+        _connections.Clear();
+        _connections.AddRange(rewritten);
     }
 
     private void InsertIntermediateNodes()

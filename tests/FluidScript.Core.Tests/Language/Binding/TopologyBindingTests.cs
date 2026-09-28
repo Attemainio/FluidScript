@@ -46,9 +46,9 @@ public sealed class TopologyBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheSyntaxReferenceProducesExactlyItsNineDiagnostics()
+    public void TheSyntaxReferenceProducesExactlyItsElevenDiagnostics()
     {
-        // M1, and `01`'s table: one FS1507, two FS2107, six FS1510. Three documents disagreed about
+        // M1, and `01`'s table: one FS1507, two FS2107, eight FS1510. Three documents disagreed about
         // this count before `01` fixed it, so it is asserted from the sample file itself rather than
         // from a copy that could drift away from the one the documentation shows.
         var path = Path.Combine(RepositoryLayout.Samples, "m1-syntax-reference.fluid");
@@ -63,12 +63,13 @@ public sealed class TopologyBindingTests
             {
                 ["FS1507"] = 1,
                 ["FS2107"] = 2,
-                ["FS1510"] = 6,
+                ["FS1510"] = 8,
             },
             counts);
 
         // The identities matter as much as the counts: PU1 is the unconnected one, and N1 and N3 are
-        // the dead ends. A different six inferred components would give the same total.
+        // the dead ends. A different eight inferred components would give the same total. N2 is a
+        // junction, so HE1's inlet and the valve's bypass each get a point on it (I9, D-183).
         Assert.Contains(result.Diagnostics, static d => d.Code == "FS1507" && d.Message.Contains("PU1"));
         Assert.Equal(
             ["N1", "N3"],
@@ -77,7 +78,7 @@ public sealed class TopologyBindingTests
                 .Select(static d => d.Message.Split('\'')[1])
                 .Order(StringComparer.Ordinal));
         Assert.Equal(
-            ["HE1__3WV", "N1", "N2", "N3", "PU1__in", "PU1__out"],
+            ["3WV__b", "HE1__3WV", "HE1__in", "N1", "N2", "N3", "PU1__in", "PU1__out"],
             result.Model.Components
                 .Where(static component => component.Origin is Origin.Inferred)
                 .Select(static component => component.Name)

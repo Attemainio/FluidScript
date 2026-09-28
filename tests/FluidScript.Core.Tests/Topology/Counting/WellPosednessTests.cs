@@ -43,8 +43,8 @@ public sealed class WellPosednessTests
     /// <remarks>
     /// Not <see cref="GraphFixture.CoolingLoop"/>, which states <c>PU1 head</c> and <c>3WV kv</c> and
     /// no <c>in</c>/<c>out</c>. The counting table needs the document's own version: two constraints
-    /// and two free parameters for them to promote, which is the pairing the 20 = 20 rests on. Only
-    /// <c>dn=25</c> is added, because the catalogue that would supply it is <c>P3.5</c>.
+    /// and two free parameters for them to promote, which is the pairing the 24 = 24 rests on. It is
+    /// <c>samples/m2-cooling-loop.fluid</c>'s circuit without its style (<c>C-144</c>).
     /// </remarks>
     private const string Documented = """
         fluidscript 2
@@ -57,15 +57,13 @@ public sealed class WellPosednessTests
           HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
           3WV  three_way_valve
           PU1  pump
-          P1  pipe  length = 25  dn = 25
 
           N1 - N2
           N2 - PU1
           PU1 - HE1
           HE1 - 3WV
           3WV - N2
-          3WV - P1
-          P1 - N3
+          3WV - N3   25 m  DN25
 
           N1  inlet  t = 6  p = 300
           N3  outlet  p = 280
@@ -86,27 +84,29 @@ public sealed class WellPosednessTests
     // ---- the counting argument, against 23's own table -------------------------------------------
 
     [Fact]
-    public void TheCoolingLoopCountingTableBalancesAtTwentyEqualsTwenty()
+    public void TheCoolingLoopCountingTableBalancesAtTwentyFourEqualsTwentyFour()
     {
         var table = Check(Documented).Counting;
 
         // Every row of 23's table, not just the total: a scheme that gets the total right by two
-        // compensating errors is exactly what a single assertion on Excess would let through.
+        // compensating errors is exactly what a single assertion on Excess would let through. The two
+        // points I9 puts on the junction N2 (D-183) add a pressure and an enthalpy each, and are met by an
+        // ideal link and an energy balance each.
         Assert.Equal(4, table.BranchFlows);
-        Assert.Equal(6, table.NodePressures);
-        Assert.Equal(6, table.NodeEnthalpies);
+        Assert.Equal(8, table.NodePressures);
+        Assert.Equal(8, table.NodeEnthalpies);
         Assert.Equal(2, table.ExternalFluxes);
         Assert.Equal(2, table.Promotions.Length);
 
-        Assert.Equal(6, table.PressureRelations);
+        Assert.Equal(8, table.PressureRelations);
         Assert.Equal(4, table.MassBalances);
-        Assert.Equal(6, table.EnergyBalances);
+        Assert.Equal(8, table.EnergyBalances);
         Assert.Equal(2, table.StatedPressures);
         Assert.Equal(2, table.Constraints.Length);
         Assert.Equal(0, table.Datums);
 
-        Assert.Equal(20, table.Unknowns);
-        Assert.Equal(20, table.Equations);
+        Assert.Equal(24, table.Unknowns);
+        Assert.Equal(24, table.Equations);
         Assert.Equal(0, table.Excess);
     }
 

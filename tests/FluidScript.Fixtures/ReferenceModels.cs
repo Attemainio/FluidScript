@@ -12,20 +12,30 @@ namespace FluidScript.Fixtures;
 /// distribution header of <c>01</c> with as many pumped consumers as asked for, each the shape of
 /// <c>samples/m2-distribution-header.fluid</c>'s AHU branch. The count is what the contract lists --
 /// declared components, header nodes, and the nodes <c>I2</c> adds between adjacent non-node
-/// components -- so eighteen consumers make exactly two hundred.
+/// components -- so eighteen consumers made exactly two hundred.
+/// </para>
+/// <para>
+/// Since <c>D-183</c> a component port on a junction has a point of its own (<c>I9</c>): each consumer's
+/// load outlet and valve bypass, and the source's outlet, so the same plant lists 237. It stays the
+/// reference model rather than shrinking to 200 again: the budget is measured on the same plant before
+/// and after, and a scene with more components than <c>07</c> states it for is the conservative side.
 /// </para>
 /// </remarks>
 public static class ReferenceModels
 {
-    /// <summary>The consumer count at which <see cref="DistributionHeader"/> lists 200 components.</summary>
+    /// <summary>The consumer count of <c>07</c>'s 200-component reference model: 200 components before <c>D-183</c>, 237 since.</summary>
     public const int TwoHundredComponentConsumers = 18;
 
     /// <summary>Components per consumer branch as the contract counts them.</summary>
-    /// <remarks>Load, valve, pump, two pipes, the mixing node, a supply-header and a return-header node, and three inferred nodes.</remarks>
-    public const int ComponentsPerConsumer = 11;
+    /// <remarks>
+    /// Load, valve, pump, two pipes, the mixing node, a supply-header and a return-header node, three
+    /// inferred nodes, and the points <c>I9</c> gives the load's outlet and the valve's bypass on the
+    /// mixing node (<c>D-183</c>).
+    /// </remarks>
+    public const int ComponentsPerConsumer = 13;
 
-    /// <summary>Components outside the branches: the source exchanger and the datum node.</summary>
-    public const int HeaderComponents = 2;
+    /// <summary>Components outside the branches: the source exchanger, the datum node, and the source outlet's own point on the supply header (<c>I9</c>).</summary>
+    public const int HeaderComponents = 3;
 
     /// <summary>A distribution header with <paramref name="consumers"/> pumped, valve-blended consumers.</summary>
     /// <param name="consumers">How many branches; each adds <see cref="ComponentsPerConsumer"/> components.</param>

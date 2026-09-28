@@ -82,6 +82,6 @@ public sealed class ModelContractJsonTests
         var one = ModelContractJson.Build(PipelineFixture.Compile(sample.Replace("3WV - N3   25 m  DN25", "3WV - N3   25 m  DN25  nodes = 100", StringComparison.Ordinal)));
 
         Assert.True(ModelContractJson.MeasureBytes(one) < 512 * 1024, $"{ModelContractJson.MeasureBytes(one)} bytes");
-        Assert.Equal(210, one.Components.Length);
+        Assert.Equal(212, one.Components.Length); // two of them I9's points on N2 (D-183)
     }
 }

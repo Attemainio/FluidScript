@@ -28,18 +28,28 @@ circuit "cooling":
 ## Nodes: where state lives
 
 **Every pressure and every temperature in a result belongs to a node**, and there are more nodes than
-you wrote. The script above declares two — `N1` and `N3` — and the graph has six:
+you wrote. The script above declares two — `N1` and `N3` — and the graph has eight:
 
 | Node | Where it came from |
 |---|---|
 | `N1`, `N3` | You wrote them. They carry the boundary conditions |
 | `N2` | You named it in a connection line without declaring it, so it was created |
 | `PU1__HE1`, `HE1__3WV`, `3WV__P1` | Two components were connected directly, and a node was put between them |
+| `PU1__in`, `3WV__b` | A component's port was wired to `N2`, where three connections meet, so the port got a point of its own |
 
-The last three exist because **components do not connect to each other; they connect to nodes.**
+The `__` nodes exist because **components do not connect to each other; they connect to nodes.**
 Without that rule there would be nowhere for the temperature between the pump and the exchanger to
 live, and that temperature is the one you usually want to see. The generated names use `__` so they
 are recognisable, and the diagram draws them smaller than the ones you named.
+
+**A port on a junction has its own point.** `N2` is where the primary supply and the recirculation
+meet, so its temperature is the mix. The valve's bypass leaving at 50 °C is not the mix, and neither
+is anything a component states about its own port: `HE1 out.t = 50` means the water leaving the coil,
+before it meets anything. So every component port wired to a node with three or more connections gets
+a point named after the port -- `PU1__in`, `3WV__b` -- joined to the junction with no length and no
+loss, and a stated `out.t` or `in.p` lands there. A pipe does not get one: its ends have nothing to
+state. The points cost no equation you have to supply: each adds a pressure and a temperature, and
+brings the link and the energy balance that settle them.
 
 **A pipe written on a connection line** -- `3WV - N3   10 m  DN25` instead of `P1` -- is a
 component too, named `3WV__N3`, and the node between the valve and it is `3WV__N3__in`. The graph is
@@ -59,8 +69,8 @@ The cooling loop has four:
 | Branch | From → to | What is along it |
 |---|---|---|
 | 1 | `N1` → `N2` | nothing: a bare connection is a perfect, lossless link |
-| 2 | `N2` → `3WV.ab` | `PU1`, `HE1`, and the two nodes between them |
-| 3 | `3WV.b` → `N2` | nothing — the recirculation leg |
+| 2 | `N2` → `3WV.ab` | `PU1__in`, `PU1`, `HE1`, and the two nodes between them |
+| 3 | `3WV.b` → `N2` | `3WV__b` — the recirculation leg |
 | 4 | `3WV.a` → `N3` | `P1` |
 
 This is why a chain of five pipes in series solves as fast as one: it is one flow, not five.

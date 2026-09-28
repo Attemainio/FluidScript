@@ -3,11 +3,13 @@ style spacing 0.75 default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pat
 circuit coolingLoop 100 water cooling Static
 circuit expressions 200 water neutral Static
 component 3WV three_way_valve in coolingLoop at  tag 100TV01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component 3WV__a node in coolingLoop at  tag  style 
 component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
   in = 293.15 Temperature  
   out = 323.15 Temperature  
   power = 30000 Power  
 component HE1__3WV node in coolingLoop at  tag  style 
+component HE1__in node in coolingLoop at  tag  style 
 component HE2 heat_exchanger in expressions at  tag 200HE01 style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
   in = 323.15 Temperature  
   out = 303.15 Temperature  
@@ -15,6 +17,7 @@ component HE2 heat_exchanger in expressions at  tag 200HE01 style StyleSpec { St
 component HE2__NJ2 pipe in expressions at  tag  style 
   length = 25 Length  
 component HE2__NJ2__in node in expressions at  tag  style 
+component HE2__in node in expressions at  tag  style 
 component N1 node in coolingLoop at  tag  style 
 component N2 node in coolingLoop at  tag  style 
 component N3 node in coolingLoop at  tag  style 
@@ -35,23 +38,28 @@ component SB1 inlet in expressions at  tag  style StyleSpec { Stroke = #808080, 
 component TV2 three_way_valve in expressions at  tag 200TV01 style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
   authority = 0.5 Dimensionless  
   characteristic = - equal_percentage 
-connection 3WV.a -> N2.
+component TV2__b node in expressions at  tag  style 
+connection 3WV.a -> 3WV__a.
 connection 3WV.b -> N3.
+connection 3WV__a. -> N2.
 connection HE1.out -> HE1__3WV.
 connection HE1__3WV. -> 3WV.ab
+connection HE1__in. -> HE1.in
 connection HE2.out -> HE2__NJ2__in.
 connection HE2__NJ2.out -> NJ2.
 connection HE2__NJ2__in. -> HE2__NJ2.in
+connection HE2__in. -> HE2.in
 connection N1. -> N2.
-connection N2. -> HE1.in
+connection N2. -> HE1__in.
 connection NB1. -> NJ1.
-connection NJ1. -> HE2.in
-connection NJ1. -> TV2.b
+connection NJ1. -> HE2__in.
+connection NJ1. -> TV2__b.
 connection NJ2. -> NB2.
 connection PU1.in -> PU1__in.
 connection PU1.out -> PU1__out.
 connection SB1. -> TV2.a
 connection TV2.ab -> RB1.
+connection TV2__b. -> TV2.b
 let dT = 30 TemperatureDelta dimension TemperatureDelta
 let cp = 4180 SpecificHeat dimension SpecificHeat
 let Q = 30000 Power dimension Power
@@ -69,11 +77,15 @@ FS1510 [1867..1876] Added node 'PU1__out' (I3).
 FS1510 [1934..1936] Added node 'N1' (I1).
 FS2107 [1934..1941] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [1939..1941] Added node 'N2' (I1).
+FS1510 [2001..2009] Added node 'HE1__in' (I9).
 FS1510 [2012..2024] Added node 'HE1__3WV' (I2).
+FS1510 [2027..2037] Added node '3WV__a' (I9).
 FS2107 [2040..2050] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
 FS1510 [2048..2050] Added node 'N3' (I1).
 FS1510 [3159..3162] Added node 'NJ1' (I1).
+FS1510 [3226..3235] Added node 'HE2__in' (I9).
 FS1510 [3238..3254] Added node 'HE2__NJ2__in' (I2).
 FS1510 [3238..3254] Added pipe 'HE2__NJ2' (I7).
 FS1510 [3244..3247] Added node 'NJ2' (I1).
 FS1815 [3371..3374] 'TV2' is wired as a mixing valve: a from SB1, b from NJ1, ab to RB1.
+FS1510 [3436..3445] Added node 'TV2__b' (I9).

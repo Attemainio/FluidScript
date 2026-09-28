@@ -364,8 +364,8 @@ All warnings, none errors: a bad `show` must never stop a circuit rendering.
 The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) with
 `show = [temperature, pressure]`:
 
-**Domain.** Node temperatures: `N1` 6.0, `N2` 20.0, `PU1__HE1` 20.0, `HE1__3WV` 50.0, `3WV__P1` 50.0,
-`N3` 50.0. Raw domain 6.0…50.0; niced outward to **5…50**, ticks at 5, 15, 25, 35, 45, 50.
+**Domain.** Node temperatures: `N1` 6.0, `N2` 20.0, `PU1__in` 20.0, `PU1__HE1` 20.0, `HE1__3WV` 50.0,
+`3WV__b` 50.0, `3WV__N3__in` 50.0, `N3` 50.0. Raw domain 6.0…50.0; niced outward to **5…50**, ticks at 5, 15, 25, 35, 45, 50.
 
 **Mapping** (dark theme):
 
@@ -373,9 +373,9 @@ The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-sco
 |---|---|---|---|
 | `N1` | 6.0 °C | 0.02 | `#4FA3D9` — the cold end, the primary supply |
 | `N2` | 20.0 °C | 0.33 | `#6FBBD9` — after mixing |
-| `PU1__HE1` | 20.0 °C | 0.33 | `#6FBBD9` |
+| `PU1__in`, `PU1__HE1` | 20.0 °C | 0.33 | `#6FBBD9` |
 | `HE1__3WV` | 50.0 °C | 1.00 | `#E06C5A` — the hot end |
-| `3WV__P1`, `N3` | 50.0 °C | 1.00 | `#E06C5A` |
+| `3WV__b`, `3WV__N3__in`, `N3` | 50.0 °C | 1.00 | `#E06C5A` |
 
 `HE1`'s symbol draws as a gradient from `#6FBBD9` to `#E06C5A` across its body — the duty made visible.
 The recirculation branch `3WV.b → N2` carries hot water back into the mixing node, and the jump from 50 °C to 20 °C

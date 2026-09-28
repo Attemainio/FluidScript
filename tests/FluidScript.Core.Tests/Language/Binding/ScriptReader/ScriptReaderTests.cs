@@ -438,14 +438,20 @@ public sealed class ScriptReaderTests
 
     // ---- ports by flow direction ----------------------------------------------------------------
 
-    /// <summary>The port the model connects at one end of the link between two components, through the node <c>I2</c> inserts between them if it did.</summary>
+    /// <summary>The port the model connects at one end of the link between two components, through the node <c>I2</c>
+    /// inserts between them, or the port's own point <c>I9</c> puts between it and a junction (<c>D-183</c>).</summary>
     private static string? PortAt(BindResult result, string from, string to, string at)
     {
-        var inserted = $"{from}__{to}";
-        return result.Model.Connections
+        var connections = result.Model.Connections;
+
+        // The far end is the other component itself, or a point one link from it.
+        bool Reaches(string end, string other) =>
+            end == other || connections.Any(c => (c.From.Component == end && c.To.Component == other) || (c.To.Component == end && c.From.Component == other));
+
+        return connections
             .Where(c => at == from
-                ? c.From.Component == from && (c.To.Component == to || c.To.Component == inserted)
-                : c.To.Component == to && (c.From.Component == from || c.From.Component == inserted))
+                ? c.From.Component == from && c.From.Port.Length > 0 && Reaches(c.To.Component, to)
+                : c.To.Component == to && c.To.Port.Length > 0 && Reaches(c.From.Component, from))
             .Select(c => at == from ? c.From.Port : c.To.Port)
             .Single();
     }

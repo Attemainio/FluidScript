@@ -164,7 +164,7 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "N3"
+          "connectedTo": "HS1__out"
         },
         {
           "name": "in2",
@@ -317,7 +317,7 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "NM_AHU"
+          "connectedTo": "HE_AHU__out"
         },
         {
           "name": "in2",
@@ -421,7 +421,7 @@
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "NM_AHU"
+          "connectedTo": "TV_AHU__b"
         }
       ]
     },
@@ -787,7 +787,7 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "NM_RAD"
+          "connectedTo": "HE_RAD__out"
         },
         {
           "name": "in2",
@@ -891,7 +891,7 @@
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "NM_RAD"
+          "connectedTo": "TV_RAD__b"
         }
       ]
     },
@@ -1182,7 +1182,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "HS1"
+          "connectedTo": "HS1__out"
         },
         {
           "name": "1",
@@ -1320,12 +1320,12 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "TV_AHU"
+          "connectedTo": "TV_AHU__b"
         },
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "HE_AHU"
+          "connectedTo": "HE_AHU__out"
         },
         {
           "name": "2",
@@ -1357,12 +1357,12 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "TV_RAD"
+          "connectedTo": "TV_RAD__b"
         },
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "HE_RAD"
+          "connectedTo": "HE_RAD__out"
         },
         {
           "name": "2",
@@ -1560,6 +1560,166 @@
           "name": "1",
           "role": "bidirectional",
           "connectedTo": "HE_RAD"
+        }
+      ]
+    },
+    {
+      "id": "HS1__out",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 230,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HS1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "N3"
+        }
+      ]
+    },
+    {
+      "id": "TV_AHU__b",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0012,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250.768,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "NM_AHU"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "TV_AHU"
+        }
+      ]
+    },
+    {
+      "id": "HE_AHU__out",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0012,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250.768,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HE_AHU"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "NM_AHU"
+        }
+      ]
+    },
+    {
+      "id": "TV_RAD__b",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0011,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 251.722,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "NM_RAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "TV_RAD"
+        }
+      ]
+    },
+    {
+      "id": "HE_RAD__out",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0011,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 251.722,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HE_RAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "NM_RAD"
         }
       ]
     }
@@ -2332,7 +2492,7 @@
         "port": "out"
       },
       "to": {
-        "component": "N3",
+        "component": "HS1__out",
         "port": null
       },
       "flow": "forward",
@@ -2345,6 +2505,24 @@
     },
     {
       "id": "c2",
+      "from": {
+        "component": "HS1__out",
+        "port": null
+      },
+      "to": {
+        "component": "N3",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.4308,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c3",
       "from": {
         "component": "N3",
         "port": null
@@ -2362,7 +2540,7 @@
       }
     },
     {
-      "id": "c3",
+      "id": "c4",
       "from": {
         "component": "N6",
         "port": null
@@ -2380,7 +2558,7 @@
       }
     },
     {
-      "id": "c4",
+      "id": "c5",
       "from": {
         "component": "N5",
         "port": null
@@ -2398,7 +2576,7 @@
       }
     },
     {
-      "id": "c5",
+      "id": "c6",
       "from": {
         "component": "N3",
         "port": null
@@ -2416,7 +2594,7 @@
       }
     },
     {
-      "id": "c6",
+      "id": "c7",
       "from": {
         "component": "N3__TV_AHU",
         "port": "out"
@@ -2434,7 +2612,7 @@
       }
     },
     {
-      "id": "c7",
+      "id": "c8",
       "from": {
         "component": "N3__TV_AHU__out",
         "port": null
@@ -2452,9 +2630,27 @@
       }
     },
     {
-      "id": "c8",
+      "id": "c9",
       "from": {
         "component": "NM_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "TV_AHU__b",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.0956867,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c10",
+      "from": {
+        "component": "TV_AHU__b",
         "port": null
       },
       "to": {
@@ -2470,7 +2666,7 @@
       }
     },
     {
-      "id": "c9",
+      "id": "c11",
       "from": {
         "component": "TV_AHU",
         "port": "ab"
@@ -2488,7 +2684,7 @@
       }
     },
     {
-      "id": "c10",
+      "id": "c12",
       "from": {
         "component": "TV_AHU__PU_AHU",
         "port": null
@@ -2506,7 +2702,7 @@
       }
     },
     {
-      "id": "c11",
+      "id": "c13",
       "from": {
         "component": "PU_AHU",
         "port": "out"
@@ -2524,7 +2720,7 @@
       }
     },
     {
-      "id": "c12",
+      "id": "c14",
       "from": {
         "component": "PU_AHU__HE_AHU",
         "port": null
@@ -2542,10 +2738,28 @@
       }
     },
     {
-      "id": "c13",
+      "id": "c15",
       "from": {
         "component": "HE_AHU",
         "port": "out"
+      },
+      "to": {
+        "component": "HE_AHU__out",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287153,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c16",
+      "from": {
+        "component": "HE_AHU__out",
+        "port": null
       },
       "to": {
         "component": "NM_AHU",
@@ -2560,7 +2774,7 @@
       }
     },
     {
-      "id": "c14",
+      "id": "c17",
       "from": {
         "component": "NM_AHU",
         "port": null
@@ -2578,7 +2792,7 @@
       }
     },
     {
-      "id": "c15",
+      "id": "c18",
       "from": {
         "component": "NM_AHU__N5",
         "port": "out"
@@ -2596,7 +2810,7 @@
       }
     },
     {
-      "id": "c16",
+      "id": "c19",
       "from": {
         "component": "N4",
         "port": null
@@ -2614,7 +2828,7 @@
       }
     },
     {
-      "id": "c17",
+      "id": "c20",
       "from": {
         "component": "N4__TV_RAD",
         "port": "out"
@@ -2632,7 +2846,7 @@
       }
     },
     {
-      "id": "c18",
+      "id": "c21",
       "from": {
         "component": "N4__TV_RAD__out",
         "port": null
@@ -2650,9 +2864,27 @@
       }
     },
     {
-      "id": "c19",
+      "id": "c22",
       "from": {
         "component": "NM_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "TV_RAD__b",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.119607,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c23",
+      "from": {
+        "component": "TV_RAD__b",
         "port": null
       },
       "to": {
@@ -2668,7 +2900,7 @@
       }
     },
     {
-      "id": "c20",
+      "id": "c24",
       "from": {
         "component": "TV_RAD",
         "port": "ab"
@@ -2686,7 +2918,7 @@
       }
     },
     {
-      "id": "c21",
+      "id": "c25",
       "from": {
         "component": "TV_RAD__PU_RAD",
         "port": null
@@ -2704,7 +2936,7 @@
       }
     },
     {
-      "id": "c22",
+      "id": "c26",
       "from": {
         "component": "PU_RAD",
         "port": "out"
@@ -2722,7 +2954,7 @@
       }
     },
     {
-      "id": "c23",
+      "id": "c27",
       "from": {
         "component": "PU_RAD__HE_RAD",
         "port": null
@@ -2740,10 +2972,28 @@
       }
     },
     {
-      "id": "c24",
+      "id": "c28",
       "from": {
         "component": "HE_RAD",
         "port": "out"
+      },
+      "to": {
+        "component": "HE_RAD__out",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358941,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c29",
+      "from": {
+        "component": "HE_RAD__out",
+        "port": null
       },
       "to": {
         "component": "NM_RAD",
@@ -2758,7 +3008,7 @@
       }
     },
     {
-      "id": "c25",
+      "id": "c30",
       "from": {
         "component": "NM_RAD",
         "port": null
@@ -2776,7 +3026,7 @@
       }
     },
     {
-      "id": "c26",
+      "id": "c31",
       "from": {
         "component": "NM_RAD__N6",
         "port": "out"
@@ -2798,6 +3048,7 @@
     "order": [
       "N1",
       "HS1",
+      "HS1__out",
       "N3",
       "N4",
       "N4__TV_RAD",
@@ -2807,17 +3058,21 @@
       "PU_RAD",
       "PU_RAD__HE_RAD",
       "HE_RAD",
+      "HE_RAD__out",
       "NM_RAD",
+      "TV_RAD__b",
       "NM_RAD__N6",
       "N6",
       "N5",
       "NM_AHU__N5",
       "NM_AHU",
+      "TV_AHU__b",
       "TV_AHU",
       "TV_AHU__PU_AHU",
       "PU_AHU",
       "PU_AHU__HE_AHU",
       "HE_AHU",
+      "HE_AHU__out",
       "N3__TV_AHU__out",
       "N3__TV_AHU"
     ],
@@ -2843,7 +3098,11 @@
           "PU_AHU__HE_AHU",
           "N4__TV_RAD__out",
           "TV_RAD__PU_RAD",
-          "PU_RAD__HE_RAD"
+          "PU_RAD__HE_RAD",
+          "TV_AHU__b",
+          "HE_AHU__out",
+          "TV_RAD__b",
+          "HE_RAD__out"
         ]
       },
       {
@@ -2855,7 +3114,8 @@
           "N3",
           "N4",
           "N6",
-          "N5"
+          "N5",
+          "HS1__out"
         ]
       }
     ],
@@ -2886,14 +3146,22 @@
       "c23": "forward",
       "c24": "forward",
       "c25": "forward",
-      "c26": "forward"
+      "c26": "forward",
+      "c27": "forward",
+      "c28": "forward",
+      "c29": "forward",
+      "c30": "forward",
+      "c31": "forward"
     },
     "groups": [],
     "nonFlowElements": [],
     "circuitOf": {
       "HE_AHU": "AHU",
+      "HE_AHU__out": "AHU",
       "HE_RAD": "radiators",
+      "HE_RAD__out": "radiators",
       "HS1": "heating",
+      "HS1__out": "heating",
       "N1": "heating",
       "N3": "heating",
       "N3__TV_AHU": "AHU",
@@ -2913,8 +3181,10 @@
       "PU_RAD__HE_RAD": "radiators",
       "TV_AHU": "AHU",
       "TV_AHU__PU_AHU": "AHU",
+      "TV_AHU__b": "AHU",
       "TV_RAD": "radiators",
-      "TV_RAD__PU_RAD": "radiators"
+      "TV_RAD__PU_RAD": "radiators",
+      "TV_RAD__b": "radiators"
     },
     "distributionGroups": [
       {
@@ -2926,6 +3196,9 @@
       }
     ],
     "inferred": [
+      "HE_AHU__out",
+      "HE_RAD__out",
+      "HS1__out",
       "N3",
       "N3__TV_AHU",
       "N3__TV_AHU__out",
@@ -2941,7 +3214,9 @@
       "PU_AHU__HE_AHU",
       "PU_RAD__HE_RAD",
       "TV_AHU__PU_AHU",
-      "TV_RAD__PU_RAD"
+      "TV_AHU__b",
+      "TV_RAD__PU_RAD",
+      "TV_RAD__b"
     ],
     "margin": 0.5,
     "labelMetric": {
@@ -3010,7 +3285,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.936,
+            "at": 0.8616,
             "from": null,
             "to": null
           },
@@ -3101,7 +3376,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.936,
+            "at": 0.8616,
             "from": null,
             "to": null
           },
@@ -3114,6 +3389,77 @@
             "at": 0.75,
             "from": 0,
             "to": 0.75
+          }
+        }
+      },
+      {
+        "componentId": "HS1__out",
+        "symbolId": "node.junction",
+        "inner": [
+          0.15,
+          0.3,
+          0,
+          0
+        ],
+        "outer": [
+          0.15,
+          0.3,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.15,
+              0.3
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "1": {
+            "at": [
+              0.15,
+              0.3
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          0.15,
+          0.45
+        ],
+        "labelBox": [
+          -0.3047,
+          0.3583,
+          0.9093,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.8616,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.1667,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": null,
+            "to": null
           }
         }
       },
@@ -3182,7 +3528,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.936,
+            "at": 0.8616,
             "from": null,
             "to": null
           },
@@ -3253,7 +3599,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.2978,
+            "at": 0.4787,
             "from": null,
             "to": null
           },
@@ -3324,7 +3670,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.2978,
+            "at": 0.4787,
             "from": null,
             "to": null
           },
@@ -3395,7 +3741,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.2978,
+            "at": 0.4787,
             "from": null,
             "to": null
           },
@@ -3476,7 +3822,7 @@
         "scale": 0.5003,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
             "from": null,
             "to": null
           },
@@ -3547,7 +3893,7 @@
         "scale": 0.5003,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
             "from": null,
             "to": null
           },
@@ -3618,7 +3964,7 @@
         "scale": 0.5,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
             "from": null,
             "to": null
           },
@@ -3689,7 +4035,7 @@
         "scale": 0.5,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
             "from": null,
             "to": null
           },
@@ -3780,7 +4126,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
             "from": null,
             "to": null
           },
@@ -3793,6 +4139,77 @@
             "at": 0,
             "from": 0.5,
             "to": 0
+          }
+        }
+      },
+      {
+        "componentId": "HE_RAD__out",
+        "symbolId": "node.junction",
+        "inner": [
+          7.4,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          7.4,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              7.4,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              7.4,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          7.4,
+          -0.85
+        ],
+        "labelBox": [
+          6.7748,
+          -0.9417,
+          1.2503,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.7179,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5287,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
           }
         }
       },
@@ -3861,7 +4278,78 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.6965,
+            "at": 0.7179,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5287,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
+      },
+      {
+        "componentId": "TV_RAD__b",
+        "symbolId": "node.junction",
+        "inner": [
+          6.05,
+          -0.2,
+          0,
+          0
+        ],
+        "outer": [
+          6.05,
+          -0.2,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              6.05,
+              -0.2
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "1": {
+            "at": [
+              6.05,
+              -0.2
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          6.05,
+          -0.05
+        ],
+        "labelBox": [
+          5.5385,
+          -0.1417,
+          1.023,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.2392,
             "from": null,
             "to": null
           },
@@ -3932,7 +4420,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.2978,
+            "at": 0.4787,
             "from": null,
             "to": null
           },
@@ -4003,7 +4491,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.2978,
+            "at": 0.4787,
             "from": null,
             "to": null
           },
@@ -4084,7 +4572,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.936,
+            "at": 0.8616,
             "from": null,
             "to": null
           },
@@ -4155,7 +4643,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.1382,
+            "at": 0.3829,
             "from": null,
             "to": null
           },
@@ -4236,7 +4724,78 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5128,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
+      },
+      {
+        "componentId": "TV_AHU__b",
+        "symbolId": "node.junction",
+        "inner": [
+          1.85,
+          -1.3,
+          0,
+          0
+        ],
+        "outer": [
+          1.85,
+          -1.3,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              1.85,
+              -1.3
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "1": {
+            "at": [
+              1.85,
+              -1.3
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          1.85,
+          -1.15
+        ],
+        "labelBox": [
+          1.3385,
+          -1.2417,
+          1.023,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.1914,
             "from": null,
             "to": null
           },
@@ -4317,7 +4876,7 @@
         "scale": 0.5002,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
             "from": null,
             "to": null
           },
@@ -4388,7 +4947,7 @@
         "scale": 0.5002,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
             "from": null,
             "to": null
           },
@@ -4459,7 +5018,7 @@
         "scale": 0.5,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
             "from": null,
             "to": null
           },
@@ -4530,7 +5089,7 @@
         "scale": 0.5,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
             "from": null,
             "to": null
           },
@@ -4621,7 +5180,7 @@
         "scale": 0,
         "scales": {
           "flow": {
-            "at": 0.4572,
+            "at": 0.5743,
             "from": null,
             "to": null
           },
@@ -4634,6 +5193,77 @@
             "at": 0,
             "from": 0.5,
             "to": 0
+          }
+        }
+      },
+      {
+        "componentId": "HE_AHU__out",
+        "symbolId": "node.junction",
+        "inner": [
+          3.2,
+          -2.1,
+          0,
+          0
+        ],
+        "outer": [
+          3.2,
+          -2.1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              3.2,
+              -2.1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              3.2,
+              -2.1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          3.2,
+          -1.95
+        ],
+        "labelBox": [
+          2.5748,
+          -2.0417,
+          1.2503,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.5743,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5128,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
           }
         }
       },
@@ -4692,7 +5322,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.1382,
+            "at": 0.3829,
             "from": null,
             "to": null
           },
@@ -4763,7 +5393,7 @@
         "scale": 0.75,
         "scales": {
           "flow": {
-            "at": 0.1382,
+            "at": 0.3829,
             "from": null,
             "to": null
           },
@@ -4797,8 +5427,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.936,
-            "to": 0.936
+            "from": 0.8616,
+            "to": 0.8616
           },
           "pressure": {
             "at": null,
@@ -4820,9 +5450,7 @@
           0.15,
           -0.4,
           0.15,
-          1,
-          0.75,
-          1
+          0.3
         ],
         "hops": [],
         "scaleFrom": 0.75,
@@ -4830,8 +5458,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.936,
-            "to": 0.936
+            "from": 0.8616,
+            "to": 0.8616
           },
           "pressure": {
             "at": null,
@@ -4850,9 +5478,11 @@
         "kind": "pipe",
         "layer": "supply",
         "points": [
-          0.95,
+          0.15,
+          0.3,
+          0.15,
           1,
-          2.1,
+          0.75,
           1
         ],
         "hops": [],
@@ -4861,8 +5491,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.936,
-            "to": 0.2978
+            "from": 0.8616,
+            "to": 0.8616
           },
           "pressure": {
             "at": null,
@@ -4879,6 +5509,37 @@
       {
         "id": "c3",
         "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          0.95,
+          1,
+          2.1,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.75,
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.8616,
+            "to": 0.4787
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.1667,
+            "to": 0.1667
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
+      },
+      {
+        "id": "c4",
+        "kind": "pipe",
         "layer": "return",
         "points": [
           2.45,
@@ -4892,41 +5553,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.2978,
-            "to": 0.936
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.5,
-            "to": 0.5
-          },
-          "temperature": {
-            "at": null,
-            "from": 0,
-            "to": 0
-          }
-        }
-      },
-      {
-        "id": "c4",
-        "kind": "pipe",
-        "layer": "return",
-        "points": [
-          0.75,
-          -2.8,
-          0.15,
-          -2.8,
-          0.15,
-          -2.1
-        ],
-        "hops": [],
-        "scaleFrom": 0,
-        "scaleTo": 0,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.936,
-            "to": 0.936
+            "from": 0.4787,
+            "to": 0.8616
           },
           "pressure": {
             "at": null,
@@ -4943,6 +5571,39 @@
       {
         "id": "c5",
         "kind": "pipe",
+        "layer": "return",
+        "points": [
+          0.75,
+          -2.8,
+          0.15,
+          -2.8,
+          0.15,
+          -2.1
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.8616,
+            "to": 0.8616
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
+      },
+      {
+        "id": "c6",
+        "kind": "pipe",
         "layer": "supply",
         "points": [
           0.85,
@@ -4956,8 +5617,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.936,
-            "to": 0.1382
+            "from": 0.8616,
+            "to": 0.3829
           },
           "pressure": {
             "at": null,
@@ -4972,7 +5633,7 @@
         }
       },
       {
-        "id": "c6",
+        "id": "c7",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -4987,41 +5648,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.1382,
-            "to": 0.1382
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.155,
-            "to": 0.155
-          },
-          "temperature": {
-            "at": null,
-            "from": 0.75,
-            "to": 0.75
-          }
-        }
-      },
-      {
-        "id": "c7",
-        "kind": "pipe",
-        "layer": "supply",
-        "points": [
-          0.85,
-          0.233333,
-          0.85,
-          -0.1,
-          1.35,
-          -0.1
-        ],
-        "hops": [],
-        "scaleFrom": 0.75,
-        "scaleTo": 0.75,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.1382,
-            "to": 0.4572
+            "from": 0.3829,
+            "to": 0.3829
           },
           "pressure": {
             "at": null,
@@ -5038,10 +5666,74 @@
       {
         "id": "c8",
         "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          0.85,
+          0.233333,
+          0.85,
+          -0.1,
+          1.35,
+          -0.1
+        ],
+        "hops": [],
+        "scaleFrom": 0.75,
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.3829,
+            "to": 0.5743
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.155,
+            "to": 0.155
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
+      },
+      {
+        "id": "c9",
+        "kind": "pipe",
         "layer": "return",
         "points": [
           1.85,
           -2,
+          1.85,
+          -1.3
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.5743,
+            "to": 0.1914
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5128,
+            "to": 0.5128
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
+      },
+      {
+        "id": "c10",
+        "kind": "pipe",
+        "layer": "return",
+        "points": [
+          1.85,
+          -1.3,
           1.85,
           -0.6
         ],
@@ -5051,8 +5743,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.1914,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5067,7 +5759,7 @@
         }
       },
       {
-        "id": "c9",
+        "id": "c11",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5082,8 +5774,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.5743,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5098,7 +5790,7 @@
         }
       },
       {
-        "id": "c10",
+        "id": "c12",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5113,8 +5805,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.5743,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5129,7 +5821,7 @@
         }
       },
       {
-        "id": "c11",
+        "id": "c13",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5144,8 +5836,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.5743,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5160,7 +5852,7 @@
         }
       },
       {
-        "id": "c12",
+        "id": "c14",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5177,8 +5869,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.5743,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5193,7 +5885,7 @@
         }
       },
       {
-        "id": "c13",
+        "id": "c15",
         "kind": "pipe",
         "layer": "return",
         "points": [
@@ -5201,7 +5893,7 @@
           -1.6,
           4.45,
           -2.1,
-          1.95,
+          3.2,
           -2.1
         ],
         "hops": [],
@@ -5210,8 +5902,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.4572
+            "from": 0.5743,
+            "to": 0.5743
           },
           "pressure": {
             "at": null,
@@ -5226,7 +5918,38 @@
         }
       },
       {
-        "id": "c14",
+        "id": "c16",
+        "kind": "pipe",
+        "layer": "return",
+        "points": [
+          3.2,
+          -2.1,
+          1.95,
+          -2.1
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.5743,
+            "to": 0.5743
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5128,
+            "to": 0.5128
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
+      },
+      {
+        "id": "c17",
         "kind": "pipe",
         "layer": "return",
         "points": [
@@ -5241,8 +5964,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.4572,
-            "to": 0.1382
+            "from": 0.5743,
+            "to": 0.3829
           },
           "pressure": {
             "at": null,
@@ -5257,7 +5980,7 @@
         }
       },
       {
-        "id": "c15",
+        "id": "c18",
         "kind": "pipe",
         "layer": "return",
         "points": [
@@ -5274,8 +5997,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.1382,
-            "to": 0.936
+            "from": 0.3829,
+            "to": 0.8616
           },
           "pressure": {
             "at": null,
@@ -5290,7 +6013,7 @@
         }
       },
       {
-        "id": "c16",
+        "id": "c19",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5305,8 +6028,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.2978,
-            "to": 0.2978
+            "from": 0.4787,
+            "to": 0.4787
           },
           "pressure": {
             "at": null,
@@ -5321,7 +6044,7 @@
         }
       },
       {
-        "id": "c17",
+        "id": "c20",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5336,8 +6059,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.2978,
-            "to": 0.2978
+            "from": 0.4787,
+            "to": 0.4787
           },
           "pressure": {
             "at": null,
@@ -5352,7 +6075,7 @@
         }
       },
       {
-        "id": "c18",
+        "id": "c21",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -5367,8 +6090,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.2978,
-            "to": 0.6965
+            "from": 0.4787,
+            "to": 0.7179
           },
           "pressure": {
             "at": null,
@@ -5383,173 +6106,14 @@
         }
       },
       {
-        "id": "c19",
+        "id": "c22",
         "kind": "pipe",
         "layer": "return",
         "points": [
           6.05,
           -0.9,
           6.05,
-          0.5
-        ],
-        "hops": [],
-        "scaleFrom": 0,
-        "scaleTo": 0.75,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.6965,
-            "to": 0.6965
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.5287,
-            "to": 0.1402
-          },
-          "temperature": {
-            "at": null,
-            "from": 0,
-            "to": 0.75
-          }
-        }
-      },
-      {
-        "id": "c20",
-        "kind": "pipe",
-        "layer": "supply",
-        "points": [
-          6.55,
-          1,
-          6.8,
-          1
-        ],
-        "hops": [],
-        "scaleFrom": 0.5003,
-        "scaleTo": 0.5003,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.6965,
-            "to": 0.6965
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.0245,
-            "to": 0.0245
-          },
-          "temperature": {
-            "at": null,
-            "from": 0.5003,
-            "to": 0.5003
-          }
-        }
-      },
-      {
-        "id": "c21",
-        "kind": "pipe",
-        "layer": "supply",
-        "points": [
-          6.8,
-          1,
-          7.05,
-          1
-        ],
-        "hops": [],
-        "scaleFrom": 0.5003,
-        "scaleTo": 0.5003,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.6965,
-            "to": 0.6965
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.0245,
-            "to": 0.0245
-          },
-          "temperature": {
-            "at": null,
-            "from": 0.5003,
-            "to": 0.5003
-          }
-        }
-      },
-      {
-        "id": "c22",
-        "kind": "pipe",
-        "layer": "supply",
-        "points": [
-          8.05,
-          1,
-          8.35,
-          1
-        ],
-        "hops": [],
-        "scaleFrom": 0.5,
-        "scaleTo": 0.5,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.6965,
-            "to": 0.6965
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.862,
-            "to": 0.862
-          },
-          "temperature": {
-            "at": null,
-            "from": 0.5,
-            "to": 0.5
-          }
-        }
-      },
-      {
-        "id": "c23",
-        "kind": "pipe",
-        "layer": "supply",
-        "points": [
-          8.35,
-          1,
-          8.65,
-          1,
-          8.65,
-          0.5
-        ],
-        "hops": [],
-        "scaleFrom": 0.5,
-        "scaleTo": 0.5,
-        "scales": {
-          "flow": {
-            "at": null,
-            "from": 0.6965,
-            "to": 0.6965
-          },
-          "pressure": {
-            "at": null,
-            "from": 0.862,
-            "to": 0.862
-          },
-          "temperature": {
-            "at": null,
-            "from": 0.5,
-            "to": 0.5
-          }
-        }
-      },
-      {
-        "id": "c24",
-        "kind": "pipe",
-        "layer": "return",
-        "points": [
-          8.65,
-          -0.5,
-          8.65,
-          -1,
-          6.15,
-          -1
+          -0.2
         ],
         "hops": [],
         "scaleFrom": 0,
@@ -5557,8 +6121,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.6965,
-            "to": 0.6965
+            "from": 0.7179,
+            "to": 0.2392
           },
           "pressure": {
             "at": null,
@@ -5573,7 +6137,228 @@
         }
       },
       {
+        "id": "c23",
+        "kind": "pipe",
+        "layer": "return",
+        "points": [
+          6.05,
+          -0.2,
+          6.05,
+          0.5
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2392,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5287,
+            "to": 0.1402
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0.75
+          }
+        }
+      },
+      {
+        "id": "c24",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          6.55,
+          1,
+          6.8,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.5003,
+        "scaleTo": 0.5003,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.0245,
+            "to": 0.0245
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5003,
+            "to": 0.5003
+          }
+        }
+      },
+      {
         "id": "c25",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          6.8,
+          1,
+          7.05,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.5003,
+        "scaleTo": 0.5003,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.0245,
+            "to": 0.0245
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5003,
+            "to": 0.5003
+          }
+        }
+      },
+      {
+        "id": "c26",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          8.05,
+          1,
+          8.35,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.5,
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.862,
+            "to": 0.862
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
+      },
+      {
+        "id": "c27",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          8.35,
+          1,
+          8.65,
+          1,
+          8.65,
+          0.5
+        ],
+        "hops": [],
+        "scaleFrom": 0.5,
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.862,
+            "to": 0.862
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
+      },
+      {
+        "id": "c28",
+        "kind": "pipe",
+        "layer": "return",
+        "points": [
+          8.65,
+          -0.5,
+          8.65,
+          -1,
+          7.4,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5287,
+            "to": 0.5287
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
+      },
+      {
+        "id": "c29",
+        "kind": "pipe",
+        "layer": "return",
+        "points": [
+          7.4,
+          -1,
+          6.15,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0,
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.7179,
+            "to": 0.7179
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5287,
+            "to": 0.5287
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
+      },
+      {
+        "id": "c30",
         "kind": "pipe",
         "layer": "return",
         "points": [
@@ -5592,8 +6377,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.6965,
-            "to": 0.2978
+            "from": 0.7179,
+            "to": 0.4787
           },
           "pressure": {
             "at": null,
@@ -5608,7 +6393,7 @@
         }
       },
       {
-        "id": "c26",
+        "id": "c31",
         "kind": "pipe",
         "layer": "return",
         "points": [
@@ -5623,8 +6408,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.2978,
-            "to": 0.2978
+            "from": 0.4787,
+            "to": 0.4787
           },
           "pressure": {
             "at": null,
@@ -5666,8 +6451,8 @@
         "unit": "kg/s",
         "kind": "sequential",
         "domain": {
-          "min": 0.15,
-          "max": 0.45,
+          "min": 0,
+          "max": 0.5,
           "nice": true
         },
         "degenerate": false
@@ -5715,6 +6500,26 @@
       "message": "'TV_RAD' throttles its b leg by 30.2 kPa at position 0.82: that path is 23.3 kPa easier than the a path, more than the 10.6 kPa the valve drops fully open. A balancing valve between NM_RAD and TV_RAD.b dropping 23.3 kPa at 0.12 kg/s (Kv 0.9) would level the legs and leave the valve its travel.",
       "range": null,
       "component": "TV_RAD",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'HS1__out' (I9).",
+      "range": {
+        "start": {
+          "line": 49,
+          "character": 7
+        },
+        "end": {
+          "line": 49,
+          "character": 15
+        },
+        "offset": 3219,
+        "length": 8
+      },
+      "component": "HS1__out",
       "suggestion": null,
       "related": []
     },
@@ -5881,6 +6686,26 @@
     {
       "code": "FS1510",
       "severity": "info",
+      "message": "Added node 'TV_AHU__b' (I9).",
+      "range": {
+        "start": {
+          "line": 65,
+          "character": 2
+        },
+        "end": {
+          "line": 65,
+          "character": 17
+        },
+        "offset": 3577,
+        "length": 15
+      },
+      "component": "TV_AHU__b",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
       "message": "Added node 'TV_AHU__PU_AHU' (I2).",
       "range": {
         "start": {
@@ -5915,6 +6740,26 @@
         "length": 15
       },
       "component": "PU_AHU__HE_AHU",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'HE_AHU__out' (I9).",
+      "range": {
+        "start": {
+          "line": 66,
+          "character": 20
+        },
+        "end": {
+          "line": 66,
+          "character": 35
+        },
+        "offset": 3663,
+        "length": 15
+      },
+      "component": "HE_AHU__out",
       "suggestion": null,
       "related": []
     },
@@ -6021,6 +6866,26 @@
     {
       "code": "FS1510",
       "severity": "info",
+      "message": "Added node 'TV_RAD__b' (I9).",
+      "range": {
+        "start": {
+          "line": 78,
+          "character": 2
+        },
+        "end": {
+          "line": 78,
+          "character": 17
+        },
+        "offset": 3983,
+        "length": 15
+      },
+      "component": "TV_RAD__b",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
       "message": "Added node 'TV_RAD__PU_RAD' (I2).",
       "range": {
         "start": {
@@ -6061,6 +6926,26 @@
     {
       "code": "FS1510",
       "severity": "info",
+      "message": "Added node 'HE_RAD__out' (I9).",
+      "range": {
+        "start": {
+          "line": 79,
+          "character": 20
+        },
+        "end": {
+          "line": 79,
+          "character": 35
+        },
+        "offset": 4019,
+        "length": 15
+      },
+      "component": "HE_RAD__out",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
       "message": "Added pipe 'NM_RAD__N6' (I7).",
       "range": {
         "start": {
@@ -6091,7 +6976,7 @@
   "solve": {
     "converged": true,
     "iterations": 7,
-    "residualNorm": 1.71E-14,
+    "residualNorm": 1.14E-14,
     "elapsedMs": null,
     "sizingPasses": 2
   }

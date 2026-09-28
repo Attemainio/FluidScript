@@ -29,17 +29,20 @@ public sealed class LayoutHintsTests
         var (hints, diagnostics) = Unsolved(GraphFixture.CoolingLoop);
 
         Assert.Equal(
-            ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"],
+            ["N1", "N2", "PU1__in", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3", "3WV__b"],
             hints.Order);
         Assert.Contains(diagnostics, static d => d.Code == "FS2401");
     }
 
     [Fact]
-    public void TheFourInferredComponentsAreNamed()
+    public void TheSixInferredComponentsAreNamed()
     {
         var (hints, _) = Unsolved(GraphFixture.CoolingLoop);
 
-        Assert.Equal(["3WV__P1", "HE1__3WV", "N2", "PU1__HE1"], hints.Inferred.Order(StringComparer.Ordinal));
+        // N2 (I1), three I2 nodes, and the pump's inlet and the valve's bypass on the junction N2 (I9, D-183).
+        Assert.Equal(
+            ["3WV__P1", "3WV__b", "HE1__3WV", "N2", "PU1__HE1", "PU1__in"],
+            hints.Inferred.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -47,14 +50,15 @@ public sealed class LayoutHintsTests
     {
         var (hints, _) = await SolvedAsync(GraphFixture.CoolingLoop, "cooling-loop");
 
-        // Seven written lines, three of them split by I2 around an inferred node: ten adjacencies. All run as written
-        // but the bypass: the valve sits at its default position 1, open on `a` -- the leg on to the outlet, as the
-        // plant labels it (`D-175`) -- and shut on `b` but for its leakage, which the pump's suction at 300 kPa pushes
-        // backwards into the valve body at 293.7 kPa (0.0087 kg/s, measured).
-        Assert.Equal(10, hints.Flow.Count);
-        var against = Assert.Single(hints.Flow, static pair => pair.Value != FlowDirection.Forward);
-        Assert.Equal(FlowDirection.Reverse, against.Value);
-        Assert.Equal("c6", against.Key); // `3WV - N2`, the seventh adjacency once I2 has split three lines
+        // Seven written lines, three of them split by I2 around an inferred node and two by I9 around a port's own
+        // point on the junction N2 (D-183): twelve adjacencies. All run as written but the bypass: the valve sits at
+        // its default position 1, open on `a` -- the leg on to the outlet, as the plant labels it (`D-175`) -- and
+        // shut on `b` but for its leakage, which the pump's suction at 300 kPa pushes backwards into the valve body
+        // at 293.7 kPa (0.0087 kg/s, measured).
+        Assert.Equal(12, hints.Flow.Count);
+        var against = hints.Flow.Where(static pair => pair.Value != FlowDirection.Forward).OrderBy(static pair => pair.Key, StringComparer.Ordinal).ToList();
+        Assert.All(against, static pair => Assert.Equal(FlowDirection.Reverse, pair.Value));
+        Assert.Equal(["c7", "c8"], against.Select(static pair => pair.Key)); // `3WV - 3WV__b - N2`, the bypass either side of its point
     }
 
     [Fact]
@@ -65,7 +69,7 @@ public sealed class LayoutHintsTests
         var stage = Assert.Single(hints.ThermalStages);
         Assert.Equal(0, stage.Rank);
         Assert.Equal(ThermalStageRole.Neutral, stage.Role);
-        Assert.Equal(10, stage.Components.Length);
+        Assert.Equal(12, stage.Components.Length);
     }
 
 

@@ -55,14 +55,15 @@ public sealed class DecompositionTests
     {
         // C-126: NA1 splits to zone 1 and on to NA2, which splits to zones 2 and 3; the return collects at NB2, then NB1.
         // Every branch flows from its split to its merge, so both groups are headers. The spine -- the branch the ring
-        // runs on through -- is the one declared last: at NA1 the way on to NA2, at NA2 zone 3.
+        // runs on through -- is the one declared last: at NA1 the way on to NA2, at NA2 zone 3, entering its valve through
+        // the valve's own point on NA2 (I9, D-183).
         var plan = Plan(Solve(File.ReadAllText(Path.Combine(Ladder, "step-12-zones.fluid"))));
 
         Assert.Equal("sourced ring (C2), head HE1, cut at HE1", plan[0]);
         Assert.Contains("    header NA1 to NB1, 2 branches", plan);
         Assert.Contains("          header NA2 to NB2, 2 branches", plan);
         var spines = plan.Select((line, i) => (line, i)).Where(static l => l.line.EndsWith("(spine)", StringComparison.Ordinal)).Select(l => plan[l.i + 2].Trim()).ToList();
-        Assert.Equal(["run NA1.2 > NA2.0", "run NA2.2 > CV3.in"], spines);
+        Assert.Equal(["run NA1.2 > NA2.0", "run NA2.2 > CV3__in > CV3.in"], spines);
     }
 
     [Fact]
@@ -74,7 +75,8 @@ public sealed class DecompositionTests
         var plan = Plan(Solve(File.ReadAllText(Path.Combine(Ladder, "step-07-ring-one-branch.fluid"))));
 
         Assert.Contains(plan, static l => l.Trim() == "loop TV_AHU to NM_AHU");
-        Assert.Contains(plan, static l => l.Trim() == "run NM_AHU.0 > TV_AHU.b");
+        // The valve's b reaches the junction through its own point (I9, D-183).
+        Assert.Contains(plan, static l => l.Trim() == "run NM_AHU.0 > TV_AHU__b > TV_AHU.b");
     }
 
     [Fact]

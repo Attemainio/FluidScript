@@ -178,7 +178,7 @@
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "N2"
+          "connectedTo": "3WV__b"
         }
       ]
     },
@@ -218,7 +218,7 @@
         {
           "name": "in",
           "role": "inlet",
-          "connectedTo": "N2"
+          "connectedTo": "PU1__in"
         },
         {
           "name": "out",
@@ -361,12 +361,12 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "PU1"
+          "connectedTo": "PU1__in"
         },
         {
           "name": "2",
           "role": "bidirectional",
-          "connectedTo": "3WV"
+          "connectedTo": "3WV__b"
         }
       ]
     },
@@ -436,6 +436,52 @@
           "name": "1",
           "role": "bidirectional",
           "connectedTo": "3WV__N3"
+        }
+      ]
+    },
+    {
+      "id": "PU1__in",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N2"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PU1"
+        }
+      ]
+    },
+    {
+      "id": "3WV__b",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I9",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "3WV"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "N2"
         }
       ]
     }
@@ -1203,6 +1249,19 @@
         "port": null
       },
       "to": {
+        "component": "PU1__in",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c2",
+      "from": {
+        "component": "PU1__in",
+        "port": null
+      },
+      "to": {
         "component": "PU1",
         "port": "in"
       },
@@ -1210,7 +1269,7 @@
       "state": null
     },
     {
-      "id": "c2",
+      "id": "c3",
       "from": {
         "component": "PU1",
         "port": "out"
@@ -1223,7 +1282,7 @@
       "state": null
     },
     {
-      "id": "c3",
+      "id": "c4",
       "from": {
         "component": "PU1__HE1",
         "port": null
@@ -1236,7 +1295,7 @@
       "state": null
     },
     {
-      "id": "c4",
+      "id": "c5",
       "from": {
         "component": "HE1",
         "port": "out"
@@ -1249,7 +1308,7 @@
       "state": null
     },
     {
-      "id": "c5",
+      "id": "c6",
       "from": {
         "component": "HE1__3WV",
         "port": null
@@ -1262,10 +1321,23 @@
       "state": null
     },
     {
-      "id": "c6",
+      "id": "c7",
       "from": {
         "component": "3WV",
         "port": "b"
+      },
+      "to": {
+        "component": "3WV__b",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c8",
+      "from": {
+        "component": "3WV__b",
+        "port": null
       },
       "to": {
         "component": "N2",
@@ -1275,7 +1347,7 @@
       "state": null
     },
     {
-      "id": "c7",
+      "id": "c9",
       "from": {
         "component": "3WV",
         "port": "a"
@@ -1288,7 +1360,7 @@
       "state": null
     },
     {
-      "id": "c8",
+      "id": "c10",
       "from": {
         "component": "3WV__N3__in",
         "port": null
@@ -1301,7 +1373,7 @@
       "state": null
     },
     {
-      "id": "c9",
+      "id": "c11",
       "from": {
         "component": "3WV__N3",
         "port": "out"
@@ -1318,6 +1390,7 @@
     "order": [
       "N1",
       "N2",
+      "PU1__in",
       "PU1",
       "PU1__HE1",
       "HE1",
@@ -1325,7 +1398,8 @@
       "3WV",
       "3WV__N3__in",
       "3WV__N3",
-      "N3"
+      "N3",
+      "3WV__b"
     ],
     "thermalStages": [
       {
@@ -1341,7 +1415,9 @@
           "N2",
           "PU1__HE1",
           "HE1__3WV",
-          "3WV__N3__in"
+          "3WV__N3__in",
+          "PU1__in",
+          "3WV__b"
         ]
       }
     ],
@@ -1355,7 +1431,9 @@
       "c6": "none",
       "c7": "none",
       "c8": "none",
-      "c9": "none"
+      "c9": "none",
+      "c10": "none",
+      "c11": "none"
     },
     "groups": [],
     "nonFlowElements": [],
@@ -1363,21 +1441,25 @@
       "3WV": "coolingLoop",
       "3WV__N3": "coolingLoop",
       "3WV__N3__in": "coolingLoop",
+      "3WV__b": "coolingLoop",
       "HE1": "coolingLoop",
       "HE1__3WV": "coolingLoop",
       "N1": "coolingLoop",
       "N2": "coolingLoop",
       "N3": "coolingLoop",
       "PU1": "coolingLoop",
-      "PU1__HE1": "coolingLoop"
+      "PU1__HE1": "coolingLoop",
+      "PU1__in": "coolingLoop"
     },
     "distributionGroups": [],
     "inferred": [
       "3WV__N3",
       "3WV__N3__in",
+      "3WV__b",
       "HE1__3WV",
       "N2",
-      "PU1__HE1"
+      "PU1__HE1",
+      "PU1__in"
     ],
     "margin": 0.5,
     "labelMetric": {
@@ -1517,6 +1599,84 @@
           2.4863,
           -0.8417,
           0.2273,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": null,
+            "from": null,
+            "to": null
+          }
+        }
+      },
+      {
+        "componentId": "PU1__in",
+        "symbolId": "node.junction",
+        "inner": [
+          2,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          2,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              2,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              2,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          2,
+          -0.85
+        ],
+        "labelBox": [
+          1.6022,
+          -0.9417,
+          0.7957,
           0.1833
         ],
         "labelClear": true,
@@ -2190,6 +2350,84 @@
             "to": null
           }
         }
+      },
+      {
+        "componentId": "3WV__b",
+        "symbolId": "node.junction",
+        "inner": [
+          2.35,
+          -0.2,
+          0,
+          0
+        ],
+        "outer": [
+          2.35,
+          -0.2,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              2.35,
+              -0.2
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "1": {
+            "at": [
+              2.35,
+              -0.2
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          }
+        },
+        "labelAt": [
+          2.35,
+          -0.05
+        ],
+        "labelBox": [
+          2.009,
+          -0.1417,
+          0.682,
+          0.1833
+        ],
+        "labelClear": true,
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": null,
+            "from": null,
+            "to": null
+          }
+        }
       }
     ],
     "routes": [
@@ -2238,7 +2476,7 @@
         "points": [
           2.25,
           -1,
-          1.75,
+          2,
           -1
         ],
         "hops": [],
@@ -2271,6 +2509,44 @@
       },
       {
         "id": "c2",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          2,
+          -1,
+          1.75,
+          -1
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": null,
+            "from": null,
+            "to": null
+          }
+        }
+      },
+      {
+        "id": "c3",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2308,7 +2584,7 @@
         }
       },
       {
-        "id": "c3",
+        "id": "c4",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2348,7 +2624,7 @@
         }
       },
       {
-        "id": "c4",
+        "id": "c5",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2388,7 +2664,7 @@
         }
       },
       {
-        "id": "c5",
+        "id": "c6",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2426,12 +2702,50 @@
         }
       },
       {
-        "id": "c6",
+        "id": "c7",
         "kind": "pipe",
         "layer": "supply",
         "points": [
           2.35,
           0.5,
+          2.35,
+          -0.2
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": null,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": null,
+            "from": null,
+            "to": null
+          }
+        }
+      },
+      {
+        "id": "c8",
+        "kind": "pipe",
+        "layer": "supply",
+        "points": [
+          2.35,
+          -0.2,
           2.35,
           -0.9
         ],
@@ -2464,7 +2778,7 @@
         }
       },
       {
-        "id": "c7",
+        "id": "c9",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2502,7 +2816,7 @@
         }
       },
       {
-        "id": "c8",
+        "id": "c10",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2540,7 +2854,7 @@
         }
       },
       {
-        "id": "c9",
+        "id": "c11",
         "kind": "pipe",
         "layer": "supply",
         "points": [
@@ -2646,6 +2960,26 @@
     {
       "code": "FS1510",
       "severity": "info",
+      "message": "Added node 'PU1__in' (I9).",
+      "range": {
+        "start": {
+          "line": 26,
+          "character": 2
+        },
+        "end": {
+          "line": 26,
+          "character": 10
+        },
+        "offset": 751,
+        "length": 8
+      },
+      "component": "PU1__in",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
       "message": "Added node 'PU1__HE1' (I2).",
       "range": {
         "start": {
@@ -2700,6 +3034,26 @@
         "length": 3
       },
       "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node '3WV__b' (I9).",
+      "range": {
+        "start": {
+          "line": 29,
+          "character": 2
+        },
+        "end": {
+          "line": 29,
+          "character": 10
+        },
+        "offset": 824,
+        "length": 8
+      },
+      "component": "3WV__b",
       "suggestion": null,
       "related": []
     },

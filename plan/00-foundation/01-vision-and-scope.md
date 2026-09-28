@@ -211,9 +211,9 @@ not choose).
 |---|---|---|
 | `FS1507` | 1 | `PU1` is in no connection |
 | `FS2107` | 2 | `N1` and `N3` are dead ends with no boundary condition |
-| `FS1510` | 6 | one per inferred component — 3 from I1, 1 from I2, 2 from I3 (the two ports of disconnected `PU1`) |
+| `FS1510` | 8 | one per inferred component — 3 from I1, 1 from I2, 2 from I3 (the two ports of disconnected `PU1`), 2 from I9 (`HE1__in` and `3WV__b`, the ports on the junction `N2`, `D-183`) |
 
-Nine in total, of which six are info-level and hidden by default in the log
+Eleven in total, of which eight are info-level and hidden by default in the log
 ([`56-console-log`](../50-frontend/56-console-log.md)). Any document stating a different count for this
 script is wrong.
 
@@ -342,21 +342,23 @@ computed from the stated duty and temperatures alone, so they are checkable with
 with h₆ = 25 324, h₂₀ = 84 007, h₅₀ = 209 418 J/kg
 ([`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md)).
 
-Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 50 °C · `3WV__N3__in` 50 °C ·
-`N3` 50 °C. Pressures follow from the solve and are not fixed by hand here; only `N1` = 300 kPa and
+Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__in` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 50 °C ·
+`3WV__b` 50 °C · `3WV__N3__in` 50 °C · `N3` 50 °C. Pressures follow from the solve and are not fixed by hand here; only `N1` = 300 kPa and
 `N3` = 280 kPa are stated.
 
 **Inference inventory**, which several documents count: **5 declared** components (`HE1`, `3WV`, `PU1`,
 and the two boundary nodes `N1` and `N3`), **1 pipe from I7** (`3WV__N3`, the return line's
 `25 m`), **1 node from I1** (`N2`, the only identifier that appears solely in links),
-**3 from I2** (`PU1__HE1`, `HE1__3WV`, `3WV__N3__in`), and **none from I3** — every port of every
-component is connected. **Six nodes, ten components**, five inferred, so exactly five `FS1510` entries.
+**3 from I2** (`PU1__HE1`, `HE1__3WV`, `3WV__N3__in`), **2 from I9** (`PU1__in` and `3WV__b`, the
+pump's and the valve's own points on the junction `N2`, `D-183`), and **none from I3** — every port of
+every component is connected. **Eight nodes, twelve components**, seven inferred, so exactly seven
+`FS1510` entries.
 
-Node and component totals are unchanged from earlier drafts of this circuit; only *origins* moved:
-`N1` and `N3` from `inferred:I1` to `declared` when the boundary lines became real declarations, and
-the return pipe from a declared `P1` to `inferred:I7` when its properties moved onto the connection
-line (`D-110`, 2026-09-18). Any document still counting three I1 nodes, four inferred components or a
-declared `P1` here is stale.
+Until `D-183` (2026-09-28) the totals were six nodes and ten components, unchanged from earlier drafts
+of this circuit where only *origins* moved: `N1` and `N3` from `inferred:I1` to `declared` when the
+boundary lines became real declarations, and the return pipe from a declared `P1` to `inferred:I7`
+when its properties moved onto the connection line (`D-110`, 2026-09-18). Any document still counting
+three I1 nodes, six nodes, five inferred components or a declared `P1` here is stale.
 
 #### The simple loop — sizing and solver reference
 

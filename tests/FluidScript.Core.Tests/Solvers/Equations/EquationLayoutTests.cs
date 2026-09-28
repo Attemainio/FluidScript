@@ -166,27 +166,28 @@ public sealed class EquationLayoutTests
     }
 
     [Fact]
-    public void TheCoolingLoopAssemblesTwentyRowsAgainstTwentyColumns()
+    public void TheCoolingLoopAssemblesTwentyFourRowsAgainstTwentyFourColumns()
     {
-        // Six nodes each declare an energy balance; N1, N2 and N3 add a mass balance and the three
-        // inferred nodes do not, because a degree-two node's balance is the branch's own flow minus
-        // itself. 3WV declares its balance and two Kv laws; the pump, exchanger and pipe one pressure
-        // relation each. That is 15. The assembler adds the ideal link N1 - N2, the two stated
-        // pressures, and the two promotion pairings -- and no datum, because a stated pressure is one.
+        // Eight nodes each declare an energy balance; N1, N2 and N3 add a mass balance and the five
+        // inferred degree-two nodes do not, because a degree-two node's balance is the branch's own flow
+        // minus itself. 3WV declares its balance and two Kv laws; the pump, exchanger and pipe one
+        // pressure relation each. That is 17. The assembler adds three ideal links -- N1 - N2, and the
+        // two I9 points on N2 (D-183) -- the two stated pressures, and the two promotion pairings, and
+        // no datum, because a stated pressure is one.
         var (graph, posedness) = Lower("m2-cooling-loop.fluid");
         var layout = EquationLayout.Build(graph, posedness);
 
-        Assert.Equal(15, layout.LinkOffset);
-        Assert.Equal(16, layout.BoundaryOffset);
-        Assert.Equal(18, layout.DatumOffset);
-        Assert.Equal(18, layout.ConstraintOffset);
-        Assert.Equal(20, layout.Count);
+        Assert.Equal(17, layout.LinkOffset);
+        Assert.Equal(20, layout.BoundaryOffset);
+        Assert.Equal(22, layout.DatumOffset);
+        Assert.Equal(22, layout.ConstraintOffset);
+        Assert.Equal(24, layout.Count);
         Assert.Equal(SystemLayout.Build(graph, posedness.Counting).Count, layout.Count);
 
         // Both boundaries admit an unknown flux, so nothing here is closed and no balance is redundant.
         Assert.Empty(layout.Dropped);
 
-        Assert.Equal(6, layout.Rows.Count(static row => row.Kind == EquationKind.Energy));
+        Assert.Equal(8, layout.Rows.Count(static row => row.Kind == EquationKind.Energy));
         Assert.Equal(4, layout.Rows.Count(static row => row.Kind == EquationKind.Mass));
     }
 

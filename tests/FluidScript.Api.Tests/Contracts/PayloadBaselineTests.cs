@@ -15,11 +15,13 @@ public sealed class PayloadBaselineTests
     private const int BudgetBytes = 512 * 1024;
 
     [Fact]
-    public void TheReferenceModelHasTwoHundredComponents()
+    public void TheReferenceModelHasTwoHundredComponentsAndTheirPortsOnJunctions()
     {
         var contract = ModelContractJson.Build(PipelineFixture.Compile(ReferenceModels.DistributionHeader(ReferenceModels.TwoHundredComponentConsumers)));
 
-        Assert.Equal(200, contract.Components.Length);
+        // 200 as 07 states it, and the 37 ports on junctions D-183 gave a point each.
+        Assert.Equal(237, contract.Components.Length);
+        Assert.Equal(37, contract.Components.Count(static c => c.Origin == "inferred:I9"));
         Assert.Equal(
             (ReferenceModels.TwoHundredComponentConsumers * ReferenceModels.ComponentsPerConsumer) + ReferenceModels.HeaderComponents,
             contract.Components.Length);

@@ -100,15 +100,18 @@ describe('prepareScene', () => {
       junction: false,
     });
     expect(scene.symbols.find((s) => s.id === 'N2')!.junction).toBe(true);
-    // One arrow per drawn run: PU1 - HE1 (c2, c3), HE1 - 3WV (c4, c5) and 3WV - N3 (c7, c8, c9)
-    // each pass through inferred inline elements and carry one arrow, on the longest piece.
+    // One arrow per drawn run: N2 - PU1 (c1, c2) and 3WV - N2 (c7, c8) through the ports' own
+    // points on the junction (I9, D-183), PU1 - HE1 (c3, c4), HE1 - 3WV (c5, c6) and 3WV - N3
+    // (c9, c10, c11) each pass through inferred inline elements and carry one arrow, on the longest piece.
     const arrows = scene.routes.filter((r) => r.arrow !== 'none').map((r) => r.id);
-    expect(arrows).toEqual(['c0', 'c1', 'c3', 'c4', 'c6', 'c7']);
+    expect(arrows).toEqual(['c0', 'c1', 'c4', 'c5', 'c7', 'c9']);
     expect(scene.routes.filter((r) => r.arrow === 'none').map((r) => r.id)).toEqual([
       'c2',
-      'c5',
+      'c3',
+      'c6',
       'c8',
-      'c9',
+      'c10',
+      'c11',
     ]);
     expect(scene.routes.find((r) => r.id === 'c0')!.corner).toBe('fillet');
   });

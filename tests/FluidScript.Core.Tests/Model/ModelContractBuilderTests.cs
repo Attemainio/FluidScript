@@ -228,7 +228,7 @@ public sealed class ModelContractBuilderTests
         var whole = ModelContractBuilder.Build(input);
         var omitted = ModelContractBuilder.Build(input, statesOmitted: true);
 
-        Assert.Equal(210, whole.Components.Length);
+        Assert.Equal(212, whole.Components.Length); // 12 components, two of them I9 points on N2 (D-183), and 200 pipe nodes
         Assert.All(whole.Circuits, static c => Assert.False(c.StatesOmitted));
         Assert.All(omitted.Circuits, static c => Assert.True(c.StatesOmitted));
         Assert.All(omitted.Components, static c => Assert.Null(c.State));
@@ -522,9 +522,10 @@ public sealed class ModelContractBuilderTests
         Assert.Equal(valve.State.TIn!.Value!.Value, valve.State.TOut.Value.Value, 1);
         Assert.True(mixing.State!.T!.Value < valve.State.TOut.Value - 5);
 
-        // The recirculation route (c6: 3WV.a - N2) leaves the valve at the valve's outlet position, not the node's.
+        // The recirculation route (c7: 3WV.b - 3WV__b, the bypass's own point on N2 by I9) leaves the valve at the
+        // valve's outlet position, not the node's.
         var placement = contract.Layout.Placements.Single(static p => p.ComponentId == "3WV");
-        var recirculation = contract.Layout.Routes.Single(static r => r.Id == "c6");
+        var recirculation = contract.Layout.Routes.Single(static r => r.Id == "c7");
         Assert.Equal(placement.Scales["temperature"].To, recirculation.Scales["temperature"].From);
         Assert.True(recirculation.Scales["temperature"].From > recirculation.Scales["temperature"].To);
     }

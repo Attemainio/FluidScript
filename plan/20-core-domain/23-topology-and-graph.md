@@ -264,8 +264,8 @@ The system assembled in [`31-solver-architecture`](../30-solver/31-solver-archit
 `p_in − p_out = Δp(ṁ, …)`. Walking any cycle and summing those relations telescopes to zero
 identically, for any iterate, because pressure is a single-valued field on the nodes. **Loop closure
 is therefore not an equation to impose — it is a property of the unknowns.** Adding one pressure
-equation per loop over-determines the system by exactly `Loops.Count`; on the cooling loop that is 21
-equations against 20 unknowns, and `FS2210` fires on this tree's own reference circuit.
+equation per loop over-determines the system by exactly `Loops.Count`; on the cooling loop that is 25
+equations against 24 unknowns, and `FS2210` fires on this tree's own reference circuit.
 
 The sign convention is what makes the telescoping work with no special cases: pressure drop is
 positive in the nominal flow direction for every component, negative for a pump (`22`'s convention 1).
@@ -724,7 +724,9 @@ all but one free size on the path, or decoupling the blocks.
 3a. No component appears as a junction element unless one of its flow groups exceeds two ports, or it
    is a terminal.
 4. Every component's ports are attached to a node — no component connects directly to another
-   (guaranteed by inference rule I2).
+   (guaranteed by inference rule I2) — and no port but a pipe's is attached to a junction: a port on
+   a node with three or more connections has a point of its own between them (inference rule I9,
+   `D-183`), so the junction's one state is the mix and every port's state is its own stream.
 5. Unknown count equals equation count after the redundant mass balance is dropped.
 6. Lowering is deterministic: the same semantic model yields an identical graph, with identical node
    ordering, every time. **Ordering stability matters beyond determinism** — the renderer's placement
@@ -834,62 +836,74 @@ tool and a frustrating one.
 
 ## Worked example
 
-The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)):
+The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md),
+`samples/m2-cooling-loop.fluid`):
 
 ```text
 circuit "coolingLoop":
-  # … the declarations of HE1, 3WV, PU1 and the pipe P1
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
 
   N1 - N2
   N2 - PU1
   PU1 - HE1
   HE1 - 3WV
   3WV - N2
-  3WV - P1
-  P1 - N3
+  3WV - N3   25 m  DN25
 
   N1  inlet   t = 6  p = 300
   N3  outlet  p = 280
 ```
 
 **Nodes**: `N1` and `N3` are declared (they carry boundary conditions), `N2` comes from I1, and
-`PU1__HE1`, `HE1__3WV`, `3WV__P1` from I2 — every pair of directly-connected non-node components gets
-one. `3WV`'s three ports are all connected
-(`a` ← `HE1__3WV`, `b` → `N2`, `c` → `3WV__P1`), and so are both ports of `PU1`, `HE1` and `P1`, so I3
-does not fire at all. **Six nodes, ten components**, of which the user wrote six — the four
-flow components plus the two boundary nodes ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)'s
-inference inventory).
+`PU1__HE1` and `HE1__3WV` from I2 -- every pair of directly-connected non-node components gets one.
+The return line's properties make it a pipe, `3WV__N3` (I7), and I2 puts `3WV__N3__in` between it and
+the valve. `N2` is a junction, so the two component ports on it each get a point of their own (I9,
+`D-183`): `PU1__in` for the pump's suction and `3WV__b` for the valve's bypass. `3WV`'s three ports are
+all connected (`ab` ← `HE1__3WV`, `b` → `3WV__b`, `a` → `3WV__N3__in`, as `D-175` labels a diverting
+valve), and so are both ports of `PU1`, `HE1` and the pipe, so I3 does not fire at all. **Eight
+nodes, twelve components**, of which the user wrote five -- the three flow components and the two
+boundary nodes ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)'s inference
+inventory).
 
-**Junction elements — four, and terminals count.** `N2` (three connections: from `N1`, to `PU1`, from
-`3WV.a`), `3WV` itself (three ports), and the two terminals `N1` and `N3`, each with one connection and
-a stated boundary. Terminals are junction elements for the purpose of invariant 2 and the mass-balance
-count: they are vertices of the branch graph, since a branch must end somewhere. Counting only the two
-degree-≥3 elements gives `Loops = 4 − 2 + 1 = 3`, which is wrong — this circuit has one loop.
+**Junction elements -- four, and terminals count.** `N2` (three connections: from `N1`, to `PU1__in`,
+from `3WV__b`), `3WV` itself (three ports), and the two terminals `N1` and `N3`, each with one
+connection and a stated boundary. Terminals are junction elements for the purpose of invariant 2 and
+the mass-balance count: they are vertices of the branch graph, since a branch must end somewhere.
+Counting only the two degree-≥3 elements gives `Loops = 4 − 2 + 1 = 3`, which is wrong -- this circuit
+has one loop.
 
-**Branches** — four, each carrying one flow:
+**Branches** -- four, each carrying one flow:
 
 | # | From → To | Interior components and nodes |
 |---|---|---|
-| 1 | N1 → N2 | — (a bare connection: an ideal zero-drop link, `D-25`) |
-| 2 | N2 → 3WV.ab | `PU1`, `PU1__HE1`, `HE1`, `HE1__3WV` |
-| 3 | 3WV.a → N2 | — (the recirculation branch) |
-| 4 | 3WV.b → N3 | `3WV__P1`, `P1` |
+| 1 | N1 → N2 | -- (a bare connection: an ideal zero-drop link, `D-25`) |
+| 2 | N2 → 3WV.ab | the link to `PU1__in`, `PU1`, `PU1__HE1`, `HE1`, `HE1__3WV` |
+| 3 | 3WV.b → N2 | `3WV__b` and its link (the recirculation branch) |
+| 4 | 3WV.a → N3 | `3WV__N3__in`, `3WV__N3` |
 
 The branch graph has four vertices (`N1`, `N2`, `N3`, `3WV`) and four edges, so **one independent
 loop**: `N2 → PU1 → HE1 → 3WV → N2`. That loop contains the pump, which is what makes the
 recirculation flow non-zero and the whole circuit work; `FS2214` fires if it does not.
 
-**Counting**, with N = 6 nodes, B = 4 branches:
+**Counting**, with N = 8 nodes, B = 4 branches:
 
 | Unknowns | | Equations | |
 |---|---|---|---|
-| Branch flows | 4 | Pressure relations: `PU1`, `HE1`, `P1` (one each), `3WV` (two: a→b, a→c), `N1-N2` ideal link (one) | 6 |
-| Node pressures | 6 | Mass balance at `N1`, `N2`, `N3` and the `3WV` split — **not** at the three interior nodes | 4 |
-| Node enthalpies | 6 | Energy balance, one per node | 6 |
+| Branch flows | 4 | Pressure relations: `PU1`, `HE1`, `3WV__N3` (one each), `3WV` (two: ab→a, ab→b), ideal links `N1-N2`, `N2-PU1__in`, `3WV__b-N2` (one each) | 8 |
+| Node pressures | 8 | Mass balance at `N1`, `N2`, `N3` and the `3WV` split -- **not** at the five interior nodes | 4 |
+| Node enthalpies | 8 | Energy balance, one per node | 8 |
 | External mass flux at `N1`, `N3` | 2 | Stated pressures `N1 p=300`, `N3 p=280` | 2 |
-| `PU1.head`, promoted by `HE1 out=50` fixing the flow | 1 | `HE1 in=20` | 1 |
-| `3WV.position`, promoted by `HE1 in=20` fixing the mix | 1 | `HE1 out=50` | 1 |
-| **Total** | **20** | **Total** | **20** ✓ |
+| `PU1.head`, promoted by `HE1 out.t=50` fixing the flow | 1 | `HE1 in.t=20` | 1 |
+| `3WV.position`, promoted by `HE1 in.t=20` fixing the mix | 1 | `HE1 out.t=50` | 1 |
+| **Total** | **24** | **Total** | **24** ✓ |
+
+Before `D-183` the table read 20 = 20: the two I9 points are four unknowns, a pressure and an
+enthalpy each, and four equations, an ideal link and an energy balance each, so they change no
+promotion and no answer. What they change is *where* a stated port quantity lands: `PU1 in.p` is
+`PU1__in`'s pressure, and a stated `out.t` on a component wired to a junction is that component's own
+stream rather than the mix (`C-123`).
 
 `HE1 power=30` and `N1 t=6` add no equations — they supply known coefficients, to the energy balance at
 `HE1__3WV` and at `N1` respectively. No datum equation appears, because `N1` states a pressure; no
@@ -918,8 +932,8 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 
 ## Acceptance criteria
 
-- [ ] The cooling loop produces exactly the six nodes, four branches and one loop tabulated above,
-      and its counting table balances at 20 = 20.
+- [ ] The cooling loop produces exactly the eight nodes, four branches and one loop tabulated above,
+      and its counting table balances at 24 = 24.
 - [ ] The counting check passes for every sample in `samples/`.
 - [ ] **The assembled system is as square as the table says it is, sample by sample.** The table
       agreeing with itself is not the property: the simple loop read `Excess = 0` while assembling

@@ -54,6 +54,31 @@ public static partial class LayoutHintsDerivation
 
             var role = PortRole.Bidirectional;
 
+            // A node touching another circuit's node is a component's own point (I9, D-183) standing between the
+            // component and the parent's junction: it makes the contact on the component's behalf, with the
+            // component's port role. The junction touching that point is the same contact seen from the parent's
+            // side, and counting it would make each circuit the other's parent.
+            if (graph.Components[at] is NodeComponent)
+            {
+                if (graph.Adjacency.PortCount(at) != 2)
+                {
+                    return;
+                }
+
+                for (var port = 0; port < 2; port++)
+                {
+                    var beside = graph.Adjacency.Peer(at, port);
+
+                    if (beside.Exists && beside.Component != peer && graph.Components[beside.Component] is not NodeComponent)
+                    {
+                        role = graph.Components[beside.Component].Ports[beside.Port].Role;
+                    }
+                }
+
+                list.Add((parent, other, role));
+                return;
+            }
+
             for (var port = 0; port < graph.Adjacency.PortCount(at); port++)
             {
                 var reached = graph.Adjacency.Peer(at, port);

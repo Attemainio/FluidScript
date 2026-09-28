@@ -146,12 +146,16 @@ This is where the physics objects are made. For each declaration the factory bui
 carries its equations: `PumpComponent`, `PipeComponent`, `ValveComponent`, `ThreeWayValveComponent`,
 `HeatExchangerComponent`, `TankComponent`, and `NodeComponent` for a node. Each takes its stated parameters and the registry's defaults, in SI.
 
-Then the connections are walked. Two rules produce a graph that is larger than the script:
+Then the connections are walked. These rules produce a graph that is larger than the script:
 
 - **Components connect to nodes, never to each other.** `PU1 - HE1` gets a node `PU1__HE1` put
   between them, because the temperature and pressure between the pump and the exchanger have to
-  live somewhere. The cooling loop names three nodes, `N1`, `N2` and `N3`, and the graph has six:
-  `PU1__HE1`, `HE1__3WV` and `3WV__N3__in` are inferred.
+  live somewhere. The cooling loop names three nodes, `N1`, `N2` and `N3`, and the graph has eight:
+  `PU1__HE1`, `HE1__3WV` and `3WV__N3__in` are inferred, and so are `PU1__in` and `3WV__b`, by the next rule.
+- **A port on a junction gets a point of its own.** `N2` has three connections, so its state is the
+  mix of what arrives; the pump's inlet and the valve's bypass each get a node between them and `N2`,
+  so a component's port always has its own state and a stated `out.t` means its own stream.
+  Pipes are the exception: their ends state nothing.
 - **A connection with pipe parameters is a pipe.** `3WV - N3   25 m  DN25` becomes a `PipeComponent`
   named `3WV__N3` with a node in front of it.
 - **A run of components between two junctions is a branch.** Branches are what carry a flow. The
@@ -198,8 +202,8 @@ the count finds a parameter no constraint has claimed and *promotes* it to an un
 finds. The cooling loop promotes two. `PU1 pump` states nothing, so its head is promoted (the solve
 finds 2.48 m). `HE1` states its power and both temperatures, which fixes its flow at 0.239 kg/s,
 and the only thing that can deliver that flow through the mixing node is the valve's position, so
-`3WV.position` is promoted (the solve finds 0.52). The count comes out at 20 unknowns against
-20 equations. The result is reported in the `FS22xx` range and, in long form, in the solve report.
+`3WV.position` is promoted (the solve finds 0.52). The count comes out at 24 unknowns against
+24 equations. The result is reported in the `FS22xx` range and, in long form, in the solve report.
 [Why a circuit has one answer](why-a-circuit-has-one-answer.md) is the reader's guide to this stage.
 
 ### 7. The fluid

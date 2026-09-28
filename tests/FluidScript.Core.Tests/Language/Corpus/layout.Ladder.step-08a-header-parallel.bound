@@ -7,13 +7,16 @@ component HE_AHU heat_exchanger in AHU at  tag 101HE01 style
   in = 323.15 Temperature  
   out = 303.15 Temperature  
   power = 24000 Power  
+component HE_AHU__out node in AHU at  tag  style 
 component HE_RAD heat_exchanger in radiators at  tag 102HE01 style 
   in = 323.15 Temperature  
   out = 303.15 Temperature  
   power = 30000 Power  
+component HE_RAD__out node in radiators at  tag  style 
 component HS1 heat_exchanger in heating at  tag 100HE01 style 
   out = 333.15 Temperature  
   power = 54000 Power  
+component HS1__out node in heating at  tag  style 
 component N1 node in heating at  tag  style 
   p = 250000 Pressure  
 component N3 node in heating at  tag  style 
@@ -42,11 +45,16 @@ component PU_RAD pump in radiators at  tag 102PU01 style
 component PU_RAD__HE_RAD node in radiators at  tag  style 
 component TV_AHU three_way_valve in AHU at  tag 101TV01 style 
 component TV_AHU__PU_AHU node in AHU at  tag  style 
+component TV_AHU__b node in AHU at  tag  style 
 component TV_RAD three_way_valve in radiators at  tag 102TV01 style 
 component TV_RAD__PU_RAD node in radiators at  tag  style 
-connection HE_AHU.out -> NM_AHU.
-connection HE_RAD.out -> NM_RAD.
-connection HS1.out -> N3.
+component TV_RAD__b node in radiators at  tag  style 
+connection HE_AHU.out -> HE_AHU__out.
+connection HE_AHU__out. -> NM_AHU.
+connection HE_RAD.out -> HE_RAD__out.
+connection HE_RAD__out. -> NM_RAD.
+connection HS1.out -> HS1__out.
+connection HS1__out. -> N3.
 connection N1. -> HS1.in
 connection N3. -> N3__TV_AHU.in
 connection N3. -> N4.
@@ -58,10 +66,10 @@ connection N4__TV_RAD__out. -> TV_RAD.a
 connection N5. -> N1.
 connection N6. -> N5.
 connection NM_AHU. -> NM_AHU__N5.in
-connection NM_AHU. -> TV_AHU.b
+connection NM_AHU. -> TV_AHU__b.
 connection NM_AHU__N5.out -> N5.
 connection NM_RAD. -> NM_RAD__N6.in
-connection NM_RAD. -> TV_RAD.b
+connection NM_RAD. -> TV_RAD__b.
 connection NM_RAD__N6.out -> N6.
 connection PU_AHU.out -> PU_AHU__HE_AHU.
 connection PU_AHU__HE_AHU. -> HE_AHU.in
@@ -69,8 +77,11 @@ connection PU_RAD.out -> PU_RAD__HE_RAD.
 connection PU_RAD__HE_RAD. -> HE_RAD.in
 connection TV_AHU.ab -> TV_AHU__PU_AHU.
 connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_AHU__b. -> TV_AHU.b
 connection TV_RAD.ab -> TV_RAD__PU_RAD.
 connection TV_RAD__PU_RAD. -> PU_RAD.in
+connection TV_RAD__b. -> TV_RAD.b
+FS1510 [507..515] Added node 'HS1__out' (I9).
 FS1510 [513..515] Added node 'N3' (I1).
 FS1510 [523..525] Added node 'N4' (I1).
 FS1510 [528..530] Added node 'N6' (I1).
@@ -79,13 +90,17 @@ FS1510 [709..733] Added node 'N3__TV_AHU__out' (I2).
 FS1510 [709..733] Added pipe 'N3__TV_AHU' (I7).
 FS1815 [714..720] 'TV_AHU' is wired as a mixing valve: a from N3, b from NM_AHU, ab to PU_AHU.
 FS1510 [736..742] Added node 'NM_AHU' (I1).
+FS1510 [736..751] Added node 'TV_AHU__b' (I9).
 FS1510 [754..769] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [763..778] Added node 'PU_AHU__HE_AHU' (I2).
+FS1510 [772..787] Added node 'HE_AHU__out' (I9).
 FS1510 [790..814] Added pipe 'NM_AHU__N5' (I7).
 FS1510 [968..992] Added node 'N4__TV_RAD__out' (I2).
 FS1510 [968..992] Added pipe 'N4__TV_RAD' (I7).
 FS1815 [973..979] 'TV_RAD' is wired as a mixing valve: a from N4, b from NM_RAD, ab to PU_RAD.
 FS1510 [995..1001] Added node 'NM_RAD' (I1).
+FS1510 [995..1010] Added node 'TV_RAD__b' (I9).
 FS1510 [1013..1028] Added node 'TV_RAD__PU_RAD' (I2).
 FS1510 [1022..1037] Added node 'PU_RAD__HE_RAD' (I2).
+FS1510 [1031..1046] Added node 'HE_RAD__out' (I9).
 FS1510 [1049..1073] Added pipe 'NM_RAD__N6' (I7).

@@ -724,7 +724,7 @@ expects `AirHandlingUnit` to find `ahu`.
    the script states, and a script with no height in it reads 0 everywhere and means what it did.
 8c. **Propagate port pressures** (`D-124`), after inference for the same reason. Every stated
    `port.p` (key `p_<port>`) is copied onto the `p` of the node that port is wired to — the node the
-   script named, or the one I2 inserted — as a `ParameterValue` keeping the component's span and a
+   script named, the one I2 inserted, or the port's own point on a junction (I9, `D-183`) — as a `ParameterValue` keeping the component's span and a
    `WrittenName` of the form `PU1 out.p`, so a diagnostic about the node's pressure and a write-back
    to it land on the line that stated it, and `FS2210` names `PU1 out.p` rather than `HE1__PU1.p`.
    A node whose `p` is already present — its own, or an earlier port's — is `FS1539` on the later
@@ -741,8 +741,9 @@ expects `AirHandlingUnit` to find `ahu`.
    `D-14`'s bare-number rule exactly as `power = 45` would be. A circuit is wired to its parent by
    connections, which inference treats like any other (`D-166`).
 
-9. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
-   has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
+9. **Apply inference rules** I1, I2, I3, I9 in that order — order matters, since I2 can only run once I1
+   has created the undeclared nodes, I3 can only run once every connection has claimed its port, and
+   I9 can only count a junction's connections once I2 and I3 have added theirs.
    I7 ran already, in step 1, for the same reason in reverse: a pipe's parameters must exist before
    anything evaluates them, and I2's nodes beside it need the pipe to exist.
 10. **Validate.** `FS1507` skips two things on purpose (`L-32`). A kind with **no ports at all** is
@@ -860,6 +861,22 @@ there, which is then the one read. It runs in the control binding step, after th
 script placed are bound. The user's rule: a sensor is a physical component and is always drawn, and a
 controller is joined to a sensor, never to a node. Like every inferred component it is untagged
 (`D-34`) and the user promotes it by writing its name down.
+
+**I9 — a port's own point on a junction** (`D-183`). A junction -- a node with three or more
+connections -- holds one state, the mix of everything arriving. A component port wired straight to one
+has no state of its own: its stated `out.t` lands on the mix (`C-123`), and its hold-up is mixed into
+the other streams. So, after I3, every connection between a junction and a port of a component that is
+neither a node nor a pipe is split: a node named `{Component}__{Port}` (`PU1__in`, `3WV__b`; an ordinal
+on collision, as I2 appends one) goes between them, `Origin = Inferred(I9)`, in the connection's
+circuit, and the junction side of it is a zero-length link. The point is a two-connection node, so its
+energy balance makes its state the port's stream, and a stated `port.p` (step 8c) lands on it rather
+than on the junction. Inlets get one as well as outlets, because a flow can reverse in the solve and an
+inlet then discharges into the junction. A **pipe is exempt**: nothing is stated on its ends, it holds
+no volume there, and its outlet stream is already reported on its own port (`C-103`), so a point
+would cost the wire and the layout and settle nothing. The point is a two-connection node, so `D-150`
+admits a sensor on it exactly as on an I2 node -- `TE9 t_sensor at PU1__in` measures the stub between
+the junction and the pump (measured 2026-09-28: it binds with no diagnostic) -- and the junction itself
+still admits none.
 
 Every inferred component gets an info diagnostic (`FS1510`) so the user can see what was created.
 These are info-level and off by default in the log ([`56-console-log`](../50-frontend/56-console-log.md)),

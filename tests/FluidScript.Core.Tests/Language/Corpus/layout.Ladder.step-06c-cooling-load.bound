@@ -6,6 +6,7 @@ component 3WV__N3 pipe in coolingLoop at  tag  style
   dn = 25 NominalDiameter  
   length = 25 Length  
 component 3WV__N3__in node in coolingLoop at  tag  style 
+component 3WV__b node in coolingLoop at  tag  style 
 component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style 
   in = 323.15 Temperature  
   out = 303.15 Temperature  
@@ -19,19 +20,24 @@ component N3 outlet in coolingLoop at  tag  style
   p = 280000 Pressure  
 component PU1 pump in coolingLoop at  tag 100PU01 style 
 component PU1__HE1 node in coolingLoop at  tag  style 
+component PU1__in node in coolingLoop at  tag  style 
 connection 3WV.a -> 3WV__N3__in.
-connection 3WV.b -> N2.
+connection 3WV.b -> 3WV__b.
 connection 3WV__N3.out -> N3.
 connection 3WV__N3__in. -> 3WV__N3.in
+connection 3WV__b. -> N2.
 connection HE1.out -> HE1__3WV.
 connection HE1__3WV. -> 3WV.ab
 connection N1. -> N2.
-connection N2. -> PU1.in
+connection N2. -> PU1__in.
 connection PU1.out -> PU1__HE1.
 connection PU1__HE1. -> HE1.in
+connection PU1__in. -> PU1.in
 FS1510 [475..477] Added node 'N2' (I1).
+FS1510 [480..488] Added node 'PU1__in' (I9).
 FS1510 [491..500] Added node 'PU1__HE1' (I2).
 FS1510 [503..512] Added node 'HE1__3WV' (I2).
 FS1815 [509..512] '3WV' is wired as a diverting valve: ab from HE1, a to N3, b to N2.
+FS1510 [515..523] Added node '3WV__b' (I9).
 FS1510 [526..547] Added node '3WV__N3__in' (I2).
 FS1510 [526..547] Added pipe '3WV__N3' (I7).

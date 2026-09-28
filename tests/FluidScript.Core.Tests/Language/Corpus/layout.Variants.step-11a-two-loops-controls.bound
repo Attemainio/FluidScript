@@ -38,6 +38,7 @@ component TV_C__N3 pipe in cooling at  tag  style
   dn = 25 NominalDiameter  
   length = 25 Length  
 component TV_C__N3__in node in cooling at  tag  style 
+component TV_C__b node in cooling at  tag  style 
 connection CV_H.out -> CV_H__PU_H.
 connection CV_H__PU_H. -> PU_H.in
 connection HE_C.out -> HE_C__TV_C.
@@ -54,9 +55,10 @@ connection PU_C__HE_C. -> HE_C.in
 connection PU_H.out -> PU_H__HS_H.
 connection PU_H__HS_H. -> HS_H.in
 connection TV_C.a -> TV_C__N3__in.
-connection TV_C.b -> N2.
+connection TV_C.b -> TV_C__b.
 connection TV_C__N3.out -> N3.
 connection TV_C__N3__in. -> TV_C__N3.in
+connection TV_C__b. -> N2.
 control TC_C moves PropertyReference { Component = TV_C, Property = position } reads PropertyReference { Component = TE_C, Property = t } setpoint 293.15 Temperature [] band - differential - output -..- curve 
 control TC_H moves PropertyReference { Component = CV_H, Property = position } reads PropertyReference { Component = TE_H, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
 FS1510 [719..730] Added node 'PU_H__HS_H' (I2).
@@ -68,5 +70,6 @@ FS1510 [1054..1056] Added node 'NC' (I1).
 FS1510 [1066..1077] Added node 'PU_C__HE_C' (I2).
 FS1510 [1080..1091] Added node 'HE_C__TV_C' (I2).
 FS1815 [1087..1091] 'TV_C' is wired as a diverting valve: ab from HE_C, a to N3, b to N2.
+FS1510 [1094..1103] Added node 'TV_C__b' (I9).
 FS1510 [1106..1128] Added node 'TV_C__N3__in' (I2).
 FS1510 [1106..1128] Added pipe 'TV_C__N3' (I7).

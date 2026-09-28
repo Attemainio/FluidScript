@@ -74,8 +74,8 @@ public sealed class SystemLayoutTests
         Assert.Equal(kinds, kinds.OrderBy(static kind => (int)kind).ToArray());
 
         Assert.Equal(4, kinds.Count(static kind => kind == UnknownKind.BranchFlow));
-        Assert.Equal(6, kinds.Count(static kind => kind == UnknownKind.NodePressure));
-        Assert.Equal(6, kinds.Count(static kind => kind == UnknownKind.NodeEnthalpy));
+        Assert.Equal(8, kinds.Count(static kind => kind == UnknownKind.NodePressure));
+        Assert.Equal(8, kinds.Count(static kind => kind == UnknownKind.NodeEnthalpy));
         Assert.Equal(2, kinds.Count(static kind => kind == UnknownKind.ExternalMassFlux));
         Assert.Equal(2, kinds.Count(static kind => kind == UnknownKind.Parameter));
     }

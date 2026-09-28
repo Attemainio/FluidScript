@@ -78,29 +78,31 @@ public sealed class LoweringTests
     // ---- the cooling loop, as 23 tabulates it ---------------------------------------------------
 
     [Fact]
-    public void TheCoolingLoopHasTheSixNodesTheDocumentCounts()
+    public void TheCoolingLoopHasTheEightNodesTheDocumentCounts()
     {
         var graph = GraphFixture.Lower(GraphFixture.CoolingLoop).Graph;
 
-        Assert.Equal(6, graph.Nodes.Length);
+        Assert.Equal(8, graph.Nodes.Length);
         Assert.Equal(
-            ["N1", "N3", "N2", "PU1__HE1", "HE1__3WV", "3WV__P1"],
+            ["N1", "N3", "N2", "PU1__HE1", "HE1__3WV", "3WV__P1", "PU1__in", "3WV__b"],
             graph.Nodes.Select(static node => node.Name));
 
-        // N1 and N3 carry boundary conditions and were written; N2 comes from rule I1 and the three
-        // `__` nodes from I2, one per pair of directly connected non-node components.
+        // N1 and N3 carry boundary conditions and were written; N2 comes from rule I1, the three
+        // `__` nodes from I2, one per pair of directly connected non-node components, and the last two
+        // from I9 (D-183), one per component port on the junction N2.
         Assert.Equal(
             [NodeOrigin.Declared, NodeOrigin.Declared, NodeOrigin.Inferred,
-             NodeOrigin.Inferred, NodeOrigin.Inferred, NodeOrigin.Inferred],
+             NodeOrigin.Inferred, NodeOrigin.Inferred, NodeOrigin.Inferred,
+             NodeOrigin.Inferred, NodeOrigin.Inferred],
             graph.Nodes.Select(static node => node.Origin));
     }
 
     [Fact]
-    public void TheCoolingLoopHasTenComponentsOfWhichTheUserWroteSix()
+    public void TheCoolingLoopHasTwelveComponentsOfWhichTheUserWroteSix()
     {
         var graph = GraphFixture.Lower(GraphFixture.CoolingLoop).Graph;
 
-        Assert.Equal(10, graph.Components.Length);
+        Assert.Equal(12, graph.Components.Length);
         Assert.Equal(4, graph.Components.Count(static c => c is not NodeComponent));
     }
 
@@ -140,11 +142,11 @@ public sealed class LoweringTests
         var longest = graph.Branches.MaxBy(static branch => branch.Path.Length)!;
 
         // Interior nodes belong in the path: they carry pressure and enthalpy unknowns, and only their
-        // mass balance is subsumed by the branch owning one flow.
+        // mass balance is subsumed by the branch owning one flow -- the pump's own inlet point (I9) among them.
         Assert.Equal(
-            ["PU1", "PU1__HE1", "HE1", "HE1__3WV"],
-            longest.Path.Select(static part => part.Name).OrderBy(static n => n, StringComparer.Ordinal)
-                .OrderBy(static n => n switch { "PU1" => 0, "PU1__HE1" => 1, "HE1" => 2, _ => 3 }));
+            ["PU1__in", "PU1", "PU1__HE1", "HE1", "HE1__3WV"],
+            longest.Path.Select(static part => part.Name)
+                .OrderBy(static n => n switch { "PU1__in" => 0, "PU1" => 1, "PU1__HE1" => 2, "HE1" => 3, _ => 4 }));
     }
 
     [Fact]

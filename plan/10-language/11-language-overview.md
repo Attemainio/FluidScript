@@ -122,6 +122,7 @@ These are `R-06` made precise. Each states its trigger, its result, and — crit
 | I6 | **Chained connections** | `A - B - C` | Two connections, `A - B` and `B - C` | Never |
 | I7 | **Implicit pipe** (`D-110`, `D-166`) | A one-link connection line ends in pipe properties: `N5 - N1  25 m  DN25` | The link becomes a `pipe` named `<A>__<B>` carrying those properties, with I2's nodes beside it named `<A>__<B>__in` / `__out`; `length` unwritten is zero | The line carries no properties: it stays a lossless link. On a longer chain the properties are `FS1803` |
 | I8 | **Implicit sensor** (`D-151`) | A controller reads a node's `t`, `p` or `flow` directly: `reads = NS.t` | A sensor of that kind named `<Node>__TE` / `__PE` / `__FE` is placed `at` the node, and the controller reads through it | A sensor of that kind already stands on the node, or the node is a junction (`FS1548`, `D-150`) |
+| I9 | **Port point on a junction** (`D-183`) | A component's port is wired to a node with three or more connections: `N2 - PU1`, where N2 also meets N1 and the valve | A node named `<Component>__<Port>` goes between the port and the junction, joined to it by a zero-length link, so the port has its own state and the junction holds only the mix | The component is a node or a pipe, or the node is not a junction |
 
 **I2's naming matters.** `HE1__3WV` is derived, stable, and visible in hover and diagnostics. It is
 also a legal identifier the user can reference, which lets them promote an inferred node to a declared
@@ -210,7 +211,7 @@ reason hover (`R-23`) must show inferred names: the user must be able to see wha
 
 ## Acceptance criteria
 
-- [ ] Every inference rule I1–I7 has a test whose name states both the firing and the non-firing case.
+- [ ] Every inference rule I1–I9 has a test whose name states both the firing and the non-firing case.
 - [ ] No pipeline stage's public API can throw on any byte sequence — verified by a fuzz test over
       the sample corpus with random mutations.
 - [ ] The brief's example produces the component count derived above, and each inferred component is

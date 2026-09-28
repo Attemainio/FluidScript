@@ -95,7 +95,7 @@ converting there costs one pass and removes a whole class of consumer bug.
       "kind": "heat_exchanger",        // script keyword
       "mode": "duty",                  // component-specific canonical mode; null/absent otherwise
       "symbolId": "heat_exchanger.standard",
-      "origin": "declared",            // "declared" | "inferred:I1" | "inferred:I2" | "inferred:I3" | "inferred:I7" (D-110)
+      "origin": "declared",            // "declared" | "inferred:I1" | "inferred:I2" | "inferred:I3" | "inferred:I7" (D-110) | "inferred:I9" (D-183)
       "sourceSpan": { "start": 142, "length": 39 },   // null for an inferred node; an I7 pipe carries its connection line (C-97)
       "circuit": "coolingLoop",        // D-33; owning circuit under D-36 for a two-sided component
       "tag": "100HE01",                // D-34; display metadata, null when the kind has no tag code
@@ -143,16 +143,16 @@ converting there costs one pass and removes a whole class of consumer bug.
   ],
 
   "layout": {
-    "order": ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"],
+    "order": ["N1", "N2", "PU1__in", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__N3__in", "3WV__N3", "N3", "3WV__b"],
     "thermalStages": [
-      { "rank": 0, "role": "neutral", "components": ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"] }
+      { "rank": 0, "role": "neutral", "components": ["N1", "N2", "PU1__in", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__N3__in", "3WV__N3", "N3", "3WV__b"] }
     ],
     "flow": { "c0": "forward", "c1": "forward" },   // per connection, as the binder wrote it or as the solved loop turned it
     "groups": [],
     "nonFlowElements": [],
     "circuitOf": { "N1": "main", "PU1": "main" },
     "distributionGroups": [],
-    "inferred": ["N2", "PU1__HE1", "HE1__3WV", "3WV__P1"],
+    "inferred": ["N2", "PU1__in", "PU1__HE1", "HE1__3WV", "3WV__N3__in", "3WV__N3", "3WV__b"],
 
     "margin": 0.5,                     // D-103: the outer box is the inner box grown by this
     "extent": [0, 0, 7.5, 4.0],        // [x, y, w, h] of the union of every outer box, world units
@@ -589,6 +589,15 @@ debounce (`D-48`) will have to live with, not the payload's.
 ~2 ms warm. The layout adds 89 KiB -- 200 placements with their anchors and 250 routes -- and the
 budget still holds with 187 KiB to spare. `ModelContractBuilder.Build` including the layout solve is
 34--46 ms warm, of which the solver is 24 ms (`07`'s layout row).
+
+**Re-measured 2026-09-28 (`D-183`)** after `I9` gave every non-pipe component port on a junction a
+point of its own: the same plant lists **237** components (37 of them `inferred:I9`), the compile
+response is **400.6 KiB** (346 KiB before, on the same build otherwise), the solved response
+**464.2 KiB**, and the contract build including the layout is 55 ms warm (44 before). The plant is
+kept rather than shrunk back to 200 so the series stays one plant; a scene larger than `07` states the
+budget for is the conservative side. The spare is now 48 KiB on the solved response, which is the
+number to watch: giving pipes points too would have made it 477 KiB compile, and is why `D-183`
+excludes them.
 
 ## Worked example
 

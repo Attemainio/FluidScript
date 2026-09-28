@@ -6,37 +6,49 @@ circuit floor 103  neutral
 circuit dhw 104  hot_water
 component BV1 valve in distribution at  tag 101V03 style 
   kv = 40 Kv  
+component BV1__in node in distribution at  tag  style 
+component BV1__out node in distribution at  tag  style 
 component CV_DHW valve in dhw at  tag 104V01 style 
   kv = 4 Kv  
 component CV_DHW__HE_DHW node in dhw at  tag  style 
+component CV_DHW__in node in dhw at  tag  style 
 component CV_R1 valve in distribution at  tag 101V04 style 
   kv = 4 Kv  
 component CV_R1__RAD1 node in distribution at  tag  style 
+component CV_R1__in node in distribution at  tag  style 
 component CV_R2 valve in distribution at  tag 101V05 style 
   kv = 4 Kv  
 component CV_R2__RAD2 node in distribution at  tag  style 
+component CV_R2__in node in distribution at  tag  style 
 component CV_R3 valve in distribution at  tag 101V06 style 
   kv = 4 Kv  
 component CV_R3__RAD3 node in distribution at  tag  style 
+component CV_R3__in node in distribution at  tag  style 
 component CV_S1 valve in distribution at  tag 101V01 style 
   kv = 25 Kv  
+component CV_S1__out node in distribution at  tag  style 
 component CV_S2 valve in distribution at  tag 101V02 style 
   kv = 25 Kv  
+component CV_S2__out node in distribution at  tag  style 
 component HE_AHU heat_exchanger in AHU at  tag 102HE01 style 
   in = 318.15 Temperature  
   out = 303.15 Temperature  
   power = 60000 Power  
+component HE_AHU__out node in AHU at  tag  style 
 component HE_DHW heat_exchanger in dhw at  tag 104HE01 style 
   in = 323.15 Temperature  
   out = 298.15 Temperature  
   power = 50000 Power  
+component HE_DHW__out node in dhw at  tag  style 
 component HE_FLR heat_exchanger in floor at  tag 103HE01 style 
   in = 308.15 Temperature  
   out = 301.15 Temperature  
   power = 40000 Power  
+component HE_FLR__out node in floor at  tag  style 
 component HS1 heat_exchanger in distribution at  tag 101HE01 style 
   out = 348.15 Temperature  
   power = 250000 Power  
+component HS1__out node in distribution at  tag  style 
 component NA1 node in distribution at  tag  style 
 component NA2 node in distribution at  tag  style 
 component NC1 node in distribution at  tag  style 
@@ -73,8 +85,10 @@ component PU_FLR pump in floor at  tag 103PU01 style
 component PU_FLR__HE_FLR node in floor at  tag  style 
 component PU_S1 pump in distribution at  tag 101PU01 style 
 component PU_S1__CV_S1 node in distribution at  tag  style 
+component PU_S1__in node in distribution at  tag  style 
 component PU_S2 pump in distribution at  tag 101PU02 style 
 component PU_S2__CV_S2 node in distribution at  tag  style 
+component PU_S2__in node in distribution at  tag  style 
 component RAD1 heat_exchanger in distribution at  tag 101HE02 style 
   in = 343.15 Temperature  
   out = 323.15 Temperature  
@@ -89,46 +103,60 @@ component RAD3 heat_exchanger in distribution at  tag 101HE04 style
   power = 25000 Power  
 component TV_AHU three_way_valve in AHU at  tag 102TV01 style 
 component TV_AHU__PU_AHU node in AHU at  tag  style 
+component TV_AHU__b node in AHU at  tag  style 
 component TV_FLR three_way_valve in floor at  tag 103TV01 style 
 component TV_FLR__PU_FLR node in floor at  tag  style 
-connection BV1.out -> NA1.
+component TV_FLR__b node in floor at  tag  style 
+connection BV1.out -> BV1__out.
+connection BV1__in. -> BV1.in
+connection BV1__out. -> NA1.
 connection CV_DHW.out -> CV_DHW__HE_DHW.
 connection CV_DHW__HE_DHW. -> HE_DHW.in
+connection CV_DHW__in. -> CV_DHW.in
 connection CV_R1.out -> CV_R1__RAD1.
 connection CV_R1__RAD1. -> RAD1.in
+connection CV_R1__in. -> CV_R1.in
 connection CV_R2.out -> CV_R2__RAD2.
 connection CV_R2__RAD2. -> RAD2.in
+connection CV_R2__in. -> CV_R2.in
 connection CV_R3.out -> CV_R3__RAD3.
 connection CV_R3__RAD3. -> RAD3.in
-connection CV_S1.out -> NP_M.
-connection CV_S2.out -> NP_M.
-connection HE_AHU.out -> NM_AHU.
-connection HE_DHW.out -> ND2.
-connection HE_FLR.out -> NM_FLR.
-connection HS1.out -> NP_S.
-connection NA1. -> CV_R1.in
+connection CV_R3__in. -> CV_R3.in
+connection CV_S1.out -> CV_S1__out.
+connection CV_S1__out. -> NP_M.
+connection CV_S2.out -> CV_S2__out.
+connection CV_S2__out. -> NP_M.
+connection HE_AHU.out -> HE_AHU__out.
+connection HE_AHU__out. -> NM_AHU.
+connection HE_DHW.out -> HE_DHW__out.
+connection HE_DHW__out. -> ND2.
+connection HE_FLR.out -> HE_FLR__out.
+connection HE_FLR__out. -> NM_FLR.
+connection HS1.out -> HS1__out.
+connection HS1__out. -> NP_S.
+connection NA1. -> CV_R1__in.
 connection NA1. -> NA2.
-connection NA2. -> CV_R2.in
-connection NA2. -> CV_R3.in
+connection NA2. -> CV_R2__in.
+connection NA2. -> CV_R3__in.
 connection NC1. -> NC1__TV_AHU.in
 connection NC1. -> NC2.
 connection NC1__TV_AHU.out -> NC1__TV_AHU__out.
 connection NC1__TV_AHU__out. -> TV_AHU.a
-connection NC2. -> CV_DHW.in
+connection NC2. -> CV_DHW__in.
 connection NC2. -> NC2__TV_FLR.in
 connection NC2__TV_FLR.out -> NC2__TV_FLR__out.
 connection NC2__TV_FLR__out. -> TV_FLR.a
 connection ND1. -> NS0.
 connection ND2. -> ND1.
 connection NM_AHU. -> NM_AHU__ND1.in
-connection NM_AHU. -> TV_AHU.b
+connection NM_AHU. -> TV_AHU__b.
 connection NM_AHU__ND1.out -> ND1.
 connection NM_FLR. -> NM_FLR__ND2.in
-connection NM_FLR. -> TV_FLR.b
+connection NM_FLR. -> TV_FLR__b.
 connection NM_FLR__ND2.out -> ND2.
-connection NP_M. -> BV1.in
-connection NP_S. -> PU_S1.in
-connection NP_S. -> PU_S2.in
+connection NP_M. -> BV1__in.
+connection NP_S. -> PU_S1__in.
+connection NP_S. -> PU_S2__in.
 connection NR1. -> NRB1.
 connection NR2. -> NRB2.
 connection NR3. -> NRB2.
@@ -141,28 +169,42 @@ connection PU_FLR.out -> PU_FLR__HE_FLR.
 connection PU_FLR__HE_FLR. -> HE_FLR.in
 connection PU_S1.out -> PU_S1__CV_S1.
 connection PU_S1__CV_S1. -> CV_S1.in
+connection PU_S1__in. -> PU_S1.in
 connection PU_S2.out -> PU_S2__CV_S2.
 connection PU_S2__CV_S2. -> CV_S2.in
+connection PU_S2__in. -> PU_S2.in
 connection RAD1.out -> NR1.
 connection RAD2.out -> NR2.
 connection RAD3.out -> NR3.
 connection TV_AHU.ab -> TV_AHU__PU_AHU.
 connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_AHU__b. -> TV_AHU.b
 connection TV_FLR.ab -> TV_FLR__PU_FLR.
 connection TV_FLR__PU_FLR. -> PU_FLR.in
+connection TV_FLR__b. -> TV_FLR.b
 FS1510 [868..871] Added node 'NS0' (I1).
+FS1510 [874..884] Added node 'HS1__out' (I9).
 FS1510 [880..884] Added node 'NP_S' (I1).
+FS1510 [887..899] Added node 'PU_S1__in' (I9).
 FS1510 [894..907] Added node 'PU_S1__CV_S1' (I2).
+FS1510 [902..914] Added node 'CV_S1__out' (I9).
 FS1510 [910..914] Added node 'NP_M' (I1).
+FS1510 [917..929] Added node 'PU_S2__in' (I9).
 FS1510 [924..937] Added node 'PU_S2__CV_S2' (I2).
+FS1510 [932..944] Added node 'CV_S2__out' (I9).
+FS1510 [947..957] Added node 'BV1__in' (I9).
+FS1510 [954..963] Added node 'BV1__out' (I9).
 FS1510 [960..963] Added node 'NA1' (I1).
+FS1510 [966..977] Added node 'CV_R1__in' (I9).
 FS1510 [972..984] Added node 'CV_R1__RAD1' (I2).
 FS1510 [987..990] Added node 'NR1' (I1).
 FS1510 [993..997] Added node 'NRB1' (I1).
 FS1510 [1006..1009] Added node 'NA2' (I1).
+FS1510 [1012..1023] Added node 'CV_R2__in' (I9).
 FS1510 [1018..1030] Added node 'CV_R2__RAD2' (I2).
 FS1510 [1033..1036] Added node 'NR2' (I1).
 FS1510 [1039..1043] Added node 'NRB2' (I1).
+FS1510 [1046..1057] Added node 'CV_R3__in' (I9).
 FS1510 [1052..1064] Added node 'CV_R3__RAD3' (I2).
 FS1510 [1067..1070] Added node 'NR3' (I1).
 FS1510 [1101..1104] Added node 'NC1' (I1).
@@ -170,8 +212,10 @@ FS1510 [1247..1272] Added node 'NC1__TV_AHU__out' (I2).
 FS1510 [1247..1272] Added pipe 'NC1__TV_AHU' (I7).
 FS1815 [1253..1259] 'TV_AHU' is wired as a mixing valve: a from NC1, b from NM_AHU, ab to PU_AHU.
 FS1510 [1275..1281] Added node 'NM_AHU' (I1).
+FS1510 [1275..1290] Added node 'TV_AHU__b' (I9).
 FS1510 [1293..1308] Added node 'TV_AHU__PU_AHU' (I2).
 FS1510 [1302..1317] Added node 'PU_AHU__HE_AHU' (I2).
+FS1510 [1311..1326] Added node 'HE_AHU__out' (I9).
 FS1510 [1329..1354] Added pipe 'NM_AHU__ND1' (I7).
 FS1510 [1338..1341] Added node 'ND1' (I1).
 FS1510 [1492..1495] Added node 'NC2' (I1).
@@ -179,8 +223,12 @@ FS1510 [1498..1523] Added node 'NC2__TV_FLR__out' (I2).
 FS1510 [1498..1523] Added pipe 'NC2__TV_FLR' (I7).
 FS1815 [1504..1510] 'TV_FLR' is wired as a mixing valve: a from NC2, b from NM_FLR, ab to PU_FLR.
 FS1510 [1526..1532] Added node 'NM_FLR' (I1).
+FS1510 [1526..1541] Added node 'TV_FLR__b' (I9).
 FS1510 [1544..1559] Added node 'TV_FLR__PU_FLR' (I2).
 FS1510 [1553..1568] Added node 'PU_FLR__HE_FLR' (I2).
+FS1510 [1562..1577] Added node 'HE_FLR__out' (I9).
 FS1510 [1580..1605] Added pipe 'NM_FLR__ND2' (I7).
 FS1510 [1589..1592] Added node 'ND2' (I1).
+FS1510 [1737..1749] Added node 'CV_DHW__in' (I9).
 FS1510 [1743..1758] Added node 'CV_DHW__HE_DHW' (I2).
+FS1510 [1752..1764] Added node 'HE_DHW__out' (I9).

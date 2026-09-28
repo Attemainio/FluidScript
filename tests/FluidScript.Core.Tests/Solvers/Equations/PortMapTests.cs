@@ -162,7 +162,8 @@ public sealed class PortMapTests
     [Fact]
     public void TheCoolingLoopsPumpIsEnteredFromTheNodeThatFeedsIt()
     {
-        // 23's own branch table: N2 -> PU1 -> PU1__HE1 -> HE1 -> HE1__3WV -> 3WV. Which end that
+        // 23's own branch table: PU1__in -> PU1 -> PU1__HE1 -> HE1 -> HE1__3WV -> 3WV, the pump reading
+        // its own inlet point and not the junction N2 it hangs from (I9, D-183). Which end that
         // branch is walked from is Decompose's business and not a fact about the pump, so the sign is
         // asserted only against its own other port. What *is* fixed is which node each port reads,
         // and that is what lets `PU1.Ports[0].Pressure` mean the suction pressure whichever way the
@@ -178,7 +179,7 @@ public sealed class PortMapTests
 
         Assert.Equal(0, inlet.Sign + outlet.Sign);
         Assert.Equal(inlet.Branch, outlet.Branch);
-        Assert.Equal("N2", graph.Nodes[inlet.Node].Name);
+        Assert.Equal("PU1__in", graph.Nodes[inlet.Node].Name);
         Assert.Equal("PU1__HE1", graph.Nodes[outlet.Node].Name);
     }
 

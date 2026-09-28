@@ -225,6 +225,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-180` | Accepted | 2026-09-27 | One language, so nothing is numbered after it: the spec, the code and `docs/` describe language 2 alone |
 | `D-181` | Accepted | 2026-09-27 | A circuit that states no fluid carries the file's fluid, water by default, and is told so |
 | `D-182` | Accepted | 2026-09-27 | The canvas draws the merged plant, in the case the interface chooses |
+| `D-183` | Accepted | 2026-09-28 | A component port on a junction has a point of its own; the junction only mixes |
 <!-- index:end -->
 
 ---
@@ -8237,3 +8238,64 @@ as a problem. *Every case in one response*: switching is instant, the payload gr
 
 **Constrains.** `24` §Scenarios (step 4 built; the first case is drawn unless another is chosen), `19` §Drivers and
 cases, `26` (`4.1`), `42` (`case` on the request), `57` (the picker), `docs/functions/project.md`.
+
+## D-183 · A component port on a junction has a point of its own; the junction only mixes
+
+**Accepted · 2026-09-28** (the user's call on `C-123`: "Fluid states should live directly at their inputs and outputs,
+not in the nodes they are connected to"; option B, a point for every port on a junction, and "the pipe should *not* be
+a separate component which should cost space") · refines `D-120` rule 3, `D-124` and `D-146`, whose rules stand ·
+amends [`23`](../20-core-domain/23-topology-and-graph.md) invariant 4 · constrains
+[`11`](../10-language/11-language-overview.md) and [`15`](../10-language/15-semantic-model.md) (inference rule I9),
+[`22`](../20-core-domain/22-component-model.md), [`23`](../20-core-domain/23-topology-and-graph.md) §Worked example,
+[`26`](../20-core-domain/26-model-contract.md), [`31`](../30-solver/31-solver-architecture.md),
+[`01`](01-vision-and-scope.md)'s inference inventory, `docs/advanced/how-a-script-becomes-a-circuit.md`
+
+**What was wrong.** The state of the fluid lives on nodes. A node with two connections is one stream, so its state is
+the state leaving one component and entering the next -- with no pipe between them, the outlet *is* the inlet, which
+is the right model. A junction is different: three or more connections, one state, the mix of everything arriving. A
+component wired straight to a junction had no state of its own, so everything said about its port landed on the
+mix. `HL load power=120 out.t=40` wired `HL - NM` held `NM` at 40 °C instead of the water leaving the load, and the
+load came out at 41.16 °C and 7.47 kg/s where its own duty and temperatures define 5.74 kg/s (`C-123`); two loads
+stating different returns onto one return node were one node with two temperatures, refused with `FS3010`. An
+exchanger's hold-up (`D-146`) given to a junction was mixed into streams that never passed through it.
+
+**The rule.**
+
+1. **Inference rule I9.** After I1, I2 and I3, every connection between a junction (a node with three or more
+   connections) and a port of a component that is neither a node nor a pipe is split: a node named
+   `{Component}__{Port}` goes between them, `Origin = Inferred(I9)`, in the connection's circuit, joined to the
+   junction by a zero-length ideal link. It is reported by `FS1510` like every inference.
+2. **Inlets as well as outlets.** A flow can reverse in the solve, and an inlet then discharges into the junction.
+3. **Pipes are exempt.** Nothing is stated on a pipe's ends (`FS1538`), it holds no volume there, and its outlet
+   stream is already reported on its own port (`C-103`). On the 200-component reference plant, points for every port
+   made 289 components, 477 KiB and 83 ms to build the contract; skipping pipes, 237, 401 KiB and 61 ms (200,
+   346 KiB, 44 ms before).
+4. **What lands on the point.** A stated `port.p` (`D-124`, step 8c) and a stated port temperature constrain the
+   point; an exchanger's hold-up (`D-146`) is the point's volume. The junction keeps one state (`D-120` rule 4),
+   which is now only ever the mix.
+5. **A sensor may sit on a point** as on an I2 node: it is a two-connection node, the stub between the junction and
+   the port (`D-150`). The junction still admits none.
+
+**Why.** It is the physics: a coil's return is the water leaving the coil, before it meets anything, and a mixed node
+is a different place with a different temperature whenever anything else enters it. The point is exactly the port's
+stream -- a two-connection node's energy balance reduces to `h = h_arriving` -- so no equation had to learn
+anything, and the counting stays square: each point adds a pressure and an enthalpy and brings an ideal link and an
+energy balance. Measured: the cooling loop 20 = 20 becomes 24 = 24; every sample converges in the same number of
+iterations as before; `C-123`'s plant returns at 40.00 °C at 5.74 kg/s wired straight, as it did with a pipe. The
+points are drawn as I2's nodes are, and no piece of equipment moved in any of the thirty layout pictures.
+
+**Rejected.** *A point only where an outlet states a temperature* (`C-123`'s first suggestion): the model would
+change shape when a line gains `out.t`, and the hold-up and the reverse-flow cases are not about stated values.
+*Reading a stated outlet as the component's stream enthalpy in the equations*: a second mechanism beside the node
+states the rest of the tree reads, and the canvas and the report would still show the mix at the port. *Every
+connection is a pipe with a default length* (the user's first framing): `D-25` and `D-110` rejected it -- a length
+nobody wrote is an invented pressure drop and heat loss, and a P&ID shows the system, not the pipework's geometry.
+*Points for pipes too*: 52 more components and 76 KiB on the reference plant for a state nothing reads.
+
+**What it costs.** The contract lists more components (37 more on the reference plant; the 512 KiB budget holds at
+401 KiB compile, 464 KiB solved), and the layout lays out two-connection nodes that take run length. That last
+cost is the next decision: a point, like any invisible node or a pipe, should cost the drawing no space.
+
+**Constrains.** `11` and `15` (I9), `22` *Every state lives on a node* and `C-103`'s paragraph, `23` invariant 4 and
+its worked example, `26` (`inferred:I9`), `31`'s cooling-loop table, `01`'s inventory and the syntax reference's
+diagnostic count, `57`'s worked example, `docs/functions/model-contract.md`, and the two `docs/advanced/` pages.

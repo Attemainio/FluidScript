@@ -6,6 +6,7 @@ component 3WV__N3 pipe in coolingLoop at  tag  style
   dn = 25 NominalDiameter  
   length = 25 Length  
 component 3WV__N3__in node in coolingLoop at  tag  style 
+component 3WV__b node in coolingLoop at  tag  style 
 component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style 
   out = 323.15 Temperature  
   power = 30000 Power  
@@ -23,9 +24,10 @@ component TC1 controller in coolingLoop at  tag 100PID01 style
   kp = 2 Dimensionless  
 component TE1 t_sensor in coolingLoop at NM tag 100TE01 style 
 connection 3WV.a -> 3WV__N3__in.
-connection 3WV.b -> N2.
+connection 3WV.b -> 3WV__b.
 connection 3WV__N3.out -> N3.
 connection 3WV__N3__in. -> 3WV__N3.in
+connection 3WV__b. -> N2.
 connection HE1.out -> HE1__3WV.
 connection HE1__3WV. -> 3WV.ab
 connection N1. -> N2.
@@ -39,5 +41,6 @@ FS1510 [432..434] Added node 'NM' (I1).
 FS1510 [443..452] Added node 'PU1__HE1' (I2).
 FS1510 [455..464] Added node 'HE1__3WV' (I2).
 FS1815 [461..464] '3WV' is wired as a diverting valve: ab from HE1, a to N3, b to N2.
+FS1510 [467..475] Added node '3WV__b' (I9).
 FS1510 [478..499] Added node '3WV__N3__in' (I2).
 FS1510 [478..499] Added pipe '3WV__N3' (I7).
