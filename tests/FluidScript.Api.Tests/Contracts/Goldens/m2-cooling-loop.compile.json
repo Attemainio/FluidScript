@@ -74,7 +74,7 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.358852,
+          "value": 0.239235,
           "unit": "kg/s",
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -139,7 +139,7 @@
       "tag": "100TV01",
       "parameters": {
         "authority": {
-          "value": 0.674671,
+          "value": 0.831918,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -151,7 +151,7 @@
           "basis": "no elevation stated"
         },
         "kv": {
-          "value": 4,
+          "value": 2.5,
           "unit": "m3/h",
           "source": "sized",
           "basis": "chosen by a sizing rule"

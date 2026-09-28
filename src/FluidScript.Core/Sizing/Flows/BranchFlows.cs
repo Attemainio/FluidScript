@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using FluidScript.Core.Components;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Topology.Graph;
@@ -228,57 +229,45 @@ public static partial class BranchFlows
         }
     }
 
-    /// <summary>Spreads each junction element's largest determined estimate onto its undetermined branches.</summary>
+    /// <summary>Spreads each junction element's determined estimates onto its undetermined branches.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="estimates">The estimates so far, written in place.</param>
     /// <remarks>
+    /// <para>
     /// Bounded by the branch count because each pass raises at least one branch's basis above
     /// <see cref="FlowBasis.Nominal"/> or changes nothing, and a basis never falls.
+    /// </para>
+    /// <para>
+    /// <strong>Exact rules run to their fixed point before any copy</strong> (<c>S-85</c>, <c>C-44</c>): a three-way
+    /// valve's partition, and a junction's mass balance where it has one branch left to close (<see cref="Balance"/>).
+    /// Only when neither can move does a junction hand its largest estimate to the branches nothing rates. Interleaved,
+    /// the copy ran first wherever it came first: the cooling loop's mixing node handed the primary's inflow the coil's
+    /// whole 0.239 kg/s before the diverting valve had split it, and the field closed the node with the coil at 0.359.
+    /// </para>
     /// </remarks>
     private static void Propagate(CircuitGraph graph, BranchFlow[] estimates)
     {
-        for (var pass = 0; pass < graph.Branches.Length; pass++)
+        for (var pass = 0; pass < 2 * graph.Branches.Length; pass++)
         {
             var moved = false;
 
             foreach (var junction in graph.JunctionElements)
             {
-                if (junction is ThreeWayValveComponent { BypassConnected: true } valve)
+                moved |= junction is ThreeWayValveComponent { BypassConnected: true } valve
+                    ? PropagateThreeWay(graph, estimates, valve)
+                    : Balance(graph, estimates, junction);
+            }
+
+            if (moved)
+            {
+                continue;
+            }
+
+            foreach (var junction in graph.JunctionElements)
+            {
+                if (junction is not ThreeWayValveComponent { BypassConnected: true })
                 {
-                    moved |= PropagateThreeWay(graph, estimates, valve);
-                    continue;
-                }
-
-                var best = 0.0;
-                var source = string.Empty;
-
-                foreach (var branch in graph.Branches)
-                {
-                    if (Meets(branch, junction)
-                        && estimates[branch.Index].Basis > FlowBasis.Nominal
-                        && estimates[branch.Index].Magnitude > best)
-                    {
-                        best = estimates[branch.Index].Magnitude;
-                        source = estimates[branch.Index].Source;
-                    }
-                }
-
-                if (best <= 0)
-                {
-                    continue;
-                }
-
-                foreach (var branch in graph.Branches)
-                {
-                    if (!Meets(branch, junction)
-                        || MeetsThreeWay(branch)
-                        || estimates[branch.Index].Basis > FlowBasis.Nominal)
-                    {
-                        continue;
-                    }
-
-                    estimates[branch.Index] = new BranchFlow(best, FlowBasis.Propagated, source);
-                    moved = true;
+                    moved |= Copy(graph, estimates, junction);
                 }
             }
 
@@ -287,6 +276,131 @@ public static partial class BranchFlows
                 return;
             }
         }
+    }
+
+    /// <summary>Closes a junction node's mass balance on the one branch at it nothing rates.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="estimates">The estimates so far, written in place.</param>
+    /// <param name="junction">The junction.</param>
+    /// <returns><see langword="true"/> when the branch was rated.</returns>
+    /// <remarks>
+    /// An estimate is a magnitude, and a balance needs a direction (<c>C-44</c>): each rated branch's is read from the
+    /// component port it reaches (<see cref="Written"/>) -- an inlet draws from the node, an outlet feeds it, a
+    /// three-way valve's leg by the valve's service. When every rated branch reads one way or the other, what they do
+    /// not balance is the open branch's flow. Anything unreadable, a second open branch, or a three-way valve's leg as the
+    /// open one, and the rule declines: a share of several branches is what <c>S-85</c> measured twice and withdrew.
+    /// </remarks>
+    private static bool Balance(CircuitGraph graph, BranchFlow[] estimates, IFlowComponent junction)
+    {
+        var node = graph.Components.IndexOf(junction);
+
+        if (junction is not NodeComponent || node < 0)
+        {
+            return false;
+        }
+
+        Branch? open = null;
+        var net = 0.0;
+        var largest = (Magnitude: 0.0, Source: string.Empty);
+
+        foreach (var branch in graph.Branches)
+        {
+            if (!Meets(branch, junction))
+            {
+                continue;
+            }
+
+            if (ReferenceEquals(branch.From.Element, branch.To.Element))
+            {
+                return false;
+            }
+
+            if (estimates[branch.Index].Basis <= FlowBasis.Nominal)
+            {
+                if (open is not null || MeetsThreeWay(branch))
+                {
+                    return false;
+                }
+
+                open = branch;
+                continue;
+            }
+
+            var end = ReferenceEquals(branch.From.Element, junction) ? branch.From : branch.To;
+            var magnitude = estimates[branch.Index].Magnitude;
+
+            switch (Written(graph, node, end.Port))
+            {
+                case PortRole.Outlet:
+                    net += magnitude;
+                    break;
+
+                case PortRole.Inlet:
+                    net -= magnitude;
+                    break;
+
+                default:
+                    return false;
+            }
+
+            if (magnitude > largest.Magnitude)
+            {
+                largest = (magnitude, estimates[branch.Index].Source);
+            }
+        }
+
+        if (open is null || Math.Abs(net) <= Solvers.Tolerances.FlowZero)
+        {
+            return false;
+        }
+
+        estimates[open.Index] = new BranchFlow(Math.Abs(net), FlowBasis.Propagated, largest.Source);
+        return true;
+    }
+
+    /// <summary>Hands a junction's largest determined estimate to its undetermined branches.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="estimates">The estimates so far, written in place.</param>
+    /// <param name="junction">The junction.</param>
+    /// <returns><see langword="true"/> when a branch took it.</returns>
+    /// <remarks>The last resort: a magnitude with no balance behind it (<c>S-85</c>), used only where no exact rule can move.</remarks>
+    private static bool Copy(CircuitGraph graph, BranchFlow[] estimates, IFlowComponent junction)
+    {
+        var best = 0.0;
+        var source = string.Empty;
+
+        foreach (var branch in graph.Branches)
+        {
+            if (Meets(branch, junction)
+                && estimates[branch.Index].Basis > FlowBasis.Nominal
+                && estimates[branch.Index].Magnitude > best)
+            {
+                best = estimates[branch.Index].Magnitude;
+                source = estimates[branch.Index].Source;
+            }
+        }
+
+        if (best <= 0)
+        {
+            return false;
+        }
+
+        var moved = false;
+
+        foreach (var branch in graph.Branches)
+        {
+            if (!Meets(branch, junction)
+                || MeetsThreeWay(branch)
+                || estimates[branch.Index].Basis > FlowBasis.Nominal)
+            {
+                continue;
+            }
+
+            estimates[branch.Index] = new BranchFlow(best, FlowBasis.Propagated, source);
+            moved = true;
+        }
+
+        return moved;
     }
 
     /// <summary>A second estimate for the mixing valves the first could not partition, from the flows a mass-consistent field found at their feed legs.</summary>

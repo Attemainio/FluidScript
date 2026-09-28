@@ -178,7 +178,10 @@ public sealed class NewtonSolverTests
         // (`D-175`). The first
         // Newton step took the pump's head from 2.2 m past zero; projected onto zero, and the valve then onto its stop,
         // the iterate sat in a corner where every step asked both to go further out, until the cap. Held at nine
-        // tenths of the way, the next step is taken from inside: head 0.96 m, position 0.24 (the old labelling's 0.76).
+        // tenths of the way, the next step is taken from inside: position 0.24 (the old labelling's 0.76). The head is
+        // 2.09 m since the seed split the diverting valve by its mix (`S-85`): the bootstrap sizes the coil's 20 kPa at
+        // the seeded flow, which was 0.242 kg/s against its duty's 0.183 and left 11.5 kPa and 0.96 m at the solution.
+        // The step still meets the bound once.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
             .Edited("power = 30", "power = 23")
             .Edited("3WV  three_way_valve", "3WV  three_way_valve  kv = 4");
@@ -190,7 +193,7 @@ public sealed class NewtonSolverTests
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS3008");
 
         var names = system.Unknowns.Unknowns.Select(static u => u.Name).ToList();
-        Assert.Equal(0.96, result.Solution.Values[names.IndexOf("PU1.head")], 0.01);
+        Assert.Equal(2.09, result.Solution.Values[names.IndexOf("PU1.head")], 0.01);
         Assert.Equal(0.24, result.Solution.Values[names.IndexOf("3WV.position")], 0.01);
     }
 

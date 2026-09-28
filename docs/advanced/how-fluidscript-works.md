@@ -244,8 +244,10 @@ circuit is. The seed therefore builds flows that satisfy every mass balance from
 and flows, walks the graph subtracting each component's own drop to lay down pressures, and steps
 temperatures along each branch inside a narrow band. It is allowed to be wrong about magnitudes.
 It is not allowed to be structurally wrong. In the cooling loop the coil branch is seeded at
-0.359 kg/s from the exchanger's duty and solves at 0.239; the mixing node is seeded at 287 kPa and
-solves at 300.
+0.239 kg/s from the exchanger's duty, and the diverting valve splits it by the mix its recirculation
+makes at the node: 6 °C primary water into a 20/50 coil is 14/44 recirculated, so 0.076 kg/s back
+and 0.163 kg/s out to the primary, which is where they solve. Pressures are rougher: the mixing node
+is seeded at 275 kPa and solves at 300.
 
 ### 10. Newton, and the loop around it
 
@@ -256,8 +258,8 @@ that decides convergence. Around it, `Solvers/OuterLoop`.
 Newton evaluates the residuals, builds the Jacobian by finite differences, solves for a step, and
 takes it with a line search. It stops when the scaled residual is under `1e-8`, or reports one of
 the `FS30xx` outcomes: iteration cap, singular, diverged, stalled, non-finite. The cooling loop
-takes eight Newton iterations from a cold seed, four in each of two sizing passes, and ends at a
-scaled residual of 6e-10; a re-solve after an edit starts from the previous solution (`WarmStart`)
+takes five Newton iterations from a cold seed in its first sizing pass and none in its second, whose
+sizes the first already held, and ends at a scaled residual of 2e-10; a re-solve after an edit starts from the previous solution (`WarmStart`)
 and usually takes one or two.
 
 The outer loop is why "solve" is not one Newton run. Sizing needs flows, flows need sizes, and a
@@ -341,8 +343,8 @@ places anything.
 | 3, binding | Three stated constraints: 30 000 W, 293.15 K in, 323.15 K out. `flow` and `dp` are absent, not zero |
 | 5, sizing | `ExchangerSizer` pairs the default 20 kPa design drop with the flow it is measured at: 30 kW over 30 K is 0.239 kg/s, written with that basis |
 | 6, counting | Power and both temperatures fix the coil's flow, so the mixing valve's `position` is promoted to deliver it |
-| 9, seed | The coil branch is seeded from the duty at 0.359 kg/s, not at zero; the recirculation and return legs are partitioned from it |
-| 10, Newton | The energy balances at `PU1__HE1` and `HE1__3WV` settle the enthalpies either side of the coil; the valve's position settles at 0.52, with 0.076 kg/s recirculating and 0.163 kg/s drawn from the primary |
+| 9, seed | The coil branch is seeded from the duty at 0.239 kg/s, not at zero; the recirculation and return legs are partitioned from it by the mix at the node, 0.076 and 0.163 kg/s |
+| 10, Newton | The energy balances at `PU1__HE1` and `HE1__3WV` settle the enthalpies either side of the coil; the valve's position settles at 0.48, with 0.076 kg/s recirculating and 0.163 kg/s drawn from the primary |
 | 12, contract | `power` and the temperatures are written `stated`; `flow` is written `sized` with its basis; the node states arrive in °C and kPa |
 | 14, canvas | The exchanger's box is filled by the temperature scale at its outlet, 50 °C; the hover card shows the stated values, the sized flow and its basis |
 

@@ -168,7 +168,7 @@
       "tag": "100TV01",
       "parameters": {
         "authority": {
-          "value": 0.832841,
+          "value": 0.83284,
           "unit": null,
           "source": "sized",
           "basis": "0.83 against the variable circuit, fully open — Kv 2.5 drops 5.6 kPa of its 6.7 kPa; reported, not targeted: a mixing valve is sized to its drop band"
@@ -3412,8 +3412,8 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 9,
-    "residualNorm": 6.07E-10,
+    "iterations": 5,
+    "residualNorm": 2.15E-10,
     "elapsedMs": null,
     "sizingPasses": 2
   }

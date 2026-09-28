@@ -15,8 +15,8 @@ public static partial class SolutionSeed
         /// <para>
         /// A stated <c>flow</c> is taken as it is: the script named the flux and nothing here may move
         /// it. Every other boundary — a stated pressure, or a <c>return</c> (<c>D-64</c>) — has a free
-        /// flux, and those are what absorb the correction: each is offered the component's largest
-        /// estimate, signed by its role, and then shifted by the shared amount that closes the total.
+        /// flux, and those are what absorb the correction: each is offered the estimate on its one branch,
+        /// else the component's largest, signed by its role, and then shifted by the shared amount that closes the total.
         /// </para>
         /// <para>
         /// <strong>Without the correction the tree solve still terminates and the root's balance is
@@ -75,7 +75,8 @@ public static partial class SolutionSeed
                 foreach (var vertex in free[component])
                 {
                     var node = (NodeComponent)_vertices[vertex];
-                    var flux = node.Boundary is BoundaryRole.Outlet ? -scale[component] : scale[component];
+                    var offer = Through(vertex, estimates) ?? scale[component];
+                    var flux = node.Boundary is BoundaryRole.Outlet ? -offer : offer;
 
                     _injection[node] = flux;
                     offered += flux;
@@ -89,6 +90,21 @@ public static partial class SolutionSeed
                 }
             }
         }
+
+        /// <summary>The estimate on the one branch a boundary node is reached by, when there is one and it was estimated.</summary>
+        /// <param name="vertex">The boundary node's vertex.</param>
+        /// <param name="estimates">One unsigned magnitude per branch.</param>
+        /// <returns>kg/s, unsigned; <see langword="null"/> for a node on several branches, or on one only the nominal floor reached.</returns>
+        /// <remarks>
+        /// A boundary on one branch passes exactly that branch's water, so its estimate is the flux, not the circuit's
+        /// largest. The cooling loop's primary is the coil's fresh share, 0.163 kg/s of its 0.239: offered the 0.239, the
+        /// tree closed the mixing node through the coil and started it at 0.316 -- the fresh water and the recirculation
+        /// stacked (<c>S-85</c>).
+        /// </remarks>
+        private double? Through(int vertex, ImmutableArray<BranchFlow> estimates) =>
+            _incident[vertex] is [var (branch, _)] && estimates[branch].Basis > FlowBasis.Nominal
+                ? estimates[branch].Magnitude
+                : null;
 
         /// <summary>Whether a node's external flux is an unknown the seed may choose.</summary>
         /// <param name="node">The candidate node.</param>

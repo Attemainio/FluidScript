@@ -342,10 +342,31 @@ the top of the published selection band: a valve nearly shut passes the flow the
 at megapascals, and the seed wants the law's direction and ordering, not that number. The bound is
 the seed's alone; sizing reads the same laws at solved flows unbounded (`S-47`).
 
-Flow estimates come from stated duties and stated flows, spread across junctions by magnitude rather
-than by [`24`](../20-core-domain/24-auto-sizing.md)'s exact propagation (`C-44`), and every unstated
-branch falls back to a nominal 0.1 kg/s. That one is a genuine weakness and costs iterations rather
-than correctness.
+Flow estimates come from stated duties and stated flows, carried across junctions by mass balance
+where the junction allows it, and every branch still unreached falls back to a nominal 0.1 kg/s
+(`S-85`, closed 2026-09-28). The exact rules run to a fixed point before any approximate one:
+
+- A junction with exactly one open branch gives that branch the net of the others (`Balance`). Each
+  determined branch's sign is read from the port its connection reaches.
+- A three-way valve partitions its common flow by the temperatures (below).
+
+Only then does a junction with two or more open branches copy its largest known flow onto them. That
+copy is the rest of [`24`](../20-core-domain/24-auto-sizing.md)'s exact propagation (`C-44`), and it
+costs iterations rather than correctness.
+
+A mixing valve's legs take the share its load's inlet makes between the hot feed and the load's outlet. A
+diverting valve's legs take the share the recirculating leg makes at the junction the load draws from.
+That leg is the one returning straight to that junction, and its share is
+(h<sub>in</sub> − h<sub>fresh</sub>) / (h<sub>out</sub> − h<sub>fresh</sub>). Measured on the cooling
+loop: 6 °C primary water into a 20/50 coil is 14/44 recirculated, 0.076 of the coil's 0.239 kg/s.
+
+A boundary node on one branch is offered that branch's estimate as its flux; the circuit's largest is
+offered only to a boundary on several branches. Offered the coil's 0.239, the cooling loop's primary
+stacked on the recirculation and the field closed the coil at 0.316.
+
+With all three the cooling loop starts at its solution. It had started at 1.5× its duty, which the
+bootstrap sizes from, and the compile-only payload had sized its valve at Kv 4 where the solve
+settles at 2.5.
 
 **The pressure walk reads the promoted values the solve will start from, not the component's own**
 (`S-66`, closed 2026-09-20). A promoted `kv` is seeded from the Kv law at the seeded flow and a

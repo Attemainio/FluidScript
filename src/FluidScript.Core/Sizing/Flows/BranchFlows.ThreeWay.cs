@@ -1,6 +1,7 @@
 using FluidScript.Core.Components;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Topology.Graph;
 using FluidScript.Core.Topology.Hydraulics;
@@ -131,6 +132,7 @@ public static partial class BranchFlows
     /// and reading the boiler's 60 &#176;C there made a 35/30 coil's stream a sixth of its circulation
     /// where it is half. <see cref="FeedTemperature"/> walks the feed branch for the exchanger that
     /// last touched the water; the hottest source is the fallback when the walk finds nothing.
+    /// A diverting valve has no hot port to read: its share is its recirculation's, from <see cref="DivertedShare"/>.
     /// </remarks>
     private static double? MixingFraction(CircuitGraph graph, string loadName, Branch feed, ThreeWayValveComponent valve)
     {
@@ -146,6 +148,11 @@ public static partial class BranchFlows
             || (load.StatedParameters.TryGetValue("out", out var statedCold) ? statedCold : DownstreamTemperature(graph, load, "out")) is not { } cold)
         {
             return null;
+        }
+
+        if (Diverts(graph, valve))
+        {
+            return DivertedShare(graph, feed, valve, mixed, cold);
         }
 
         var hot = FeedTemperature(graph, feed, valve);
@@ -176,8 +183,17 @@ public static partial class BranchFlows
             return null;
         }
 
-        var span = hotState.Enthalpy.SiValue - coldState.Enthalpy.SiValue;
-        var fraction = (mixedState.Enthalpy.SiValue - coldState.Enthalpy.SiValue) / span;
+        return Bounded(hotState.Enthalpy.SiValue - coldState.Enthalpy.SiValue, mixedState.Enthalpy.SiValue - coldState.Enthalpy.SiValue, valve);
+    }
+
+    /// <summary>A leg's share from an enthalpy balance, kept off zero flow and refused where the temperatures cannot make it.</summary>
+    /// <param name="span">J/kg, the difference between the two streams mixed.</param>
+    /// <param name="part">J/kg, the mixed stream's difference from the one the share is not of.</param>
+    /// <param name="valve">The valve, whose leakage bounds the share.</param>
+    /// <returns>The share, or <see langword="null"/> when no share in [0, 1] gives the mix or the span is not positive.</returns>
+    private static double? Bounded(double span, double part, ThreeWayValveComponent valve)
+    {
+        var fraction = part / span;
 
         // A design that needs no bypass -- the supply held at the very temperature the feed arrives at, the syntax
         // tour's winter case -- is a fraction of 1, and a real answer: the valve's recirculating leg passes only its
@@ -190,10 +206,95 @@ public static partial class BranchFlows
             : null;
     }
 
-    /// <summary>The temperature of the water arriving at a valve's <c>a</c> port, read from the exchanger that last touched it.</summary>
+    /// <summary>Whether a three-way valve splits the stream at its common port rather than mixing two into it.</summary>
     /// <param name="graph">The lowered circuit.</param>
-    /// <param name="feed">The branch on the <c>a</c> port.</param>
-    /// <param name="valve">The valve the branch ends at.</param>
+    /// <param name="valve">The valve.</param>
+    /// <returns><see langword="true"/> for a <c>diverting_valve</c>, or a bare body whose <c>ab</c> is fed by an outlet.</returns>
+    private static bool Diverts(CircuitGraph graph, ThreeWayValveComponent valve) =>
+        valve.Arrangement == ValveArrangement.Diverting
+        || (valve.Arrangement == ValveArrangement.Unspecified
+            && ValvePort(graph, graph.Components.IndexOf(valve), PortNamed(valve, "a"), []) == PortRole.Outlet);
+
+    /// <summary>The share of a diverting valve's stream one leg takes, from the mix its recirculating leg makes upstream of the load.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="feed">The leg whose share is wanted.</param>
+    /// <param name="valve">The valve.</param>
+    /// <param name="mixed">The load's inlet temperature: what the recirculated and the fresh water mix to.</param>
+    /// <param name="returned">The load's outlet temperature: what both legs carry.</param>
+    /// <returns>A fraction of the common flow, or <see langword="null"/> without a direct recirculation or one fresh temperature.</returns>
+    /// <remarks>
+    /// <para>
+    /// A load ahead of a diverting valve whose one leg returns to the junction the load draws from is an injection
+    /// circuit: the recirculating leg brings the load's outlet back, the other stream at that junction brings fresh water,
+    /// and the load's inlet is their mix. So the recirculated share is (h<sub>in</sub> − h<sub>fresh</sub>) /
+    /// (h<sub>out</sub> − h<sub>fresh</sub>) -- the cooling loop's 6 °C primary into a 20/50 coil is 14/44, 0.32 of the
+    /// coil's 0.239 kg/s back to the node and 0.68 out to the primary.
+    /// </para>
+    /// <para>
+    /// The mixing rule read this valve as though its <c>a</c> port were fed hot, found the coil's own 50 °C outlet there,
+    /// and with no span left fell back to half and half, so the node's fresh water was seeded at the recirculation's
+    /// 0.12 kg/s rather than 0.16 (<c>S-85</c>).
+    /// </para>
+    /// </remarks>
+    private static double? DivertedShare(CircuitGraph graph, Branch feed, ThreeWayValveComponent valve, Quantity mixed, Quantity returned)
+    {
+        var legs = graph.Branches.Where(branch => Meets(branch, valve)).ToArray();
+        var common = legs.FirstOrDefault(branch => FluidScript.Core.Solvers.Results.ValveLegs.PortName(branch, valve) == "ab");
+
+        if (common is null)
+        {
+            return null;
+        }
+
+        var junction = ReferenceEquals(common.From.Element, valve) ? common.To.Element : common.From.Element;
+        var recirculating = legs
+            .Where(branch => branch.Index != common.Index
+                && ReferenceEquals(ReferenceEquals(branch.From.Element, valve) ? branch.To.Element : branch.From.Element, junction))
+            .ToArray();
+
+        if (junction is not NodeComponent || recirculating.Length != 1)
+        {
+            return null;
+        }
+
+        Quantity? fresh = null;
+
+        foreach (var branch in graph.Branches)
+        {
+            if (branch.Index == common.Index || branch.Index == recirculating[0].Index || !Meets(branch, junction))
+            {
+                continue;
+            }
+
+            if (FeedTemperature(graph, branch, junction) is not { } arriving
+                || (fresh is { } agreed && !arriving.IsCloseTo(agreed)))
+            {
+                return null;
+            }
+
+            fresh = arriving;
+        }
+
+        var reference = Quantity.FromSi(0, Dimension.Pressure);
+        if (fresh is null
+            || !graph.Substance.FromPressureTemperature(reference, fresh.Value).TryGetValue(out var freshState)
+            || !graph.Substance.FromPressureTemperature(reference, mixed).TryGetValue(out var mixedState)
+            || !graph.Substance.FromPressureTemperature(reference, returned).TryGetValue(out var returnedState)
+            || Bounded(
+                Math.Abs(returnedState.Enthalpy.SiValue - freshState.Enthalpy.SiValue),
+                Math.Sign(returnedState.Enthalpy.SiValue - freshState.Enthalpy.SiValue) * (mixedState.Enthalpy.SiValue - freshState.Enthalpy.SiValue),
+                valve) is not { } share)
+        {
+            return null;
+        }
+
+        return feed.Index == recirculating[0].Index ? share : 1 - share;
+    }
+
+    /// <summary>The temperature of the water arriving along a branch at one of its ends, read from the exchanger that last touched it.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="feed">The branch: a valve's <c>a</c> leg, or a stream into a junction.</param>
+    /// <param name="valve">The element the water arrives at.</param>
     /// <returns>A stated outlet temperature, or <see langword="null"/> when nothing on the way states one.</returns>
     /// <remarks>
     /// Walks the feed branch away from the valve: a source in the path (the boiler on the parallel
@@ -202,7 +303,7 @@ public static partial class BranchFlows
     /// what discharges there -- the first block's load on the series header. A stated temperature on
     /// the junction node itself wins over both.
     /// </remarks>
-    private static Quantity? FeedTemperature(CircuitGraph graph, Branch feed, ThreeWayValveComponent valve)
+    private static Quantity? FeedTemperature(CircuitGraph graph, Branch feed, IFlowComponent valve)
     {
         var forward = ReferenceEquals(feed.To.Element, valve);
         IEnumerable<IFlowComponent> path = feed.Path;
