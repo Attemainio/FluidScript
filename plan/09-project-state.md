@@ -1428,13 +1428,14 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 15 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **62** | |
+| | **64** | |
 
+Recounted 2026-09-28 after `C-151` and `S-92` opened (a header with two series branches): 64.
 Recounted 2026-09-28 after `C-149` opened (a mixing valve's bypass drawn heating): 62.
 Recounted 2026-09-28 after `C-123` and `C-144` closed (`D-183`) and `S-91` opened: 61.
 Recounted 2026-09-27 after `L-92`, `C-147` and `C-148` (filed and closed the same day) closed: 62.
