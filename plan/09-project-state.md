@@ -1429,12 +1429,13 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 9 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 27 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 13 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **61** | |
+| | **60** | |
 
+Recounted 2026-09-28 after `S-91`, `S-86` and `S-88` closed and `S-93`, `S-94` opened (group A, A2): 60.
 Recounted 2026-09-28 after `S-92` and `S-69` closed (group A, A1: a pump's head counts its mixing valve): 61.
 Recounted 2026-09-28 after `C-151` closed (the next branch starts past the whole chain): 63.
 Recounted 2026-09-28 after `C-151` and `S-92` opened (a header with two series branches): 64.
@@ -2215,6 +2216,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     stalled -> settles in 4 passes, marker removed; the mixed header: `NonFinite` -> 3 passes. No converging sample
     moved. Core 2602/0/2, Api 87/0. Next: A2, the seed's design temperature across a split and from a setpoint
     (`S-91`, `S-86`), then A3 (`S-88`), then A4 (`C-44`, `S-85`).
+  - **Group A, A2: the seed reads a design temperature off the path (2026-09-28; `S-91`, `S-86`, `S-88` closed;
+    `S-93`, `S-94` opened).** A load's outlet is read downstream -- a setpoint on the node after it, or the next
+    exchanger's stated inlet -- and its inlet upstream, across splits, with a junction's connections told apart by
+    the component port each reaches, a three-way valve's by its service (`32`). Sizing: a valve's authority is
+    read against its branch's passive elements at the flow's magnitude, a pump's loop signs each branch by the
+    loop's traversal, and `Prepare` sizes pumps last as `RunAsync` does (`24`). The two radiators (`S-91`): diverging
+    -> 3 passes. 8c with its controls: `NonFinite` -> 3 passes, marker removed; the plain 8c seeds within 0.3 % and
+    settles in 3 passes where 4, which closed A3's `S-88` without its proposed rule. Steps 5, 11a and 12b with
+    their controls now start at their answer and stop because the pump is sized to the loop with the control valve
+    fully open, no margin (`S-93`, **needs the user's decision on a sizing convention**); the syntax tour seeds its
+    ring right and fails on its substation exchanger's unrated primary (`S-94`). The user considered replacing the
+    seed with an explicit design pass and chose to keep the seed-and-sizing approach (2026-09-28). Core 2602/0/2,
+    Api 87/0. Next: `S-93`'s decision, then `S-94`, then A4 (`C-44`, `S-85`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

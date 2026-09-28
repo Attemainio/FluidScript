@@ -252,6 +252,24 @@ before, `IterationCap` after): its cooling side takes the bores' 10 °C water th
 rated at the cooling coil's 7/12, and Newton walked the bore valve onto its stop. Water crossing a boundary brings
 heat of its own, so an open circuit's exchangers are not its loads' design reference.
 
+**A design temperature is read off the path, not only off the exchanger** (`S-86`, `S-91`, `S-88`, 2026-09-28).
+A controller's setpoint is written into the node it measures (`D-141`) in place of the same temperature on the
+exchanger, and an outlet stated upstream reaches a load two components later; a seed that read terminals only off
+the exchanger itself left both loops at the nominal flow, and the first step out of the fluid's range. So `Duty`
+takes an outlet the exchanger does not state from what its water meets downstream -- a node's stated temperature,
+or the stated inlet of the next exchanger -- crossing plain two-ports, inline nodes and a split whose outflows
+agree, and stopping at a node another stream also enters (`DownstreamTemperature`); its inlet already came from
+upstream (`UpstreamOutlet`), which now crosses a split with one written inflow the same way. `MixingFraction` reads
+its load's mixed and cold temperatures by the same two walks. A junction's ports carry no direction, so each
+connection is read by the component port it reaches past inline nodes: a bare link to another junction by that
+junction's balance, and a three-way valve's port by the valve's service -- declared (`D-136`), else what its
+common port reaches, a pump's inlet meaning mixing. Without that last step the plain 8c rated its source over the
+radiators' 40 °C return and seeded the ring half again too fast (`S-88`); with it the source reads the 30 °C after
+the DHW block, and ring, coils and promoted duties all seed within 0.3 % of the answer. A promoted duty seeds from
+side 2's `in2`/`out2` when side 1 states only one end (`PromotedPower`, `S-94`). Measured: step 5, 11a and 12b with
+their controls seed at their answer (they stop on `S-93`), and 8c with its controls converges in three passes where
+it left the domain.
+
 **One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
 role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it
 appears in and its column is identically zero (`S-23`). That is the physics: stagnant fluid has no

@@ -39,7 +39,8 @@ nothing else.
 ## How the Kv is chosen
 
 A valve you do not give a `kv` is sized for **authority** — the share of its branch's total pressure
-drop that the valve itself takes. Authority is what makes the travel mean something: a valve taking
+drop that the valve itself takes. A pump on the same branch is not part of that drop: it supplies
+pressure, and the valve shares its authority with what resists. Authority is what makes the travel mean something: a valve taking
 half the branch's drop keeps roughly the characteristic you asked for, while one taking a tenth is a
 switch with a handle, because the branch's own resistance dominates until the valve is nearly shut and
 then the flow collapses over the last few percent.

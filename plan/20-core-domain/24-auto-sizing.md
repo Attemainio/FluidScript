@@ -442,6 +442,14 @@ application already did before the first solve. Measured: the block pumps of the
 its Kv 6.3 valve's 7.5), and 8c settles in four passes where it stalled; the header with two series branches
 (`S-92`) settles in three where it left the fluid's domain; no converging sample moved.
 
+**Each branch's drop is taken at the flow's magnitude, and signed by the way the loop runs** (`S-91`, 2026-09-28).
+A branch's orientation is the decomposition's choice, and a drop summed at the branch's signed flow comes out
+negative on a branch oriented against its water: two branches of one loop then cancelled, and the two-radiator
+plant's pump was sized to a fraction of its loop. The loop is walked from the pump in its flow direction and each
+branch's drop, evaluated at `|ṁ|`, is added with the sign of that traversal (`OuterLoop.Traversal`). A loop that
+meets a three-way valve only by its two switched legs is not sized to: no water runs from `a` to `b` through a
+valve body, and the two-pumped-sources plant held its DHW pump at 0 while one was counted (`SwitchedOnly`).
+
 **A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
 `p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved
 density and g -- the mean of the inlet and outlet densities, the convention the pump's residual uses,
@@ -469,6 +477,12 @@ fittings. Physical local losses are stated separately as a pipe's `minor_loss` (
 
 Rounding down rather than to nearest is an engineering judgement worth stating: it errs toward
 controllability at the cost of a slightly higher pump head.
+
+**The branch in step 2 is its passive elements, at the flow's magnitude** (`S-91`, 2026-09-28). A pump on the
+branch is a source of pressure, not a drop the valve shares authority with, and a branch oriented against its
+water summed its drops negative -- -20 kPa, clamped to 0, so the valve was sized against nothing
+(`OuterLoop.Passive`). Rounding down with the pump then sized to the loop at that valve's full-open drop leaves no
+margin at design: `S-93` is that case, open for a decision.
 
 **A stated `dp` replaces steps 1–3** (`C-109`, 2026-09-21): the required Kv is the one that takes the
 stated drop at the design flow, and the catalogue row is the **next larger** one, so the valve drops
@@ -971,7 +985,10 @@ the duty — which is why the substation's 12 071 W/K is checkable by hand and w
 branch can size a component on two. The one thing it takes from the circuit is a Rated exchanger's
 side-1 flow, when the script states neither that flow nor both of that side's temperatures. The
 design point also *pins* each side's flow where nothing else does (`D-97`), so the solved circuit runs
-at the point the size was chosen for.
+at the point the size was chosen for. **A side-1 outlet held by a controller counts as stated** (`S-86`,
+2026-09-28): the setpoint on the node after it (`D-141`) is the design outlet the script wrote there instead
+(`SizingContext.HeldOutlet`), used only when the side states neither `out` nor `dt`. Controlled step 5 holds 50 °C
+at `NS` after an exchanger stating `in = 20`, and its UA is now the plain step's 1.009 kW/K.
 
 1. **Flows** from each side's energy balance, as in duty mode but twice.
 2. **Capacity rates** `C₁ = ṁ₁cp₁`, `C₂ = ṁ₂cp₂`; `Cmin = min`, `Cr = Cmin/Cmax`.

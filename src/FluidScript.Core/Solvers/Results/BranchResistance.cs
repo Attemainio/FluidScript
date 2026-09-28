@@ -399,11 +399,38 @@ public static class BranchResistance
         FluidState state,
         Branch branch,
         double flow,
-        IFlowComponent? exclude)
+        IFlowComponent? exclude) =>
+        Along(graph, state, branch, flow, element => ReferenceEquals(element, exclude));
+
+    /// <summary>What a branch resists at a flow, its ends included and its bare links counted, leaving out every element a test names.</summary>
+    /// <param name="graph">The graph, for its substance.</param>
+    /// <param name="state">The fluid to evaluate the laws against.</param>
+    /// <param name="branch">The branch.</param>
+    /// <param name="flow">kg/s through it.</param>
+    /// <param name="skip">Which elements' own contributions are left out -- the component being sized and a branch's pumps, for a valve's authority.</param>
+    /// <returns>Pa, positive against the flow.</returns>
+    /// <remarks>Left out, not added and taken away again: the same drops summed in the same order whichever script lowered the graph (<c>S-86</c>).</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="branch"/> or <paramref name="skip"/> is <see langword="null"/>.</exception>
+    public static double Along(
+        CircuitGraph graph,
+        FluidState state,
+        Branch branch,
+        double flow,
+        Func<IFlowComponent, bool> skip)
     {
         ArgumentNullException.ThrowIfNull(branch);
+        ArgumentNullException.ThrowIfNull(skip);
 
-        var total = Along(graph, state, branch.Path, flow, exclude);
+        var total = 0.0;
+
+        foreach (var element in branch.Path)
+        {
+            if (!skip(element))
+            {
+                total += Of(graph, state, element, flow);
+            }
+        }
+
         var previous = branch.From.Element;
 
         foreach (var element in branch.Path)

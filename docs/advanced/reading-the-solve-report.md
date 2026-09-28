@@ -200,7 +200,11 @@ start from, and the line search walks it up.
 
 **Where the seed's flows come from.** Each branch is first given a magnitude: from a duty and two
 temperatures where a component states them, from a stated flow where one is stated, and from a nominal
-0.1 kg/s where nothing does. A load that states only its duty -- `LD1 heat_exchanger power = -20` -- is
+0.1 kg/s where nothing does. The two temperatures need not be written on the component: a temperature
+it does not state is looked for along its water -- the setpoint of a controller holding the node just after
+it, the outlet stated on the boiler two components upstream, or the inlet stated on the next exchanger its
+return reaches. A load stating `power = -30` and `in.t = 20`, whose valve holds 50 C on the node after it,
+starts at 30 kW over 20/50, 0.239 kg/s. A load that states only its duty -- `LD1 heat_exchanger power = -20` -- is
 rated at the temperatures its heat sources state, the way an emitter is designed to its system's flow
 and return: 20 kW on a closed 70/40 plant starts at 0.159 kg/s. A circuit with an inlet or an outlet takes
 heat in with its water, so there the load starts from its neighbours. When the sources disagree (a 70/40 boiler and

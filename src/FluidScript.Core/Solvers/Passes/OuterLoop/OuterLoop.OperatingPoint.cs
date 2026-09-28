@@ -100,9 +100,15 @@ public sealed partial class OuterLoop
         {
             State = state,
             MassFlow = flow,
-            BranchDrop = Resistance(graph, state, branch, flow, component),
+
+            // What the rest of the branch resists, run the way its water runs (see Traversal), and its pumps left
+            // out: a pump is what absorbs a valve's drop, not part of the resistance its authority is read against.
+            BranchDrop = Passive(graph, state, branch, flow, component),
             LoopDrop = Circuit(graph, layout, iterate, component, state),
             AvailableDrop = Driven(graph, component) ? null : Offered(graph),
+            HeldOutlet = component is HeatExchangerComponent exchanger && !exchanger.StatedParameters.ContainsKey("out")
+                ? BranchFlows.DownstreamTemperature(graph, exchanger, "out")?.SiValue
+                : null,
         };
     }
 
@@ -195,18 +201,22 @@ public sealed partial class OuterLoop
             onALoop = true;
 
             if (component is PumpComponent
-                && loop.Branches.Any(branch => branch.Path.Any(
-                    element => element is PumpComponent && !ReferenceEquals(element, component))))
+                && (loop.Branches.Any(branch => branch.Path.Any(
+                        element => element is PumpComponent && !ReferenceEquals(element, component)))
+                    || SwitchedOnly(graph, loop)))
             {
                 continue;
             }
 
             var drop = 0.0;
+            var sense = Traversal(loop, component, layout, iterate);
 
             foreach (var branch in loop.Branches)
             {
-                drop += Resistance(
-                    graph, state, branch, iterate.Values[layout.BranchFlow(branch.Index)], component);
+                var flow = iterate.Values[layout.BranchFlow(branch.Index)];
+                var along = sense[branch.Index] * (flow < 0 ? -1 : 1);
+
+                drop += along * Resistance(graph, state, branch, Math.Abs(flow), component);
             }
 
             if (component is PumpComponent)
@@ -226,10 +236,112 @@ public sealed partial class OuterLoop
                 ? MixingValves(graph, layout, iterate, [own], state)
                 : 0;
 
-            return Resistance(graph, state, own, iterate.Values[layout.BranchFlow(own.Index)], component) + mixing;
+            return Resistance(graph, state, own, Math.Abs(iterate.Values[layout.BranchFlow(own.Index)]), component) + mixing;
         }
 
         return worst;
+    }
+
+    /// <summary>Whether a loop crosses a mixing valve from one switched leg to the other, which no water circulates round.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="loop">The loop.</param>
+    /// <returns><see langword="true"/> when it meets a three-way valve by its <c>a</c> and <c>b</c> legs and not by <c>ab</c>.</returns>
+    /// <remarks>
+    /// Both switched legs of a mixing valve carry water into it, and both of a diverting valve's carry it out: a cycle
+    /// through the two is a cycle of the branch graph, not a path the water takes, and a pump is not sized to it. On the
+    /// plant with two pumped sources, every loop through a source's pump but one carried another pump, and the one
+    /// left ran from the header through an AHU valve's <c>a</c> and out of its <c>b</c>; summed in the order it is
+    /// walked it made the source pump 3 kPa taller than its own branch, and the direct consumer's pump was pushed to
+    /// zero head (<c>D-93</c>'s failure, back by another road).
+    /// </remarks>
+    private static bool SwitchedOnly(CircuitGraph graph, CircuitLoop loop)
+    {
+        foreach (var valve in graph.JunctionElements.OfType<ThreeWayValveComponent>())
+        {
+            var ports = loop.Branches
+                .Where(branch => ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+                .Select(branch => ValveLegs.PortName(branch, valve))
+                .ToHashSet(StringComparer.Ordinal);
+
+            if (ports.Contains("a") && ports.Contains("b") && !ports.Contains("ab"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>The direction each branch of a loop is crossed in, walking it the way the water runs through a component on it.</summary>
+    /// <param name="loop">The loop.</param>
+    /// <param name="component">The component the walk starts at; its branch is crossed the way its flow runs.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current values.</param>
+    /// <returns>+1 or -1 per branch index -- +1 where the walk crosses the branch from its <c>From</c> end -- and 0 for branches off the loop.</returns>
+    /// <remarks>
+    /// <para>
+    /// A branch's orientation is the decomposition's choice, not the water's (<c>32</c>), and
+    /// <see cref="BranchResistance.Along(CircuitGraph, FluidState, Branch, double, IFlowComponent?)"/> evaluates each
+    /// element at the flow it is handed as though it entered by its inlet. Handed a branch's signed flow, a branch the
+    /// water runs through against its orientation read negative, and a loop's drops cancelled: on two radiators fed
+    /// from one heater, all three branches oriented one way, the heater's +20 kPa and a radiator's -20 kPa made a loop
+    /// that resists nothing, and a valve's branch read -20 kPa, which the authority rule clamps to nothing to size
+    /// against (<c>S-91</c>). A pump is worse, because its law is not odd in the flow: flipping its sign turned its rise
+    /// into resistance.
+    /// </para>
+    /// <para>
+    /// So each branch is evaluated running forward, at the magnitude of its flow, and counted with the sign of how its
+    /// water runs relative to the walk: +1 along it, -1 against. A loop the walk cannot follow as a cycle keeps each
+    /// branch's own flow's sense.
+    /// </para>
+    /// </remarks>
+    private static int[] Traversal(CircuitLoop loop, IFlowComponent component, SystemLayout layout, StateVector iterate)
+    {
+        var sense = new int[loop.Branches.Max(static branch => branch.Index) + 1];
+        int Own(Branch branch) => iterate.Values[layout.BranchFlow(branch.Index)] < 0 ? -1 : 1;
+
+        foreach (var branch in loop.Branches)
+        {
+            sense[branch.Index] = Own(branch);
+        }
+
+        if (loop.Branches.FirstOrDefault(branch => branch.Path.Contains(component)) is not { } start)
+        {
+            return sense;
+        }
+
+        var walked = new HashSet<int> { start.Index };
+        var at = sense[start.Index] > 0 ? start.To.Element : start.From.Element;
+
+        while (walked.Count < loop.Branches.Length
+            && loop.Branches.FirstOrDefault(branch => !walked.Contains(branch.Index)
+                && (ReferenceEquals(branch.From.Element, at) || ReferenceEquals(branch.To.Element, at))) is { } next)
+        {
+            sense[next.Index] = ReferenceEquals(next.From.Element, at) ? 1 : -1;
+            at = sense[next.Index] > 0 ? next.To.Element : next.From.Element;
+            walked.Add(next.Index);
+        }
+
+        return sense;
+    }
+
+    /// <summary>What a branch resists apart from a component on it and apart from its pumps, run the way its water runs.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="state">The fluid to evaluate the laws against.</param>
+    /// <param name="branch">The branch.</param>
+    /// <param name="flow">kg/s along it, in the branch's orientation; its magnitude is used.</param>
+    /// <param name="component">The component being sized, left out.</param>
+    /// <returns>Pa, positive against the flow.</returns>
+    /// <remarks>
+    /// A pump sharing a valve's branch is left out whether its head is promoted, stated or sized. Promoted, it carried no
+    /// head into the graph and read as nothing, which is why a single loop with its pump solving for the flow sized its
+    /// valve against the coils alone; sized by the rule, its rise was subtracted, and the controlled step 5's valve was
+    /// chosen against a branch that resisted less than its coils (<c>S-86</c>).
+    /// </remarks>
+    private static double Passive(CircuitGraph graph, FluidState state, Branch branch, double flow, IFlowComponent component)
+    {
+        return BranchResistance.Along(
+            graph, state, branch, Math.Abs(flow), element => element is PumpComponent || ReferenceEquals(element, component));
     }
 
     /// <summary>What the mixing valves a pump's loop crosses by their common port drop, fully open at the flow through it (<c>S-92</c>).</summary>

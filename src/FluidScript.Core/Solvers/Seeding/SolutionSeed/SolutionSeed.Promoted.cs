@@ -3,6 +3,7 @@ using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing.Flows;
 using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Solvers.Results;
 using FluidScript.Core.Topology.Graph;
@@ -281,28 +282,42 @@ public static partial class SolutionSeed
     /// <param name="layout">Where branch flows are stored.</param>
     /// <param name="values">The seed so far, with its flows laid.</param>
     /// <param name="exchanger">The exchanger whose <c>power</c> is promoted.</param>
-    /// <returns>W, positive into the fluid, or <see langword="null"/> without both side-1 temperatures.</returns>
+    /// <returns>W, positive when side 1 gains heat, or <see langword="null"/> without both temperatures of either side.</returns>
     /// <remarks>
+    /// <para>
     /// A promoted power's own value is zero, which is not a neutral start: every temperature row around
     /// the coil already assumes its duty, and a coil seeded at no duty on a stream seeded at its design
     /// flow puts the whole duty into the first Newton step (<c>S-69</c>). The stated <c>in</c> and
     /// <c>out</c> with the seeded flow are the duty's own definition.
+    /// </para>
+    /// <para>
+    /// Side 2's <c>in2</c> and <c>out2</c> define it as well, with the sign turned, when side 1 states only one
+    /// end (<c>S-94</c>): the syntax tour's substation states its primary return and both secondary
+    /// temperatures, and its duty seeded at 0 W left the heating ring a 150 kW sink with no source. Each side is
+    /// read on its own branch; a coupled exchanger sits on two.
+    /// </para>
     /// </remarks>
     private static double? PromotedPower(CircuitGraph graph, SystemLayout layout, double[] values, HeatExchangerComponent exchanger)
     {
-        var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(exchanger));
+        return Across(1, "in", "out") ?? -Across(2, "in2", "out2");
 
-        if (branch is null
-            || HydraulicPartition.Stated(exchanger, "in") is not { } inlet
-            || HydraulicPartition.Stated(exchanger, "out") is not { } outlet)
+        double? Across(int side, string entering, string leaving)
         {
-            return null;
+            var branch = graph.Branches.FirstOrDefault(
+                candidate => candidate.Path.Contains(exchanger) && BranchFlows.Side(graph, candidate, exchanger) == side);
+
+            if (branch is null
+                || HydraulicPartition.Stated(exchanger, entering) is not { } inlet
+                || HydraulicPartition.Stated(exchanger, leaving) is not { } outlet)
+            {
+                return null;
+            }
+
+            var flow = Math.Abs(values[layout.BranchFlow(branch.Index)]);
+            var power = flow * (Enthalpy(graph.Substance, Tolerances.PressureScale, outlet) - Enthalpy(graph.Substance, Tolerances.PressureScale, inlet));
+
+            return double.IsFinite(power) && flow > 0 ? power : null;
         }
-
-        var flow = Math.Abs(values[layout.BranchFlow(branch.Index)]);
-        var power = flow * (Enthalpy(graph.Substance, Tolerances.PressureScale, outlet) - Enthalpy(graph.Substance, Tolerances.PressureScale, inlet));
-
-        return double.IsFinite(power) && flow > 0 ? power : null;
     }
 
     /// <summary>Where a promoted parameter starts: its own value, unless that value is a bound.</summary>

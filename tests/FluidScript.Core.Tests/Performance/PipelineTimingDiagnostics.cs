@@ -55,6 +55,8 @@ public sealed class PipelineTimingDiagnostics
     private readonly List<Stage> _stages = [];
     private readonly List<Step> _steps = [];
 
+    private readonly List<string> _untimed = [];
+
     private sealed record Stage(
         string Sample,
         int Declarations,
@@ -144,6 +146,7 @@ public sealed class PipelineTimingDiagnostics
 
         if (constant is not { } cheap || water is not { } costly)
         {
+            _untimed.Add(name);
             return;
         }
 
@@ -195,7 +198,13 @@ public sealed class PipelineTimingDiagnostics
         var trial = new double[system.Columns];
         var nodeColumns = Enumerable.Range(0, system.Columns).Count(column => system.NodeOfUnknown(column) >= 0);
 
-        Assert.True(system.TryEvaluateScaled(x, scaled));
+        // A seed outside the substance's range has no residual to time: every property call past it fails
+        // fast, so the number would be a failure's cost. The sample is listed under the table instead; the
+        // syntax tour's is, until its substation's pressure drop is referenced to a real flow (`S-94`).
+        if (!system.TryEvaluateScaled(x, scaled))
+        {
+            return null;
+        }
 
         var jacobian = Time(
             () =>
@@ -338,6 +347,13 @@ public sealed class PipelineTimingDiagnostics
                 $"| `{step.Sample}` | {step.Unknowns} | {step.Rows} | {step.NodeColumns} | {step.Constant:F3} | {step.Water:F2} "
                 + $"| {step.JacobianConstant:F2} | {step.JacobianWater:F1} | {step.Water * (step.Unknowns + 1):F1} "
                 + $"| {step.Lu:F3} |");
+        }
+
+        if (_untimed.Count > 0)
+        {
+            text.AppendLine()
+                .AppendLine(CultureInfo.InvariantCulture,
+                    $"Not timed, refused by the count or seeded outside the substance's range: {string.Join(", ", _untimed.Select(static sample => $"`{sample}`"))}.");
         }
 
         return text.ToString();

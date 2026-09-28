@@ -185,9 +185,14 @@ public sealed partial class OuterLoop(
         // Twice, because the bootstrap's exchangers are ideal: the first application gives each one its
         // design point, and only the second lets the rules that read resistances -- a pump's head, a
         // valve's Kv -- read the drops those design points create. See the remarks.
-        var (first, _, _, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay, solved: false);
+        // The pumps last in each, against the sizes the other rules just chose (S-92): a valve the first application
+        // could not size, its branch still ideal, is sized in the second -- and a pump beside it in the same sweep read
+        // the bootstrap's Kv, which drops nothing (S-86's step 5: 40 kPa for a loop of 114).
+        CircuitGraph Lower(SizingOverlay sizes) => Lowering.Lower(model, substance, new ComponentFactory(bores, sizes, substance), name).Graph;
+
+        var (first, _, _, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay, solved: false, lower: Lower);
         var resistive = Lowering.Lower(model, substance, new ComponentFactory(bores, first, substance), name);
-        var (sized, bases, notes, _) = Apply(resistive.Graph, Seed(resistive.Graph), first, solved: false);
+        var (sized, bases, notes, _) = Apply(resistive.Graph, Seed(resistive.Graph), first, solved: false, lower: Lower);
 
         return new PreparedModel(
             Lowering.Lower(model, substance, new ComponentFactory(bores, sized, substance), name),

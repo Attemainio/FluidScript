@@ -305,16 +305,28 @@ public static partial class BranchFlows
                     : DifferenceFlow(graph.Substance, exchanger, "in2", "out2", "dt2");
         }
 
-        if (!component.StatedParameters.TryGetValue("out", out var outlet))
+        // Without its own outlet: a stated difference first, then a temperature held on the water it leaves into
+        // -- a setpoint, most often (S-86).
+        Quantity? outlet = component.StatedParameters.TryGetValue("out", out var statedOutlet) ? statedOutlet : null;
+
+        if (outlet is null)
         {
-            return DifferenceFlow(graph.Substance, exchanger, "in", "out", "dt");
+            if (DifferenceFlow(graph.Substance, exchanger, "in", "out", "dt") is { } byDifference)
+            {
+                return byDifference;
+            }
+
+            if ((outlet = DownstreamTemperature(graph, exchanger, "out")) is null)
+            {
+                return null;
+            }
         }
 
         var inlet = component.StatedParameters.TryGetValue("in", out var statedInlet)
             ? statedInlet
             : UpstreamOutlet(graph, exchanger) ?? CommonReturn(graph, exchanger);
 
-        return inlet is null ? null : RatedFlow(graph.Substance, exchanger.Power, inlet.Value, outlet);
+        return inlet is null ? null : RatedFlow(graph.Substance, exchanger.Power, inlet.Value, outlet.Value);
     }
 
     /// <summary>The flow a duty over a stated temperature difference implies, in kg/s.</summary>

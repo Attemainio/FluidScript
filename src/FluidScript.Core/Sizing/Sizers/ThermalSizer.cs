@@ -81,10 +81,13 @@ public sealed class ThermalSizer : SizerBase<HeatExchangerComponent>
         var stated = exchanger.StatedParameters;
 
         // Side 1 gains heat when the duty is positive; side 2 then gives it. A Rated exchanger's side 1
-        // is the one branch the rule sees, so its flow can stand in for a missing temperature.
+        // is the one branch the rule sees, so its flow can stand in for a missing temperature. And a side-1
+        // outlet the script held on the node after it -- a setpoint, in place of `out` -- is that side's
+        // design outlet (S-86, D-141): the controlled step 5 states `in = 20` and holds 50 at `NS`.
         var side1 = Side.Resolve(
             substance, stated, "in", "out", "dt", "flow", duty, gains: exchanger.Power > 0,
-            fallbackFlow: rating.Mode == ExchangerMode.Rated ? Math.Abs(context.MassFlow) : null);
+            fallbackFlow: rating.Mode == ExchangerMode.Rated ? Math.Abs(context.MassFlow) : null,
+            held: context.HeldOutlet);
         var side2 = Side.Resolve(substance, stated, "in2", "out2", "dt2", "flow2", duty, gains: exchanger.Power < 0, fallbackFlow: null);
 
         if (side1 is not { } one || side2 is not { } two)
@@ -303,7 +306,8 @@ public sealed class ThermalSizer : SizerBase<HeatExchangerComponent>
         /// two stated temperatures, give the capacity rate without a specific heat at all, which is the
         /// number a user checks against a table. A stated flow needs <c>cp</c>, taken at the side's mean
         /// temperature, or at its one known temperature. A missing inlet follows from the outlet and the
-        /// capacity rate, in the direction the duty runs.
+        /// capacity rate, in the direction the duty runs. A <paramref name="held"/> outlet stands in for an
+        /// unstated one, and never over a stated difference, which is the script's word on the exchanger itself.
         /// </remarks>
         public static Side? Resolve(
             ISubstance substance,
@@ -314,11 +318,12 @@ public sealed class ThermalSizer : SizerBase<HeatExchangerComponent>
             string flow,
             double duty,
             bool gains,
-            double? fallbackFlow)
+            double? fallbackFlow,
+            double? held = null)
         {
             var entering = Si(stated, inlet);
-            var leaving = Si(stated, outlet);
             var across = Si(stated, change);
+            var leaving = Si(stated, outlet) ?? (across is null ? held : null);
             var rate = Si(stated, flow) ?? fallbackFlow;
             var direction = gains ? 1 : -1;
 

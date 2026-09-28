@@ -86,6 +86,15 @@ public readonly record struct SizingContext
     /// </value>
     public double? CommonFlow { get; init; }
 
+    /// <summary>Gets the temperature an exchanger's side-1 outlet is held at by the water it leaves into, when the exchanger states none.</summary>
+    /// <value>
+    /// K, absolute. A controller's setpoint on the node after the outlet, most often (<c>D-141</c>): the design temperature
+    /// the script wrote there in place of <c>out</c> on the exchanger. <see langword="null"/> for anything that is not an
+    /// exchanger, for one that states its own <c>out</c>, and where the water is changed or mixed before a stated
+    /// temperature is reached (<c>S-86</c>).
+    /// </value>
+    public double? HeldOutlet { get; init; }
+
     /// <summary>The volume flow through the component, at a density.</summary>
     /// <param name="density">kg/m³, the fluid's at <see cref="State"/> or wherever the rule reads it.</param>
     /// <returns>m³/s, unsigned.</returns>

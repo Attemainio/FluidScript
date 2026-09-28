@@ -138,9 +138,12 @@ public static partial class BranchFlows
             .OfType<HeatExchangerComponent>()
             .SingleOrDefault(component => string.Equals(component.Name, loadName, StringComparison.Ordinal));
 
+        // Its own terminals, else the temperatures held on the nodes either side of it -- the setpoints a controlled
+        // block states in their place (S-86): step 8c with its controls holds each coil's inlet at the node after its
+        // valve, and read only off the coil the three unrated blocks lost the partition their stated inlets gave.
         if (load is null
-            || !load.StatedParameters.TryGetValue("in", out var mixed)
-            || !load.StatedParameters.TryGetValue("out", out var cold))
+            || (load.StatedParameters.TryGetValue("in", out var statedMixed) ? statedMixed : UpstreamOutlet(graph, load)) is not { } mixed
+            || (load.StatedParameters.TryGetValue("out", out var statedCold) ? statedCold : DownstreamTemperature(graph, load, "out")) is not { } cold)
         {
             return null;
         }

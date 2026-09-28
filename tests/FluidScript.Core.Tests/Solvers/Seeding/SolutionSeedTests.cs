@@ -242,13 +242,15 @@ public sealed class SolutionSeedTests
     public void AStatedDutyFixesItsBranchFlowDirectly()
     {
         // 24's step 1: 30 kW between 20 and 50 C. The document's own worked example puts this at
-        // 0.2392 kg/s, computed from water's enthalpy table rather than from a constant cp.
+        // 0.2392 kg/s, computed from water's enthalpy table rather than from a constant cp. The load on the
+        // same branch rates it too, since S-86: its outlet runs back to the heater's stated 20 C inlet and its
+        // inlet comes from the heater's 50 C outlet, so either exchanger may be the one the estimate names.
         var graph = Lower("m2-simple-loop.fluid");
         var estimates = BranchFlows.Estimate(graph);
 
         var duty = Assert.Single(estimates, estimate => estimate.Basis is FlowBasis.Duty);
 
-        Assert.Equal("HE1", duty.Source);
+        Assert.True(duty.Source is "HE1" or "LOAD", duty.Source);
         Assert.Equal(0.2392, duty.Magnitude, 3);
     }
 
@@ -447,8 +449,10 @@ public sealed class SolutionSeedTests
         // nominal coils take what continuity leaves.
         //
         // Since `S-69`'s seed rules the unrated coils are not left to continuity either: the closed field
-        // hands each block's feed leg the ring's 0.3587, and the stated `in`/`out` -- 38/36 fed at 40,
+        // hands each block's feed leg the ring's flow, and the stated `in`/`out` -- 38/36 fed at 40,
         // 34.5/33 fed at 36, 31.5/30 fed at 33, each half way -- partition the coil at twice the ring.
+        // The ring is 0.2393 since `S-88`: `HS1` is rated over its 60 C and the 30 C the DHW block returns,
+        // read across the mixing valves, where it took the radiators' 40 C and seeded 0.3587.
         var source = File.ReadAllText(
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08c-header-series-four.fluid"));
         var graph = GraphFixture.Lower(source).Graph;
@@ -460,12 +464,12 @@ public sealed class SolutionSeedTests
             branch => branch.From.Label == from && branch.To.Label == to).Index)]);
 
         Assert.Equal(0.4784, Flow("TV_RAD.ab", "NM_RAD"), 3);
-        Assert.Equal(0.3587, Flow("TV_RAD.a", "NM_DHW"), 3);
+        Assert.Equal(0.2393, Flow("TV_RAD.a", "NM_DHW"), 3);
 
         foreach (var block in new[] { "AHU", "FLR", "DHW" })
         {
-            Assert.Equal(0.3587, Flow($"TV_{block}.a", block == "AHU" ? "NM_RAD" : block == "FLR" ? "NM_AHU" : "NM_FLR"), 3);
-            Assert.Equal(0.7174, Flow($"TV_{block}.ab", $"NM_{block}"), 3);
+            Assert.Equal(0.2393, Flow($"TV_{block}.a", block == "AHU" ? "NM_RAD" : block == "FLR" ? "NM_AHU" : "NM_FLR"), 3);
+            Assert.Equal(0.4785, Flow($"TV_{block}.ab", $"NM_{block}"), 3);
         }
 
         for (var node = 0; node < graph.Nodes.Length; node++)

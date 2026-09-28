@@ -1,5 +1,3 @@
-# does not seed: S-86 -- HX1's heating ring seeds backwards, against its pump (plan/30-solver/defects.md).
-#
 # The syntax tour: every statement, in one file.
 #
 # Each statement and setting that plan/10-language/12-grammar.md defines appears at least once, with
@@ -7,8 +5,8 @@
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
 # to that.
 #
-# does not settle: S-86 -- the heating ring's flow seed ignores TC1's setpoint and starts backwards,
-# as it does for the reference script (plan/30-solver/defects.md).
+# does not settle: S-94 -- HX1 states only its secondary temperatures, so nothing rates its primary and its
+# pressure drop is referenced to the nominal flow (plan/30-solver/defects.md).
 
 fluidscript 2
 

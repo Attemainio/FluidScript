@@ -114,6 +114,9 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
     /// <summary>
     /// A solve whose first evaluation leaves the fluid's range ends with an infinite residual, which JSON cannot
     /// carry: the endpoint answered 500 until contract 2.3 sent it as <c>null</c> (<c>26</c>, found by P6.11 package 4).
+    /// The script was a loop held at a 50 C setpoint and started at the nominal 0.1 kg/s; once the seed read the
+    /// setpoint (<c>S-86</c>) that one started at its design flow and measured a residual, so this is a loop nothing
+    /// rates, whose 300 kW takes its nominal stream past the fluid's range before the first step.
     /// </summary>
     [Fact]
     public async Task ASolveThatStopsBeforeMeasuringAResidualStillAnswers()
@@ -124,14 +127,10 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
             circuit "loop":
               fluid = water
 
-              HE1  heat_exchanger  power = 30kW  in.t = 20C
-              LOAD  heat_exchanger  power = -30kW  dp = 0
+              HE1  heat_exchanger  power = 300kW  in.t = 20C
+              LOAD  heat_exchanger  power = -300kW  dp = 0
               V1  valve
               PU1  pump
-              TC1 controller:
-                moves = V1.position
-                reads = N3.t
-                setpoint = 50C
               N1 - PU1.in
               PU1.out - N2
               N2 - HE1.in

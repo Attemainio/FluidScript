@@ -61,15 +61,15 @@ connection TV_C__N3__in. -> TV_C__N3.in
 connection TV_C__b. -> N2.
 control TC_C moves PropertyReference { Component = TV_C, Property = position } reads PropertyReference { Component = TE_C, Property = t } setpoint 293.15 Temperature [] band - differential - output -..- curve 
 control TC_H moves PropertyReference { Component = CV_H, Property = position } reads PropertyReference { Component = TE_H, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
-FS1510 [719..730] Added node 'PU_H__HS_H' (I2).
-FS1510 [740..742] Added node 'NH' (I1).
-FS1510 [752..763] Added node 'LOAD__CV_H' (I2).
-FS1510 [766..777] Added node 'CV_H__PU_H' (I2).
-FS1510 [1044..1046] Added node 'N2' (I1).
-FS1510 [1054..1056] Added node 'NC' (I1).
-FS1510 [1066..1077] Added node 'PU_C__HE_C' (I2).
-FS1510 [1080..1091] Added node 'HE_C__TV_C' (I2).
-FS1815 [1087..1091] 'TV_C' is wired as a diverting valve: ab from HE_C, a to N3, b to N2.
-FS1510 [1094..1103] Added node 'TV_C__b' (I9).
-FS1510 [1106..1128] Added node 'TV_C__N3__in' (I2).
-FS1510 [1106..1128] Added pipe 'TV_C__N3' (I7).
+FS1510 [726..737] Added node 'PU_H__HS_H' (I2).
+FS1510 [747..749] Added node 'NH' (I1).
+FS1510 [759..770] Added node 'LOAD__CV_H' (I2).
+FS1510 [773..784] Added node 'CV_H__PU_H' (I2).
+FS1510 [1051..1053] Added node 'N2' (I1).
+FS1510 [1061..1063] Added node 'NC' (I1).
+FS1510 [1073..1084] Added node 'PU_C__HE_C' (I2).
+FS1510 [1087..1098] Added node 'HE_C__TV_C' (I2).
+FS1815 [1094..1098] 'TV_C' is wired as a diverting valve: ab from HE_C, a to N3, b to N2.
+FS1510 [1101..1110] Added node 'TV_C__b' (I9).
+FS1510 [1113..1135] Added node 'TV_C__N3__in' (I2).
+FS1510 [1113..1135] Added pipe 'TV_C__N3' (I7).

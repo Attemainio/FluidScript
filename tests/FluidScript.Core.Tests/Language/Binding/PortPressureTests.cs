@@ -102,13 +102,17 @@ public sealed class PortPressureTests
     public async Task StatingAPortPressureAndStatingTheNodeSolveToTheSameField()
     {
         // The equivalence the rule is defined by, measured: every solved pressure identical to the
-        // last pascal, because the two scripts lower to the same graph.
+        // last pascal, because the two scripts lower to the same circuit. Not to the last bit: the two
+        // lowerings anchor the loop's one branch at different nodes (N1 and N2), so Newton starts from
+        // different residuals and the two converged fields agree to rounding -- 4e-5 Pa of 144 kPa once
+        // a valve's authority was read without its branch's pump (S-91), where a 1e-9 Pa bound had held
+        // only because the rounding happened to match.
         var byPort = await Solve(Balanced.Edited("CV1  valve", "CV1  valve  in.p = 250"));
         var byNode = await Solve(Balanced + "\n  N2  node  p = 250\n");
 
         foreach (var node in new[] { "N1", "N2", "N3", "N4" })
         {
-            Assert.Equal(Pressure(byNode, node), Pressure(byPort, node), 1e-9);
+            Assert.Equal(Pressure(byNode, node), Pressure(byPort, node), 1e-3);
         }
 
         Assert.Equal(250_000, Pressure(byPort, "N2"), 1e-6);
