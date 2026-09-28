@@ -100,8 +100,8 @@ circuit "District primary":
   PCV  valve
   HX1  exchanger:
     primary.out.t   = 45 C              # the network's required return
-    secondary.in.t  = 40 C
-    secondary.out.t = 60 C
+    secondary.in.t  = [40, 33] C
+    secondary.out.t = [65, 50] C
 
   NPS - PCV
   PCV - HX1                  12 m  DN25
@@ -279,7 +279,7 @@ constraint, exactly as a number would be (`D-02`). In a run, a driver overridden
 moves every curve of that driver with the clock (`D-149`'s composition).
 
 A value that varies per case and follows no curve is a list on the parameter itself:
-`secondary.out.t = [60, 50] C`. Anything that reads a driver varies with it — a curve, another `let`
+`secondary.out.t = [65, 50] C`. Anything that reads a driver varies with it — a curve, another `let`
 (`let double = rise * 2`), a parameter — and is evaluated once per case. A driver whose list does not
 have one value per case is `FS1540` (or `FS1541` with no `cases`), and its first case's value, or the
 last it has, stands for every case: binding it to nothing would make every curve of it `FS1528` too.

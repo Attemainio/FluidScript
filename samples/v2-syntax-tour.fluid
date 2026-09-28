@@ -5,8 +5,8 @@
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
 # to that.
 #
-# does not settle: S-96 -- winter holds the supply at HX1's own outlet, leaving the mixing valve no margin,
-# and mild states a secondary return above its supply (plan/30-solver/defects.md).
+# does not settle: S-95 -- the ring's pump is sized at the flow each pass runs at, not its design flow, so the
+# ring drifts and its sizes do not settle in ten passes (plan/30-solver/defects.md).
 
 fluidscript 2
 
@@ -61,8 +61,8 @@ circuit "District primary":
   PCV  valve
   HX1  exchanger:                       # a declaration with its parameters in a block
     primary.out.t   = 45 C              # the network's required return
-    secondary.in.t  = 40 C
-    secondary.out.t = [60, 50] C        # a list: one value per case
+    secondary.in.t  = [40, 33] C        # a list: one value per case
+    secondary.out.t = [65, 50] C        # above the supply it is mixed down to
 
   NPS - PCV                             # a connection, read in the direction of flow
   PCV - HX1                  12 m  DN25 # a pipe on the link: its length and designation
