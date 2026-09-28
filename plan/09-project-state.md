@@ -2174,6 +2174,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     did, which is the seed's (`S-91`, one fix with `S-86`). Core 2602/0/2, Api 87/0, frontend 257/0. Next: the
     layout rule the user asked for with it -- a two-connection node or a pipe costs the drawing no run length --
     shown in before/after pictures for acceptance.
+  - **Only what is drawn takes room on a run (2026-09-28; `D-184`; `C-150` filed and closed).** A run's inline points
+    were spread evenly, invisible ones included, and a sensor's run was stretched until its bubble fit its even slot,
+    so every pipe and inferred node beside a sensor lengthened the drawing. Only a point with a bubble now takes a
+    share; the rest stand in the gaps. Seven pictures changed, all with instruments, all hard 0 with unchanged soft
+    counts; 8b 14.6 -> 11.8 wide, 8c 23.4 -> 21.65; step 7 narrower and taller (`TE_R` outside its ring). The user
+    accepted the pictures. Next, the user's picture decisions: inferred points' labels (they crowd now), R2 the source
+    level with its supply rail, R3 a header branch entering its valve from above, R4 a series chain as a row.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

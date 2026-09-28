@@ -241,8 +241,8 @@ internal sealed partial class Sheet
     // ---- runs (A5) ------------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Lays a run: its polyline from start to end, normalised, with its inline points cut into it at even fractions
-    /// of its longest segment (A5), each turned along the run; the trace names the run, its connections and the rule
+    /// Lays a run: its polyline from start to end, normalised, with its inline points cut into it at <see cref="Cuts"/>'
+    /// fractions of its longest segment (A5), each turned along the run; the trace names the run, its connections and the rule
     /// that laid it. A polyline that is not orthogonal is not a pipe (A7): it is refused, noted, and left to the router.
     /// </summary>
     /// <param name="run">The run.</param>
@@ -265,7 +265,7 @@ internal sealed partial class Sheet
         _laidBy[run.Index] = rule;
         _cutFirst[run.Index] = cutFirst;
         Note(RunName(run), rule, reason);
-        var pieces = Pieces(line, run.Inline.Length, cutFirst);
+        var pieces = Pieces(line, Cuts(run), cutFirst);
 
         for (var t = 0; t < run.Inline.Length; t++)
         {
@@ -315,13 +315,56 @@ internal sealed partial class Sheet
     }
 
     /// <summary>The pieces of a laid run, one per link from start to end, consecutive ones sharing their cut.</summary>
-    public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, View.Runs[run].Inline.Length, _cutFirst[run]);
+    public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, Cuts(View.Runs[run]), _cutFirst[run]);
 
     /// <summary>
-    /// A polyline cut into one more piece than <paramref name="count"/>, at even fractions of its longest segment (A5) --
-    /// or of its first or last, where <paramref name="cutFirst"/> says so (a column's return, <c>D-158</c>).
+    /// Where a run's inline points are cut, as fractions of the segment that carries them, in order from the run's start
+    /// (A5, <c>D-184</c>): only a point something is drawn on -- an instrument's bubble -- takes a share of the run, the
+    /// d of them at even fractions k/(d+1), and the points nothing is drawn on (a pipe, a pipe's end, a two-connection
+    /// node) stand evenly in the gaps between their drawn neighbours, costing the run no length. A run with nothing drawn
+    /// on it is cut evenly, as it always was.
     /// </summary>
-    public static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, int count, bool? cutFirst = null)
+    /// <param name="run">The run.</param>
+    /// <returns>One fraction per inline point, strictly increasing, each inside (0, 1).</returns>
+    public double[] Cuts(Run run)
+    {
+        var count = run.Inline.Length;
+        var hats = Hats();
+        var drawn = new List<int>();
+
+        for (var t = 0; t < count; t++)
+        {
+            if (hats.TryGetValue(run.Inline[t].Element, out var on) && on.Count > 0)
+            {
+                drawn.Add(t);
+            }
+        }
+
+        // The drawn points and the run's two ends are the anchors; every other point is spread between the two it falls between.
+        List<(int At, double Fraction)> anchors = [(-1, 0)];
+        anchors.AddRange(drawn.Select((t, k) => (t, (k + 1.0) / (drawn.Count + 1))));
+        anchors.Add((count, 1));
+        var cuts = new double[count];
+
+        for (var a = 1; a < anchors.Count; a++)
+        {
+            var (from, low) = anchors[a - 1];
+            var (to, high) = anchors[a];
+
+            for (var t = from + 1; t <= to && t < count; t++)
+            {
+                cuts[t] = low + ((high - low) * (t - from) / (to - from));
+            }
+        }
+
+        return cuts;
+    }
+
+    /// <summary>
+    /// A polyline cut into one more piece than it has <paramref name="cuts"/>, at those fractions of its longest segment
+    /// (A5) -- or of its first or last, where <paramref name="cutFirst"/> says so (a column's return, <c>D-158</c>).
+    /// </summary>
+    public static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, IReadOnlyList<double> cuts, bool? cutFirst = null)
     {
         var longest = cutFirst switch { true => 1, false => points.Length - 1, null => 1 };
 
@@ -338,9 +381,8 @@ internal sealed partial class Sheet
         var pieces = new List<ImmutableArray<Point>>();
         List<Point> head = [.. points.Take(longest)];
 
-        for (var c = 1; c <= count; c++)
+        foreach (var f in cuts)
         {
-            var f = (double)c / (count + 1);
             var cut = new Point(a.X + ((b.X - a.X) * f), a.Y + ((b.Y - a.Y) * f));
             pieces.Add([.. head, cut]);
             head = [cut];

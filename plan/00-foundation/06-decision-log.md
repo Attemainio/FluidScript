@@ -226,6 +226,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-181` | Accepted | 2026-09-27 | A circuit that states no fluid carries the file's fluid, water by default, and is told so |
 | `D-182` | Accepted | 2026-09-27 | The canvas draws the merged plant, in the case the interface chooses |
 | `D-183` | Accepted | 2026-09-28 | A component port on a junction has a point of its own; the junction only mixes |
+| `D-184` | Accepted | 2026-09-28 | Only what is drawn takes room on a run |
 <!-- index:end -->
 
 ---
@@ -8299,3 +8300,40 @@ cost is the next decision: a point, like any invisible node or a pipe, should co
 **Constrains.** `11` and `15` (I9), `22` *Every state lives on a node* and `C-103`'s paragraph, `23` invariant 4 and
 its worked example, `26` (`inferred:I9`), `31`'s cooling-loop table, `01`'s inventory and the syntax reference's
 diagnostic count, `57`'s worked example, `docs/functions/model-contract.md`, and the two `docs/advanced/` pages.
+
+## D-184 · Only what is drawn takes room on a run
+
+**Accepted · 2026-09-28** (the user's rule: "invisible points should not cost the drawing space ... Pipe lengths are not
+something which should be shown in PI diagram. Because it illustrates the system, not a real geometric plant"; the
+pictures accepted the same day: "that is much better") · amends `D-105`'s even spread and `D-151`'s run reserve ·
+constrains [`28`](../20-core-domain/28-layout-solver.md) A5 and C15, `docs/advanced/how-the-diagram-is-arranged.md`
+
+**What was wrong** (`C-150`). A run's inline points were spread evenly along it (`D-105`), every one of them: a
+sensor's node, and the pipes, pipe ends and inferred nodes the canvas draws as nothing. `D-151` then made a run
+carrying a sensor long enough that its bubble, at its even slot, kept a margin from the boxes at both ends. So each
+invisible neighbour lengthened the run: in ladder step 8c the source's run carried the sensor's node and four
+invisible points, the sensor took the first of five slots, and the run had to be five times a margin-and-a-half-
+bubble where two would do. `D-183`'s points made it worse on every junction.
+
+**The rule.** Only a point something is drawn on -- today, an instrument's bubble -- takes a share of its run: the d
+such points stand at k/(d+1), and every other point stands evenly in the gap between its drawn neighbours. The
+reserve (`Sheet.RunLength`) reads the same fractions, so a pipe or an inferred node lengthens nothing. A run with
+nothing drawn on it is cut evenly, as before.
+
+**Why.** A P&ID is a schematic: it shows how the plant connects, not where things sit or how long a pipe is, and a
+line's size is noted beside it rather than drawn (Wikipedia, *Piping and instrumentation diagram*; Lucid's P&ID
+guide; Outsource CAD's P&ID guide, all consulted 2026-09-28; ISA-5.1 and ISO 10628-2 standardise the symbols, not the
+spacing). No published rule was found on how inline elements share a line; the share rule is this project's reasoning
+and the user's call. Measured on every layout picture the tests draw (`LayoutPictureTests`, the ladder with its instrumented variants and
+the stress plants): seven change, all carrying
+instruments, every one still hard 0 and with unchanged soft counts. Widths: 8b 14.6 -> 11.8, 8c 23.4 -> 21.65, 7
+8.4 -> 6.0, 11c 5.65 -> 4.6, 8e 23.15 -> 22.35. Step 7 is taller (3.3 -> 4.1): its return shortened and `TE_R`'s bubble
+now hangs outside the ring; the area is still smaller (24.6 against 27.7).
+
+**Rejected.** *Collapsing invisible points onto one spot*: zero-length pieces for a route to colour and an arrow to
+sit on. *A shorter reserve with the even spread kept*: the bubble would stand at a slot it no longer has room for.
+
+**Left open.** The invisible points' labels, shown on the canvas above 3× zoom and in the ladder pictures, now
+crowd where the points are squeezed; whether an inferred point's name is drawn at all is the next question. Where the
+source stands on its side (R2), a header branch's entry into its valve (R3) and a series chain as a row (R4) are the
+user's picture decisions still to come.

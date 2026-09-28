@@ -243,35 +243,37 @@ internal sealed partial class Sheet
     }
 
     /// <summary>
-    /// The shortest a run may be for the bubbles on its inline points (<c>D-151</c>): cut evenly (A5), the t-th of c
-    /// points with a bubble of side s keeps a margin m from the boxes at both ends when
-    /// L &#183; min(t, c+1-t)/(c+1) &#8805; m + s/2, and two bubbles t1 &lt; t2 keep a margin apart when
-    /// L &#183; (t2-t1)/(c+1) &#8805; s + m. At least one margin in every case.
+    /// The shortest a run may be for the bubbles on its inline points (<c>D-151</c>): cut at <see cref="Cuts"/>' fractions f
+    /// (A5), a point with a bubble of side s keeps a margin m from the boxes at both ends when L &#183; min(f, 1-f) &#8805;
+    /// m + s/2, and two bubbles f1 &lt; f2 keep a margin apart when L &#183; (f2-f1) &#8805; s + m. At least one margin in
+    /// every case. Only the points with a bubble have a share of the run (<c>D-184</c>), so a pipe or an inferred node
+    /// on it lengthens nothing.
     /// </summary>
     /// <param name="run">The run.</param>
     /// <returns>World units.</returns>
     public double RunLength(Run run)
     {
-        var count = run.Inline.Length;
+        var cuts = Cuts(run);
         var need = Margin;
-        int? previous = null;
+        double? previous = null;
 
-        for (var t = 1; t <= count; t++)
+        for (var t = 0; t < cuts.Length; t++)
         {
-            if (!Hats().TryGetValue(run.Inline[t - 1].Element, out var hats) || hats.Count == 0)
+            if (!Hats().TryGetValue(run.Inline[t].Element, out var hats) || hats.Count == 0)
             {
                 continue;
             }
 
             var size = hats.Max(static hat => hat.Size);
-            need = Math.Max(need, (Margin + (size / 2)) * (count + 1) / Math.Min(t, count + 1 - t));
+            var f = cuts[t];
+            need = Math.Max(need, (Margin + (size / 2)) / Math.Min(f, 1 - f));
 
             if (previous is { } before)
             {
-                need = Math.Max(need, (size + Margin) * (count + 1) / (t - before));
+                need = Math.Max(need, (size + Margin) / (f - before));
             }
 
-            previous = t;
+            previous = f;
         }
 
         return need;

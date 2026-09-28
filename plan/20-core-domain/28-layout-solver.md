@@ -100,8 +100,13 @@ A declared `pipe`, a pipe-expansion child, and **a node with exactly two connect
 or inferred** (`D-114`; a datum node on a rail is the case) are **inline**: they have no box and
 no clearance of their own. The chain of
 connections through them is one **run** between the two elements that do have boxes; the run is
-one polyline; the inline elements are points on it, spread evenly along the run's longest segment
-(`D-105`). Since `D-110` a connection line may carry the pipe's properties itself, and the implicit
+one polyline; the inline elements are points on it, along the run's longest segment. **Only what is
+drawn takes a share of the run** (`D-184`): a point carrying an instrument's bubble stands at an even
+fraction k/(d+1) of the d such points, and every other point -- a pipe, a pipe's end, a two-connection
+node, which the canvas draws as nothing -- stands evenly in the gap between its drawn neighbours and
+costs the run no length. A run with nothing drawn on it is cut evenly, as `D-105` first wrote. A P&ID
+shows the system, not the pipework's geometry: a pipe's length is not drawn, and an inferred point is
+not a place on the drawing. Since `D-110` a connection line may carry the pipe's properties itself, and the implicit
 pipe it lowers to is inline the same way. The drawing shows only a pipe's label and, in the ladder picture, a hollow dot
 with the node's name -- the line *is* the pipe. (The user's step 2 correction: `PU1 - HE1` puts a
 node between the two that the script never wrote, and the pump and the exchanger must sit at the
@@ -468,8 +473,8 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   the first free side. The layout makes room rather than searching for it: while a form places a
   component, a device's bubbles count in the clearance as its box does, every stub -- the first margin
   of pipe out of a port -- keeps out of every bubble's clearance, and a run carrying a sensor's node
-  (`Reserve`) is laid at least long enough that, cut evenly by A5, each bubble on it keeps a margin
-  from the boxes at both ends and from the next bubble. A fragment's extent includes its bubbles, so
+  (`Reserve`) is laid at least long enough that, cut by A5 -- where only the bubbles' points have a share
+  (`D-184`) -- each bubble on it keeps a margin from the boxes at both ends and from the next bubble. A fragment's extent includes its bubbles, so
   the next circuit stacks under them (C17). The only signal routed is a controller's measurement, from
   the sensor it reads through, and it crosses the drawing (`D-152`): only an inner box stops it, a
   margin is a cost, it never runs along a pipe and crosses one only a quarter margin or more from the

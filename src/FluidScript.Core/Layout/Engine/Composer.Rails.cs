@@ -861,7 +861,7 @@ internal sealed partial class Composer
                 continue;
             }
 
-            var pieces = Sheet.Pieces(line, run.Inline.Length, draft.CutAtFrom ? forward : null);
+            var pieces = Sheet.Pieces(line, _sheet.Cuts(run), draft.CutAtFrom ? forward : null);
 
             for (var t = 0; t < run.Inline.Length; t++)
             {

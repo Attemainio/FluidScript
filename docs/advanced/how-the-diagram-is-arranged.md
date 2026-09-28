@@ -68,7 +68,10 @@ moves to make room.
 **A pipe is a line, not a box.** A declared `pipe` and the pieces a pipe is split into have no box:
 they are points on the run between the two elements either side of them, and the line through them
 *is* the pipe; a pipe shows only its name beside the line. A node where three or more pipes meet is
-drawn as a small dot, with at most one pipe on each of its four sides.
+drawn as a small dot, with at most one pipe on each of its four sides. **Only what is drawn takes
+room:** a pipe's length is never drawn -- a diagram shows the system, not the pipework -- and a pipe,
+or a node the language added between two components, costs the line no length. A line is made longer
+only for a sensor standing on it.
 
 **Every node has a place of its own.** The language terminates every port you left unconnected
 with a boundary node so the circuit is complete ([how a script becomes a
@@ -118,7 +121,7 @@ valve along the bottom into the tank's right side. A sensor stands on the node i
 and a controller on the component it drives, joined to it by a short straight line; a sensor takes
 the side of its pipe its controller stands on, so the line between them does not cross the pipe; room
 for each instrument is kept while the pipes are laid, so a pipe that leaves an exchanger beside a
-valve turns below the valve's controller, and a pipe carrying a sensor is drawn long enough for it; the controller's
+valve turns below the valve's controller, and a pipe carrying a sensor is drawn long enough for its bubble, and for nothing else on it; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a
 symbol but never along a pipe, and it crosses a pipe away from its ends, so a crossing never looks
